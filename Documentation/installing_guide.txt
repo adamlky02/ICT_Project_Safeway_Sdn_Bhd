@@ -36,6 +36,28 @@ source venv/bin/activate
 python -m pip install --upgrade pip
 pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt "python-jose[cryptography]"
 
+## if =
+note: This error originates from a subprocess, and is likely not a problem with pip.
+ERROR: Failed building wheel for greenlet
+Failed to build greenlet
+error: failed-wheel-build-for-install
+× Failed to build installable wheels for some pyproject.toml based projects
+╰─> greenlet
+|
+
+## Can try =
+pip install --upgrade pip
+pip install --only-binary :all: greenlet
+pip install sqlalchemy psycopg2-binary
+
+OR
+
+# 1. Force upgrade pip to find latest wheels
+python -m pip install --upgrade pip
+# 2. Install greenlet specifically using the binary-only flag
+pip install --only-binary :all: greenlet==3.1.1
+# 3. Install the rest
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt python-jose[cryptography]
 
 ### B. Frontend Setup
 Open a new terminal tab:c

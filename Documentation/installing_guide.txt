@@ -34,13 +34,14 @@ source venv/bin/activate
 
 # Install Dependencies
 python -m pip install --upgrade pip
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt python-jose[cryptography]
-```
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt "python-jose[cryptography]"
+
 
 ### B. Frontend Setup
-Open a new terminal tab:
+Open a new terminal tab:c
 ```bash
 cd frontend
+
 # Install Node Packages
 npm install
 # Ensure Tailwind v4 & Router are installed

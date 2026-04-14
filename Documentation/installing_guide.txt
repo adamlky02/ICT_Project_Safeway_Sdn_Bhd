@@ -1,72 +1,118 @@
-🐍 Step 2: Backend Setup (Python)
-Open a terminal in the backend folder:
-code
-Bash
+
+# 📘 Safeway AI Chatbot - Team Setup Manual
+
+This project is a Full-Stack Web Application for **Safeway Sdn Bhd**. 
+- **Backend:** FastAPI (Python)
+- **Frontend:** React (Vite + Tailwind CSS v4)
+- **Database:** Neon DB (PostgreSQL)
+
+---
+
+## 1. Prerequisites
+Ensure you have the following installed before starting:
+*   **Python 3.11 or 3.12** (Avoid 3.13 for library compatibility).
+*   **Node.js (LTS Version)**.
+*   **Git**.
+
+---
+
+## 2. One-Time Environment Setup
+After pulling the source code, run these commands to set up your local environment.
+
+### A. Backend Setup
+Open your terminal in the root folder:
+```bash
 cd backend
-Create and activate a Virtual Environment:
-code
-Bash
+# Create Virtual Environment
 python -m venv venv
+
+# Activate Virtual Environment
 # Windows:
 .\venv\Scripts\activate
 # Mac/Linux:
 source venv/bin/activate
-Upgrade Pip:
-code
-Bash
+
+# Install Dependencies
 python -m pip install --upgrade pip
-Install Dependencies (Using binary versions to avoid C++ compiler errors):
-code
-Bash
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv passlib[bcrypt] python-jose[cryptography]
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt python-jose[cryptography]
+```
 
-Step 3: Frontend Setup (React + Tailwind v4)
-Open a new terminal in the frontend folder:
+### B. Frontend Setup
+Open a new terminal tab:
+```bash
 cd frontend
-
-Install Core Dependencies:
+# Install Node Packages
 npm install
-npm install react-router-dom axios lucide-react
-Install Tailwind CSS v4 Dependencies:
-npm install tailwindcss @tailwindcss/postcss postcss autoprefixer
+# Ensure Tailwind v4 & Router are installed
+npm install react-router-dom axios lucide-react tailwindcss @tailwindcss/postcss postcss autoprefixer
+```
 
-🔑 Step 4: Environment Variables (.env)
-You must create two .env files. These are ignored by Git for security.
-1. Backend: Create backend/.env
-code
-Env
-DATABASE_URL=your_neon_db_connection_string_here
-SECRET_KEY=safeway_internal_secret_2024
-2. Frontend: Create frontend/.env
-code
-Env
-VITE_API_URL=http://localhost:8000
+---
 
-🎨 Step 5: Tailwind v4 Configuration
-Ensure these files are configured correctly to avoid PostCSS errors:
-frontend/postcss.config.js:
-code
-JavaScript
-export default {
-  plugins: {
-    '@tailwindcss/postcss': {},
-  },
-}
-frontend/src/index.css:
-(Delete everything and replace with this)
-code
-CSS
-@import "tailwindcss";
+## 3. Configuration (Environment Variables)
+You must create the secret files that are not included in Git.
 
-🚀 Step 6: Running the Project
-You don't need to run two commands. Use the Master Runner script from the root folder:
-Go to the root directory:
-code
-Bash
-cd ..
-Run the application:
-code
-Bash
+1.  **Backend Secret:** Create `backend/.env`
+    ```env
+    DATABASE_URL=postgresql://[USER]:[PASSWORD]@[HOST]/neondb?sslmode=require
+    SECRET_KEY=safeway_internal_secret_2024
+    ```
+    *(Ask the lead developer for the Neon DB connection string)*
+
+2.  **Frontend Secret:** Create `frontend/.env`
+    ```env
+    VITE_API_URL=http://localhost:8000
+    ```
+
+---
+
+## 4. Database Initialization (Seeding)
+To log in, you need the mock users (Admin/Staff) in your database. Run this once:
+```bash
+cd backend
+python seed_db.py
+```
+**Test Credentials Created:**
+*   **Admin:** `admin@safeway.com` / `admin123`
+*   **Staff:** `staff@safeway.com` / `staff123`
+
+---
+
+## 5. Running the Application
+You do **not** need to open multiple terminals. Use the Master Runner script from the root directory:
+
+```bash
+# Make sure you are in the root directory (ICT_Project_Safeway_Sdn_Bhd)
 python run_app.py
-Access the Web App: http://localhost:5173
-Access API Docs: http://localhost:8000/docs
+```
+
+### Access Points:
+*   **Web App:** [http://localhost:5173](http://localhost:5173)
+*   **API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🛠 Troubleshooting Common Issues
+
+### 1. "NPM is not recognized"
+**Solution:** Restart your IDE (WebStorm/VS Code) after installing Node.js.
+
+### 2. "Blank White Screen" in Browser
+**Solution:** 
+1. Open Browser Console (**F12**).
+2. If it says `Module Not Found`, check `frontend/src/App.jsx` and ensure all imports match the filenames in `src/pages/` exactly (case-sensitive).
+
+### 3. "Port 5173 is in use"
+**Solution:** The app will automatically move to `http://localhost:5174`. Check the terminal output for the correct URL.
+
+### 4. "Bcrypt / Passlib Error"
+**Solution:** Ensure you ran `pip uninstall passlib` and installed `bcrypt` directly as per the latest update.
+
+---
+
+## 📝 Contribution Rules
+1. **Branching:** Create a new branch for every feature (`git checkout -b feature-chat-ui`).
+2. **Secrets:** Never commit your `.env` files to GitHub.
+3. **Frontend:** Use Tailwind utility classes for all styling to maintain consistency with the Safeway brand.
+
+---

@@ -4,8 +4,9 @@ from database import Base
 
 class User(Base):
     __tablename__ = "User_list"
-    # Note the double quotes inside the string for the schema with a space
-    __table_args__ = {"schema": '"AI chatbot"'}
+    # Just the string, no extra internal quotes.
+    # SQLAlchemy will handle the double-quoting for the space automatically.
+    __table_args__ = {"schema": "AI chatbot"}
 
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     email = Column(String(255), unique=True, nullable=False)

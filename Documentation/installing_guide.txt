@@ -1,0 +1,72 @@
+🐍 Step 2: Backend Setup (Python)
+Open a terminal in the backend folder:
+code
+Bash
+cd backend
+Create and activate a Virtual Environment:
+code
+Bash
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+Upgrade Pip:
+code
+Bash
+python -m pip install --upgrade pip
+Install Dependencies (Using binary versions to avoid C++ compiler errors):
+code
+Bash
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv passlib[bcrypt] python-jose[cryptography]
+
+Step 3: Frontend Setup (React + Tailwind v4)
+Open a new terminal in the frontend folder:
+cd frontend
+
+Install Core Dependencies:
+npm install
+npm install react-router-dom axios lucide-react
+Install Tailwind CSS v4 Dependencies:
+npm install tailwindcss @tailwindcss/postcss postcss autoprefixer
+
+🔑 Step 4: Environment Variables (.env)
+You must create two .env files. These are ignored by Git for security.
+1. Backend: Create backend/.env
+code
+Env
+DATABASE_URL=your_neon_db_connection_string_here
+SECRET_KEY=safeway_internal_secret_2024
+2. Frontend: Create frontend/.env
+code
+Env
+VITE_API_URL=http://localhost:8000
+
+🎨 Step 5: Tailwind v4 Configuration
+Ensure these files are configured correctly to avoid PostCSS errors:
+frontend/postcss.config.js:
+code
+JavaScript
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+}
+frontend/src/index.css:
+(Delete everything and replace with this)
+code
+CSS
+@import "tailwindcss";
+
+🚀 Step 6: Running the Project
+You don't need to run two commands. Use the Master Runner script from the root folder:
+Go to the root directory:
+code
+Bash
+cd ..
+Run the application:
+code
+Bash
+python run_app.py
+Access the Web App: http://localhost:5173
+Access API Docs: http://localhost:8000/docs

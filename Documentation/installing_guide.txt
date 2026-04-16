@@ -34,8 +34,8 @@ source venv/bin/activate
 
 # Install Dependencies
 python -m pip install --upgrade pip
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt "python-jose[cryptography]"
-
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt"python-jose[cryptography]"
+python -m pip install bcrypt fastapi uvicorn python-dotenv "python-jose[cryptography]"
 ## if =
 note: This error originates from a subprocess, and is likely not a problem with pip.
 ERROR: Failed building wheel for greenlet
@@ -98,7 +98,6 @@ python seed_db.py
 **Test Credentials Created:**
 *   **Admin:** `admin@safeway.com` / `admin123`
 *   **Staff:** `staff@safeway.com` / `staff123`
-
 ---
 
 ## 5. Running the Application

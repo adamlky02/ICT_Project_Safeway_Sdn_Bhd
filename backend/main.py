@@ -1,112 +1,86 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import bcrypt
-from datetime import datetime, timedelta
-from jose import jwt
-from typing import Optional
+import database, models
 
-# Import your local database and model files
-import database
-import models
+app = FastAPI()
 
-# --- CONFIGURATION ---
-SECRET_KEY = "safeway_internal_secret_key_change_this_later"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1440 # 24 hours
-
-app = FastAPI(title="Safeway AI Chatbot API")
-
-# Allow both 5173 and 5174 in case one is busy
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- PYDANTIC SCHEMAS (For Request Validation) ---
-class LoginRequest(BaseModel):
+# --- Request Schemas ---
+class LoginReq(BaseModel):
     email: str
     password: str
     role: str
 
-class ChatRequest(BaseModel):
-    message: str
+class StaffCreate(BaseModel):
+    username: str
+    password: str
+    full_name: str
 
-# --- AUTH UTILS ---
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode('utf-8'),
-        hashed_password.encode('utf-8')
-    )
+class DocCreate(BaseModel):
+    title: str
+    content: str
+    category: str
+    admin_id: str
 
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-# --- ROUTES ---
-
-@app.get("/")
-def home():
-    return {
-        "status": "Safeway API is online",
-        "database": "Connected to Neon DB",
-        "docs": "/docs"
-    }
-
+# --- Authentication ---
 @app.post("/api/login")
-def login(req: LoginRequest, db: Session = Depends(database.get_db)):
-    # 1. Look for the user in your Neon "User_list" table
+def login(req: LoginReq, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()
-
-    # 2. Check if user exists and role matches
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+    if not user or not bcrypt.checkpw(req.password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if user.role != req.role:
-        raise HTTPException(status_code=403, detail=f"Access denied: This portal is for {req.role} only")
-
-    # 3. Verify the Bcrypt password
-    if not verify_password(req.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Incorrect password")
-
-    # 4. Generate JWT Token
-    token = create_access_token(data={"sub": user.email, "role": user.role})
+        raise HTTPException(status_code=403, detail=f"This portal is for {req.role}s only")
 
     return {
-        "token": token,
-        "role": user.role,
+        "id": str(user.id),
         "email": user.email,
-        "message": "Login successful"
+        "role": user.role,
+        "name": user.full_name
     }
 
-@app.post("/api/chat")
-async def chat_endpoint(req: ChatRequest):
-    # This is a placeholder for your future RAG/AI logic
-    user_input = req.message.lower()
+# --- Admin: Staff Management ---
+@app.get("/api/admin/users")
+def get_users(db: Session = Depends(database.get_db)):
+    return db.query(models.User).all()
 
-    # Mock response for prototype
-    if "leave" in user_input:
-        response = "According to the Safeway Handbook, employees are entitled to 14 days of leave."
-    elif "safety" in user_input:
-        response = "Safety manuals require all staff to wear PPE in the warehouse."
-    else:
-        response = "I have received your query. Once AI integration is complete, I will search the internal manuals for a specific answer."
+@app.post("/api/admin/users")
+def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
+    email = f"{req.username}@safeway.com"
+    hashed = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    new_user = models.User(email=email, password_hash=hashed, full_name=req.full_name, role="staff")
+    db.add(new_user)
+    db.commit()
+    return {"message": "Success"}
 
-    return {"sender": "bot", "message": response}
+@app.delete("/api/admin/users/{uid}")
+def delete_user(uid: str, db: Session = Depends(database.get_db)):
+    db.query(models.User).filter(models.User.id == uid).delete()
+    db.commit()
+    return {"message": "Deleted"}
 
-# --- DOCUMENT MANAGEMENT (For Admin) ---
-@app.get("/api/admin/stats")
-def get_stats(db: Session = Depends(database.get_db)):
-    # Just a mock for now to show on the Admin Dashboard
-    user_count = db.query(models.User).count()
-    return {
-        "total_users": user_count,
-        "documents_indexed": 12,
-        "system_status": "Healthy"
-    }
+# --- Admin: Knowledge Base Management ---
+@app.get("/api/admin/documents")
+def get_docs(db: Session = Depends(database.get_db)):
+    return db.query(models.KnowledgeBase).all()
+
+@app.post("/api/admin/documents")
+def add_doc(req: DocCreate, db: Session = Depends(database.get_db)):
+    new_doc = models.KnowledgeBase(
+        title=req.title,
+        content=req.content,
+        category=req.category,
+        uploaded_by=req.admin_id
+    )
+    db.add(new_doc)
+    db.commit()
+    return {"message": "Document uploaded"}

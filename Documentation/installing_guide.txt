@@ -138,3 +138,10 @@ python run_app.py
 3. **Frontend:** Use Tailwind utility classes for all styling to maintain consistency with the Safeway brand.
 
 ---
+
+For file_uploader
+cd backend
+pip install python-multipart
+
+# Ensure you are using the python inside your venv
+python -m pip install python-multipart

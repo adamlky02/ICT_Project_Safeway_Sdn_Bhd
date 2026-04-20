@@ -139,7 +139,7 @@ python run_app.py
 
 ---
 
-For file_uploader
+For file_uploader(pending)
 cd backend
 pip install python-multipart
 

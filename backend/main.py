@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 import database, models
+from email_utils import send_staff_credentials_email
 
 app = FastAPI()
 
@@ -60,11 +61,23 @@ def get_users(db: Session = Depends(database.get_db)):
 @app.post("/api/admin/users")
 def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
     email = f"{req.username}@safeway.com"
-    hashed = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    default_password = "staffdefault123"
+    hashed = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     new_user = models.User(email=email, password_hash=hashed, full_name=req.full_name, role="staff")
     db.add(new_user)
     db.commit()
-    return {"message": "Success"}
+    
+    # Send welcome email with credentials
+    email_sent = send_staff_credentials_email(email, default_password)
+    
+    return {
+        "message": "Success",
+        "email_sent": email_sent,
+        "credentials": {
+            "username": email,
+            "password": default_password
+        }
+    }
 
 @app.delete("/api/admin/users/{uid}")
 def delete_user(uid: str, db: Session = Depends(database.get_db)):

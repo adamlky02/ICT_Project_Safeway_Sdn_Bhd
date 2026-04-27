@@ -6,6 +6,7 @@ from typing import List
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 
 import database, models
@@ -33,8 +34,18 @@ class LoginReq(BaseModel):
 
 class StaffCreate(BaseModel):
     username: str
-    password: str
     full_name: str
+
+class StaffUpdate(BaseModel):
+    username: str
+    password: str | None = None
+    full_name: str
+
+def _normalize_username(username: str) -> str:
+    clean = username.strip().lower()
+    if clean.endswith("@safeway.com"):
+        clean = clean[:-12]
+    return clean
 
 # --- Authentication ---
 @app.post("/api/login")
@@ -60,24 +71,51 @@ def get_users(db: Session = Depends(database.get_db)):
 
 @app.post("/api/admin/users")
 def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
-    email = f"{req.username}@safeway.com"
+    username = _normalize_username(req.username)
+    email = f"{username}@safeway.com"
     default_password = "staffdefault123"
     hashed = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     new_user = models.User(email=email, password_hash=hashed, full_name=req.full_name, role="staff")
-    db.add(new_user)
-    db.commit()
+    try:
+        db.add(new_user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Staff email already exists")
     
     # Send welcome email with credentials
     email_sent = send_staff_credentials_email(email, default_password)
     
     return {
-        "message": "Success",
+        "message": "Success" if email_sent else "Staff created but email sending failed",
         "email_sent": email_sent,
         "credentials": {
             "username": email,
             "password": default_password
         }
     }
+
+@app.put("/api/admin/users/{uid}")
+def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.id == uid, models.User.role == "staff").first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Staff user not found")
+
+    username = _normalize_username(req.username)
+    user.email = f"{username}@safeway.com"
+    user.full_name = req.full_name
+
+    # Keep the existing password when the edit form leaves it blank.
+    if req.password and req.password.strip():
+        user.password_hash = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Staff email already exists")
+
+    return {"message": "Updated"}
 
 @app.delete("/api/admin/users/{uid}")
 def delete_user(uid: str, db: Session = Depends(database.get_db)):

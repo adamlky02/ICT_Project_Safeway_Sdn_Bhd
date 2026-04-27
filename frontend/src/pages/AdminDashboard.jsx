@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File } from 'lucide-react';
+import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('staff');
     const [data, setData] = useState({ users: [], docs: [] });
+    const [editingUser, setEditingUser] = useState(null);
+    const [editForm, setEditForm] = useState({ full_name: '', username: '', password: '' });
 
     // State for file upload
     const [selectedFile, setSelectedFile] = useState(null);
     const [form, setForm] = useState({
         username: '',
-        password: '',
         full_name: '',
         title: '',
         category: 'HR'
@@ -45,12 +46,11 @@ const AdminDashboard = () => {
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     username: form.username,
-                    password: form.password,
                     full_name: form.full_name
                 })
             });
             if (res.ok) {
-                setForm({...form, username: '', password: '', full_name: ''});
+                setForm({...form, username: '', full_name: ''});
                 loadData();
                 alert("Staff account created!");
             } else {
@@ -59,6 +59,48 @@ const AdminDashboard = () => {
             }
         } catch (error) {
             alert("Network error. Could not reach server.");
+        }
+    };
+
+    const openEditUser = (user) => {
+        const username = user.email?.endsWith('@safeway.com')
+            ? user.email.replace('@safeway.com', '')
+            : user.email || '';
+
+        setEditingUser(user);
+        setEditForm({
+            full_name: user.full_name || '',
+            username,
+            password: ''
+        });
+    };
+
+    const handleEditUser = async (e) => {
+        e.preventDefault();
+        if (!editingUser) return;
+
+        try {
+            const res = await fetch(`http://localhost:8000/api/admin/users/${editingUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    full_name: editForm.full_name,
+                    username: editForm.username,
+                    password: editForm.password
+                })
+            });
+
+            if (res.ok) {
+                alert('Staff account updated!');
+                setEditingUser(null);
+                setEditForm({ full_name: '', username: '', password: '' });
+                loadData();
+            } else {
+                const err = await res.json();
+                alert(`Failed to update user: ${err.detail || 'Unknown error'}`);
+            }
+        } catch (error) {
+            alert('Network error. Could not reach server.');
         }
     };
 
@@ -156,7 +198,7 @@ const AdminDashboard = () => {
                 {tab === 'staff' ? (
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-2xl font-bold mb-6 text-slate-800">Staff Account Management</h2>
-                        <form onSubmit={handleAddUser} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 grid grid-cols-3 gap-4">
+                        <form onSubmit={handleAddUser} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1">
                                 <label className="text-sm font-semibold text-slate-600">Full Name</label>
                                 <input className="border p-2 rounded outline-blue-500" value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} required />
@@ -165,11 +207,7 @@ const AdminDashboard = () => {
                                 <label className="text-sm font-semibold text-slate-600">Username (@safeway.com)</label>
                                 <input className="border p-2 rounded outline-blue-500" value={form.username} onChange={e => setForm({...form, username: e.target.value})} required />
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="text-sm font-semibold text-slate-600">Password</label>
-                                <input type="password" className="border p-2 rounded outline-blue-500" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required />
-                            </div>
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded col-span-3 font-bold transition flex items-center justify-center gap-2 mt-2">
+                            <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded col-span-2 font-bold transition flex items-center justify-center gap-2 mt-2">
                                 <UserPlus size={20}/> Create Staff Account
                             </button>
                         </form>
@@ -185,12 +223,78 @@ const AdminDashboard = () => {
                                         <p className="font-bold text-slate-800">{u.full_name}</p>
                                         <p className="text-sm text-slate-500">{u.email}</p>
                                     </div>
-                                    <button onClick={() => deleteItem('users', u.id)} className="text-red-500 hover:bg-red-50 p-2 rounded transition">
-                                        <Trash2 size={20}/>
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => openEditUser(u)}
+                                            className="text-blue-500 hover:bg-blue-50 p-2 rounded transition"
+                                            aria-label="Edit user"
+                                            title="Edit"
+                                        >
+                                            <Pencil size={20}/>
+                                        </button>
+                                        <button onClick={() => deleteItem('users', u.id)} className="text-red-500 hover:bg-red-50 p-2 rounded transition" aria-label="Delete user" title="Delete">
+                                            <Trash2 size={20}/>
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
+
+                        {editingUser && (
+                            <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white w-full max-w-xl rounded-xl shadow-lg border border-slate-200 p-6">
+                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Edit Staff Account</h3>
+                                    <form onSubmit={handleEditUser} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="flex flex-col gap-1 md:col-span-3">
+                                            <label className="text-sm font-semibold text-slate-600">Full Name</label>
+                                            <input
+                                                className="border p-2 rounded outline-blue-500"
+                                                value={editForm.full_name}
+                                                onChange={e => setEditForm({ ...editForm, full_name: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1 md:col-span-2">
+                                            <label className="text-sm font-semibold text-slate-600">Username (@safeway.com)</label>
+                                            <input
+                                                className="border p-2 rounded outline-blue-500"
+                                                value={editForm.username}
+                                                onChange={e => setEditForm({ ...editForm, username: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1 md:col-span-1">
+                                            <label className="text-sm font-semibold text-slate-600">Password</label>
+                                            <input
+                                                type="password"
+                                                className="border p-2 rounded outline-blue-500"
+                                                value={editForm.password}
+                                                onChange={e => setEditForm({ ...editForm, password: e.target.value })}
+                                                placeholder="Leave blank to keep"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-3 flex justify-end gap-2 mt-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingUser(null);
+                                                    setEditForm({ full_name: '', username: '', password: '' });
+                                                }}
+                                                className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                                            >
+                                                Save Changes
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="max-w-4xl mx-auto">

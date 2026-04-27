@@ -5,13 +5,24 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
-# Email Configuration (use environment variables or defaults)
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SENDER_EMAIL = os.getenv("SENDER_EMAIL", "safeway.noreply@gmail.com")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "")
+
+def _clean_env(value: str, remove_all_spaces: bool = False) -> str:
+    if not value:
+        return ""
+    # Support accidental inline comments in .env values.
+    value = value.split("#", 1)[0].strip()
+    return value.replace(" ", "") if remove_all_spaces else value
+
+def _get_email_config():
+    # Reload .env on each send so recent changes are picked up immediately.
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
+    smtp_server = _clean_env(os.getenv("SMTP_SERVER", "smtp.gmail.com"))
+    smtp_port = int(_clean_env(os.getenv("SMTP_PORT", "587")) or "587")
+    sender_email = _clean_env(os.getenv("SENDER_EMAIL", "safeway.noreply@gmail.com"))
+    sender_password = _clean_env(os.getenv("SENDER_PASSWORD", ""), remove_all_spaces=True)
+    return smtp_server, smtp_port, sender_email, sender_password
 
 def send_staff_credentials_email(recipient_email: str, password: str) -> bool:
     """
@@ -25,10 +36,12 @@ def send_staff_credentials_email(recipient_email: str, password: str) -> bool:
         bool: True if email sent successfully, False otherwise
     """
     try:
+        smtp_server, smtp_port, sender_email, sender_password = _get_email_config()
+
         # Create the email message
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "Your Safeway AI Assistant Staff Account Created"
-        msg["From"] = SENDER_EMAIL
+        msg["From"] = sender_email
         msg["To"] = recipient_email
 
         # Create plain text and HTML versions of the email
@@ -82,9 +95,9 @@ Safeway AI Assistant Team
         msg.attach(part2)
 
         # Connect to the SMTP server and send the email
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
             server.starttls()  # Secure the connection
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.login(sender_email, sender_password)
             server.send_message(msg)
 
         print(f"✅ Email sent successfully to {recipient_email}")

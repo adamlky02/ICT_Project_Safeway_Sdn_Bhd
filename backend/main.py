@@ -158,8 +158,7 @@ async def upload_document(
         new_doc = models.KnowledgeBase(
             title=title,
             category=category,
-            content=f"Path: {file_path}", # Placeholder for text extraction later
-            file_path=file_path,
+            file_path=file_path,      # <--- 'content' was here, now it's gone!
             file_type=extension,
             file_size=file.size,
             uploaded_by=admin_id
@@ -172,6 +171,7 @@ async def upload_document(
         if os.path.exists(file_path):
             os.remove(file_path) # Clean up file if DB fails
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.delete("/api/admin/documents/{did}")
 def delete_doc(did: int, db: Session = Depends(database.get_db)):

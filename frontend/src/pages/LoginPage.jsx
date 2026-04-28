@@ -22,18 +22,19 @@ const LoginPage = () => {
                 body: JSON.stringify({ email, password, role }),
             });
 
+            const data = await response.json();
+
             if (response.ok) {
-                const data = await response.json();
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("role", data.role);
+                // CRITICAL LINE: This saves the ID into the browser memory!
+                localStorage.setItem("userData", JSON.stringify(data));
 
                 if (data.role === 'admin') navigate('/admin');
                 else navigate('/chat');
             } else {
-                setError("Invalid credentials for " + role + " portal.");
+                setError(data.detail || "Login failed");
             }
         } catch (err) {
-            setError("Server is not running. Please start the backend.");
+            setError("Network error: Check if backend is running.");
         }
     };
 

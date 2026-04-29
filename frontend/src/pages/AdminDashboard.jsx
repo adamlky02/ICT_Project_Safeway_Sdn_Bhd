@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('staff');
     const [data, setData] = useState({ users: [], docs: [] });
+
+    // Edit User States
     const [editingUser, setEditingUser] = useState(null);
     const [editForm, setEditForm] = useState({ full_name: '', username: '', password: '' });
 
@@ -22,13 +26,13 @@ const AdminDashboard = () => {
 
     const loadData = async () => {
         try {
-            const uRes = await fetch("http://localhost:8000/api/admin/users");
-            const dRes = await fetch("http://localhost:8000/api/admin/documents");
+            // FIX: Use dynamic API_URL
+            const uRes = await fetch(`${API_URL}/api/admin/users`);
+            const dRes = await fetch(`${API_URL}/api/admin/documents`);
 
             const u = uRes.ok ? await uRes.json() : [];
             const d = dRes.ok ? await dRes.json() : [];
 
-            // CRITICAL FIX: Ensure they are arrays so .map() doesn't crash the page
             setData({
                 users: Array.isArray(u) ? u : [],
                 docs: Array.isArray(d) ? d : []
@@ -41,16 +45,18 @@ const AdminDashboard = () => {
     const handleAddUser = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch("http://localhost:8000/api/admin/users", {
+            // FIX: Use dynamic API_URL
+            const res = await fetch(`${API_URL}/api/admin/users`, {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({
                     username: form.username,
+                    password: form.password, // Added password here just in case you add it back to the form
                     full_name: form.full_name
                 })
             });
             if (res.ok) {
-                setForm({...form, username: '', full_name: ''});
+                setForm({...form, username: '', password: '', full_name: ''});
                 loadData();
                 alert("Staff account created!");
             } else {
@@ -80,7 +86,8 @@ const AdminDashboard = () => {
         if (!editingUser) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/admin/users/${editingUser.id}`, {
+            // FIX: Use dynamic API_URL
+            const res = await fetch(`${API_URL}/api/admin/users/${editingUser.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -122,7 +129,8 @@ const AdminDashboard = () => {
         formData.append("admin_id", userData.id);
 
         try {
-            const res = await fetch("http://localhost:8000/api/admin/upload", {
+            // FIX: Use dynamic API_URL
+            const res = await fetch(`${API_URL}/api/admin/upload`, {
                 method: "POST",
                 body: formData
             });
@@ -131,10 +139,8 @@ const AdminDashboard = () => {
                 alert("Document uploaded successfully!");
                 setForm({...form, title: ''});
                 setSelectedFile(null);
-                // Reset the actual HTML file input
                 const fileInput = document.getElementById("file-upload");
                 if (fileInput) fileInput.value = "";
-
                 loadData();
             } else {
                 const err = await res.json();
@@ -152,7 +158,8 @@ const AdminDashboard = () => {
         const endpoint = type === 'users' ? 'users' : 'documents';
 
         try {
-            await fetch(`http://localhost:8000/api/admin/${endpoint}/${id}`, { method: "DELETE" });
+            // FIX: Use dynamic API_URL
+            await fetch(`${API_URL}/api/admin/${endpoint}/${id}`, { method: "DELETE" });
             loadData();
         } catch (err) {
             alert("Failed to delete item.");
@@ -172,23 +179,14 @@ const AdminDashboard = () => {
                     <Upload size={24} /> Safeway Admin
                 </h1>
                 <div className="space-y-2 flex-1">
-                    <button
-                        onClick={() => setTab('staff')}
-                        className={`w-full flex items-center p-3 rounded transition ${tab === 'staff' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800'}`}
-                    >
+                    <button onClick={() => setTab('staff')} className={`w-full flex items-center p-3 rounded transition ${tab === 'staff' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800'}`}>
                         <Users className="mr-2" size={20}/> Staff Accounts
                     </button>
-                    <button
-                        onClick={() => setTab('docs')}
-                        className={`w-full flex items-center p-3 rounded transition ${tab === 'docs' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800'}`}
-                    >
+                    <button onClick={() => setTab('docs')} className={`w-full flex items-center p-3 rounded transition ${tab === 'docs' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800'}`}>
                         <FileText className="mr-2" size={20}/> Document Repository
                     </button>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center text-red-400 p-3 mt-auto hover:bg-red-900/20 rounded transition"
-                >
+                <button onClick={handleLogout} className="flex items-center text-red-400 p-3 mt-auto hover:bg-red-900/20 rounded transition">
                     <LogOut className="mr-2" size={20}/> Logout
                 </button>
             </div>
@@ -207,6 +205,10 @@ const AdminDashboard = () => {
                                 <label className="text-sm font-semibold text-slate-600">Username (@safeway.com)</label>
                                 <input className="border p-2 rounded outline-blue-500" value={form.username} onChange={e => setForm({...form, username: e.target.value})} required />
                             </div>
+                            {/* Notice: No password input here anymore! */}
+                            <div className="col-span-2 text-xs text-slate-500 italic mb-2">
+                                * New accounts will automatically be assigned the default password: <strong>password123</strong>
+                            </div>
                             <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded col-span-2 font-bold transition flex items-center justify-center gap-2 mt-2">
                                 <UserPlus size={20}/> Create Staff Account
                             </button>
@@ -224,12 +226,7 @@ const AdminDashboard = () => {
                                         <p className="text-sm text-slate-500">{u.email}</p>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={() => openEditUser(u)}
-                                            className="text-blue-500 hover:bg-blue-50 p-2 rounded transition"
-                                            aria-label="Edit user"
-                                            title="Edit"
-                                        >
+                                        <button onClick={() => openEditUser(u)} className="text-blue-500 hover:bg-blue-50 p-2 rounded transition" aria-label="Edit user" title="Edit">
                                             <Pencil size={20}/>
                                         </button>
                                         <button onClick={() => deleteItem('users', u.id)} className="text-red-500 hover:bg-red-50 p-2 rounded transition" aria-label="Delete user" title="Delete">
@@ -240,6 +237,7 @@ const AdminDashboard = () => {
                             ))}
                         </div>
 
+                        {/* Edit User Modal */}
                         {editingUser && (
                             <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
                                 <div className="bg-white w-full max-w-xl rounded-xl shadow-lg border border-slate-200 p-6">
@@ -247,47 +245,21 @@ const AdminDashboard = () => {
                                     <form onSubmit={handleEditUser} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="flex flex-col gap-1 md:col-span-3">
                                             <label className="text-sm font-semibold text-slate-600">Full Name</label>
-                                            <input
-                                                className="border p-2 rounded outline-blue-500"
-                                                value={editForm.full_name}
-                                                onChange={e => setEditForm({ ...editForm, full_name: e.target.value })}
-                                                required
-                                            />
+                                            <input className="border p-2 rounded outline-blue-500" value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} required />
                                         </div>
                                         <div className="flex flex-col gap-1 md:col-span-2">
                                             <label className="text-sm font-semibold text-slate-600">Username (@safeway.com)</label>
-                                            <input
-                                                className="border p-2 rounded outline-blue-500"
-                                                value={editForm.username}
-                                                onChange={e => setEditForm({ ...editForm, username: e.target.value })}
-                                                required
-                                            />
+                                            <input className="border p-2 rounded outline-blue-500" value={editForm.username} onChange={e => setEditForm({ ...editForm, username: e.target.value })} required />
                                         </div>
                                         <div className="flex flex-col gap-1 md:col-span-1">
-                                            <label className="text-sm font-semibold text-slate-600">Password</label>
-                                            <input
-                                                type="password"
-                                                className="border p-2 rounded outline-blue-500"
-                                                value={editForm.password}
-                                                onChange={e => setEditForm({ ...editForm, password: e.target.value })}
-                                                placeholder="Leave blank to keep"
-                                            />
+                                            <label className="text-sm font-semibold text-slate-600">New Password</label>
+                                            <input type="password" className="border p-2 rounded outline-blue-500" value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep" />
                                         </div>
-                                        <div className="md:col-span-3 flex justify-end gap-2 mt-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditingUser(null);
-                                                    setEditForm({ full_name: '', username: '', password: '' });
-                                                }}
-                                                className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50"
-                                            >
+                                        <div className="md:col-span-3 flex justify-end gap-2 mt-4">
+                                            <button type="button" onClick={() => { setEditingUser(null); setEditForm({ full_name: '', username: '', password: '' }); }} className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
                                                 Cancel
                                             </button>
-                                            <button
-                                                type="submit"
-                                                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-                                            >
+                                            <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
                                                 Save Changes
                                             </button>
                                         </div>
@@ -317,17 +289,9 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="border-2 border-dashed border-slate-300 p-8 rounded-lg flex flex-col items-center justify-center bg-slate-50 hover:border-blue-400 transition cursor-pointer relative">
-                                <input
-                                    id="file-upload"
-                                    type="file"
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    onChange={(e) => setSelectedFile(e.target.files[0])}
-                                    accept=".pdf,.docx,.doc,.txt"
-                                />
+                                <input id="file-upload" type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFile(e.target.files[0])} accept=".pdf,.docx,.doc,.txt" />
                                 <Upload className="text-blue-500 mb-2" size={32} />
-                                <p className="text-slate-700 font-medium">
-                                    {selectedFile ? selectedFile.name : "Click or Drag file to upload"}
-                                </p>
+                                <p className="text-slate-700 font-medium">{selectedFile ? selectedFile.name : "Click or Drag file to upload"}</p>
                                 <p className="text-xs text-slate-500 mt-1">Supports PDF, Word, and Text files</p>
                             </div>
 

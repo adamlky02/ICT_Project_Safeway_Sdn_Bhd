@@ -69,31 +69,23 @@ def login(req: LoginReq, db: Session = Depends(database.get_db)):
 def get_users(db: Session = Depends(database.get_db)):
     return db.query(models.User).all()
 
+# 2. Update the create_staff route (Add default password)
 @app.post("/api/admin/users")
 def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
-    username = _normalize_username(req.username)
-    email = f"{username}@safeway.com"
-    default_password = "staffdefault123"
+    email = f"{req.username}@safeway.com"
+
+    # Check if user already exists
+    if db.query(models.User).filter(models.User.email == email).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    # Set a DEFAULT password for all new staff
+    default_password = "staff123"
     hashed = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
     new_user = models.User(email=email, password_hash=hashed, full_name=req.full_name, role="staff")
-    try:
-        db.add(new_user)
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="Staff email already exists")
-    
-    # Send welcome email with credentials
-    email_sent = send_staff_credentials_email(email, default_password)
-    
-    return {
-        "message": "Success" if email_sent else "Staff created but email sending failed",
-        "email_sent": email_sent,
-        "credentials": {
-            "username": email,
-            "password": default_password
-        }
-    }
+    db.add(new_user)
+    db.commit()
+    return {"message": "Success"}
 
 @app.put("/api/admin/users/{uid}")
 def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_db)):

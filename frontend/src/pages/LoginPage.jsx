@@ -11,12 +11,16 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
 
         try {
-            const response = await fetch("http://localhost:8000/api/login", {
+            // Change the fetch URL to use the API_URL variable
+            const response = await fetch(`${API_URL}/api/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password, role }),
@@ -25,9 +29,7 @@ const LoginPage = () => {
             const data = await response.json();
 
             if (response.ok) {
-                // CRITICAL LINE: This saves the ID into the browser memory!
                 localStorage.setItem("userData", JSON.stringify(data));
-
                 if (data.role === 'admin') navigate('/admin');
                 else navigate('/chat');
             } else {

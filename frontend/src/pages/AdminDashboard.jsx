@@ -207,7 +207,7 @@ const AdminDashboard = () => {
                             </div>
                             {/* Notice: No password input here anymore! */}
                             <div className="col-span-2 text-xs text-slate-500 italic mb-2">
-                                * New accounts will automatically be assigned the default password: <strong>password123</strong>
+                                * New accounts will automatically be assigned the default password: <strong>staff123</strong>
                             </div>
                             <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded col-span-2 font-bold transition flex items-center justify-center gap-2 mt-2">
                                 <UserPlus size={20}/> Create Staff Account

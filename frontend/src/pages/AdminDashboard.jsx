@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil } from 'lucide-react';
+import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -193,6 +193,16 @@ const AdminDashboard = () => {
 
             {/* Main Content */}
             <div className="flex-1 p-10 overflow-y-auto">
+                <div className="flex items-center justify-end mb-6">
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-blue-600 hover:border-blue-300 transition shadow-sm"
+                        title="Open profile"
+                    >
+                        <UserCircle2 size={20} />
+                        <span className="text-sm font-semibold">My Profile</span>
+                    </button>
+                </div>
                 {tab === 'staff' ? (
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-2xl font-bold mb-6 text-slate-800">Staff Account Management</h2>

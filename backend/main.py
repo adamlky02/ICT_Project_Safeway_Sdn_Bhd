@@ -41,6 +41,10 @@ class StaffUpdate(BaseModel):
     password: str | None = None
     full_name: str
 
+class ProfileUpdate(BaseModel):
+    full_name: str
+    password: str | None = None
+
 def _normalize_username(username: str) -> str:
     clean = username.strip().lower()
     if clean.endswith("@safeway.com"):
@@ -62,6 +66,41 @@ def login(req: LoginReq, db: Session = Depends(database.get_db)):
         "email": user.email,
         "role": user.role,
         "name": user.full_name
+    }
+
+# --- Profile Management ---
+@app.get("/api/profile/{uid}")
+def get_profile(uid: str, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "full_name": user.full_name
+    }
+
+@app.put("/api/profile/{uid}")
+def update_profile(uid: str, req: ProfileUpdate, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.full_name = req.full_name
+
+    if req.password and req.password.strip():
+        user.password_hash = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    db.commit()
+
+    return {
+        "message": "Profile updated successfully",
+        "id": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "full_name": user.full_name
     }
 
 # --- Admin: Staff Management ---

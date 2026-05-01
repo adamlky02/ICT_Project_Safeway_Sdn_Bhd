@@ -30,7 +30,7 @@ def send_staff_credentials_email(recipient_email: str, password: str) -> bool:
     
     Args:
         recipient_email: The staff member's email address
-        password: The temporary password (staffdefault123)
+        password: The temporary password (randomly generated)
     
     Returns:
         bool: True if email sent successfully, False otherwise

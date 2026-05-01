@@ -12,7 +12,8 @@ const ProfilePage = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const [form, setForm] = useState({ full_name: '', password: '' });
+    const [form, setForm] = useState({ full_name: '', password: '', confirmPassword: '' });
+    const [passwordError, setPasswordError] = useState('');
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -32,7 +33,7 @@ const ProfilePage = () => {
 
                 const data = await response.json();
                 setProfile(data);
-                setForm({ full_name: data.full_name || '', password: '' });
+                setForm({ full_name: data.full_name || '', password: '', confirmPassword: '' });
             } catch (err) {
                 setError('Unable to load profile. Please log in again.');
             } finally {
@@ -50,9 +51,17 @@ const ProfilePage = () => {
 
     const handleSave = async (e) => {
         e.preventDefault();
+        setPasswordError('');
         setSaving(true);
         setMessage('');
         setError('');
+
+        // Validate passwords match if password is being changed
+        if (form.password && form.password !== form.confirmPassword) {
+            setPasswordError('Passwords do not match');
+            setSaving(false);
+            return;
+        }
 
         try {
             const userData = JSON.parse(localStorage.getItem('userData') || '{}');
@@ -74,7 +83,7 @@ const ProfilePage = () => {
             const updated = { ...profile, full_name: data.full_name };
             setProfile(updated);
             localStorage.setItem('userData', JSON.stringify({ ...userData, name: data.full_name }));
-            setForm({ full_name: data.full_name, password: '' });
+            setForm({ full_name: data.full_name, password: '', confirmPassword: '' });
             setEditing(false);
             setMessage('Profile updated successfully.');
         } catch (err) {
@@ -168,13 +177,34 @@ const ProfilePage = () => {
                         <div>
                             <label className="block text-sm font-semibold text-slate-600 mb-2">Password</label>
                             {editing ? (
-                                <input
-                                    type="password"
-                                    value={form.password}
-                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Enter new password"
-                                />
+                                <>
+                                    <input
+                                        type="password"
+                                        value={form.password}
+                                        onChange={(e) => {
+                                            setForm({ ...form, password: e.target.value });
+                                            setPasswordError('');
+                                        }}
+                                        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                                        placeholder="Enter new password"
+                                    />
+                                    <label className="block text-sm font-semibold text-slate-600 mb-2">Confirm Password</label>
+                                    <input
+                                        type="password"
+                                        value={form.confirmPassword}
+                                        onChange={(e) => {
+                                            setForm({ ...form, confirmPassword: e.target.value });
+                                            setPasswordError('');
+                                        }}
+                                        className={`w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 ${
+                                            passwordError ? 'border-red-300 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'
+                                        }`}
+                                        placeholder="Confirm new password"
+                                    />
+                                    {passwordError && (
+                                        <p className="text-sm text-red-600 mt-2 font-medium">{passwordError}</p>
+                                    )}
+                                </>
                             ) : (
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 tracking-[0.3em] text-slate-700">
                                     *****
@@ -187,8 +217,8 @@ const ProfilePage = () => {
                                 <>
                                     <button
                                         type="submit"
-                                        disabled={saving}
-                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+                                        disabled={saving || (form.password && form.password !== form.confirmPassword)}
+                                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
                                     >
                                         <Check size={18} /> {saving ? 'Saving...' : 'Save Changes'}
                                     </button>
@@ -196,8 +226,9 @@ const ProfilePage = () => {
                                         type="button"
                                         onClick={() => {
                                             setEditing(false);
-                                            setForm({ full_name: profile.full_name || '', password: '' });
+                                            setForm({ full_name: profile.full_name || '', password: '', confirmPassword: '' });
                                             setError('');
+                                            setPasswordError('');
                                         }}
                                         className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50"
                                     >

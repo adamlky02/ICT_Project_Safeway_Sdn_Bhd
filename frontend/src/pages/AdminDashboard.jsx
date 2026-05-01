@@ -11,7 +11,13 @@ const AdminDashboard = () => {
 
     // Edit User States
     const [editingUser, setEditingUser] = useState(null);
-    const [editForm, setEditForm] = useState({ full_name: '', username: '', password: '' });
+    const [editForm, setEditForm] = useState({ full_name: '', username: '', password: '', role: 'staff' });
+    const [showPromoteConfirm, setShowPromoteConfirm] = useState(false);
+    const [pendingRole, setPendingRole] = useState(null);
+
+    // Generated Password Modal States
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [generatedPassword, setGeneratedPassword] = useState({ email: '', password: '' });
 
     // State for file upload
     const [selectedFile, setSelectedFile] = useState(null);
@@ -56,9 +62,12 @@ const AdminDashboard = () => {
                 })
             });
             if (res.ok) {
+                const data = await res.json();
                 setForm({...form, username: '', password: '', full_name: ''});
                 loadData();
-                alert("Staff account created!");
+                // Display the generated password modal
+                setGeneratedPassword({ email: data.email, password: data.password });
+                setShowPasswordModal(true);
             } else {
                 const err = await res.json();
                 alert(`Failed to add user: ${err.detail || 'Unknown error'}`);
@@ -77,8 +86,11 @@ const AdminDashboard = () => {
         setEditForm({
             full_name: user.full_name || '',
             username,
-            password: ''
+            password: '',
+            role: user.role || 'staff'
         });
+        setShowPromoteConfirm(false);
+        setPendingRole(null);
     };
 
     const handleEditUser = async (e) => {
@@ -93,14 +105,17 @@ const AdminDashboard = () => {
                 body: JSON.stringify({
                     full_name: editForm.full_name,
                     username: editForm.username,
-                    password: editForm.password
+                    password: editForm.password,
+                    role: editForm.role
                 })
             });
 
             if (res.ok) {
-                alert('Staff account updated!');
+                alert('Account updated!');
                 setEditingUser(null);
-                setEditForm({ full_name: '', username: '', password: '' });
+                setEditForm({ full_name: '', username: '', password: '', role: 'staff' });
+                setShowPromoteConfirm(false);
+                setPendingRole(null);
                 loadData();
             } else {
                 const err = await res.json();
@@ -171,6 +186,60 @@ const AdminDashboard = () => {
         navigate('/');
     };
 
+    const handleRoleToggle = (checked) => {
+        if (!editingUser) return;
+
+        const nextRole = checked ? 'admin' : 'staff';
+        if (nextRole === editForm.role) return;
+
+        setPendingRole(nextRole);
+        setShowPromoteConfirm(true);
+    };
+
+    const handlePromoteChoice = (confirmChange) => {
+        if (!editingUser || !pendingRole) {
+            setShowPromoteConfirm(false);
+            setPendingRole(null);
+            return;
+        }
+
+        if (confirmChange) {
+            setEditForm((current) => ({
+                ...current,
+                role: pendingRole
+            }));
+        }
+
+        setShowPromoteConfirm(false);
+        setPendingRole(null);
+    };
+
+    const sortedUsers = [...data.users].sort((left, right) => {
+        const leftName = (left.full_name || left.email || '').toLowerCase();
+        const rightName = (right.full_name || right.email || '').toLowerCase();
+        return leftName.localeCompare(rightName);
+    });
+
+    const adminUsers = sortedUsers.filter((user) => user.role === 'admin');
+    const staffUsers = sortedUsers.filter((user) => user.role === 'staff');
+
+    const renderUserRow = (user) => (
+        <div key={user.id} className="p-4 border-b flex justify-between items-center hover:bg-blue-50/30 transition">
+            <div>
+                <p className="font-bold text-slate-800">{user.full_name}</p>
+                <p className="text-sm text-slate-500">{user.email}</p>
+            </div>
+            <div className="flex items-center gap-1">
+                <button onClick={() => openEditUser(user)} className="text-blue-500 hover:bg-blue-50 p-2 rounded transition" aria-label="Edit user" title="Edit">
+                    <Pencil size={20}/>
+                </button>
+                <button onClick={() => deleteItem('users', user.id)} className="text-red-500 hover:bg-red-50 p-2 rounded transition" aria-label="Delete user" title="Delete">
+                    <Trash2 size={20}/>
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
@@ -217,7 +286,7 @@ const AdminDashboard = () => {
                             </div>
                             {/* Notice: No password input here anymore! */}
                             <div className="col-span-2 text-xs text-slate-500 italic mb-2">
-                                * New accounts will automatically be assigned the default password: <strong>staff123</strong>
+                                * New accounts will automatically be assigned a randomly generated password
                             </div>
                             <button className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded col-span-2 font-bold transition flex items-center justify-center gap-2 mt-2">
                                 <UserPlus size={20}/> Create Staff Account
@@ -229,29 +298,31 @@ const AdminDashboard = () => {
                                 <span>Employee Details</span>
                                 <span>Action</span>
                             </div>
-                            {data.users.filter(u => u.role === 'staff').map(u => (
-                                <div key={u.id} className="p-4 border-b flex justify-between items-center hover:bg-blue-50/30 transition">
-                                    <div>
-                                        <p className="font-bold text-slate-800">{u.full_name}</p>
-                                        <p className="text-sm text-slate-500">{u.email}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button onClick={() => openEditUser(u)} className="text-blue-500 hover:bg-blue-50 p-2 rounded transition" aria-label="Edit user" title="Edit">
-                                            <Pencil size={20}/>
-                                        </button>
-                                        <button onClick={() => deleteItem('users', u.id)} className="text-red-500 hover:bg-red-50 p-2 rounded transition" aria-label="Delete user" title="Delete">
-                                            <Trash2 size={20}/>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+
+                            <div className="p-4 border-b bg-blue-50/40">
+                                <h3 className="font-bold text-slate-800">Admin Accounts ({adminUsers.length})</h3>
+                            </div>
+                            {adminUsers.length === 0 ? (
+                                <p className="p-4 text-sm text-slate-500 italic border-b">No admin accounts found.</p>
+                            ) : (
+                                adminUsers.map(renderUserRow)
+                            )}
+
+                            <div className="p-4 border-b bg-slate-50">
+                                <h3 className="font-bold text-slate-800">Staff Accounts ({staffUsers.length})</h3>
+                            </div>
+                            {staffUsers.length === 0 ? (
+                                <p className="p-4 text-sm text-slate-500 italic">No staff accounts found.</p>
+                            ) : (
+                                staffUsers.map(renderUserRow)
+                            )}
                         </div>
 
                         {/* Edit User Modal */}
                         {editingUser && (
                             <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50">
                                 <div className="bg-white w-full max-w-xl rounded-xl shadow-lg border border-slate-200 p-6">
-                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Edit Staff Account</h3>
+                                    <h3 className="text-xl font-bold text-slate-800 mb-4">Edit Account</h3>
                                     <form onSubmit={handleEditUser} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div className="flex flex-col gap-1 md:col-span-3">
                                             <label className="text-sm font-semibold text-slate-600">Full Name</label>
@@ -265,8 +336,19 @@ const AdminDashboard = () => {
                                             <label className="text-sm font-semibold text-slate-600">New Password</label>
                                             <input type="password" className="border p-2 rounded outline-blue-500" value={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave blank to keep" />
                                         </div>
+                                        <div className="md:col-span-3 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                                            <input
+                                                id="promote-admin"
+                                                type="checkbox"
+                                                checked={editForm.role === 'admin'}
+                                                onChange={(e) => handleRoleToggle(e.target.checked)}
+                                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <label htmlFor="promote-admin" className="text-sm font-semibold text-slate-700">Admin access</label>
+                                            <span className="text-xs text-slate-500">Check to grant admin access. Uncheck to remove it.</span>
+                                        </div>
                                         <div className="md:col-span-3 flex justify-end gap-2 mt-4">
-                                            <button type="button" onClick={() => { setEditingUser(null); setEditForm({ full_name: '', username: '', password: '' }); }} className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
+                                            <button type="button" onClick={() => { setEditingUser(null); setEditForm({ full_name: '', username: '', password: '', role: 'staff' }); setShowPromoteConfirm(false); setPendingRole(null); }} className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
                                                 Cancel
                                             </button>
                                             <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
@@ -274,6 +356,29 @@ const AdminDashboard = () => {
                                             </button>
                                         </div>
                                     </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {showPromoteConfirm && (
+                            <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50">
+                                <div className="bg-white w-full max-w-md rounded-xl shadow-lg border border-slate-200 p-6">
+                                    <h3 className="text-xl font-bold text-slate-800 mb-3">
+                                        {pendingRole === 'admin' ? 'Promote to admin?' : 'Demote to staff?'}
+                                    </h3>
+                                    <p className="text-sm text-slate-600">
+                                        {pendingRole === 'admin'
+                                            ? 'Are you sure you want to promote this user to admin?'
+                                            : 'Are you sure you want to demote this user to staff?'}
+                                    </p>
+                                    <div className="flex justify-end gap-2 mt-6">
+                                        <button type="button" onClick={() => handlePromoteChoice(false)} className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-50">
+                                            No
+                                        </button>
+                                        <button type="button" onClick={() => handlePromoteChoice(true)} className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
+                                            Yes
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -334,6 +439,51 @@ const AdminDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {/* Generated Password Modal */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-slate-200">
+                        <div className="mb-6">
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">Staff Account Created Successfully</h3>
+                            <p className="text-sm text-slate-600">A random password has been generated for this account.</p>
+                        </div>
+
+                        <div className="space-y-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div>
+                                <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Email Address</p>
+                                <p className="text-sm font-mono bg-white p-2 rounded border border-slate-300">{generatedPassword.email}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-slate-600 uppercase mb-1">Generated Password</p>
+                                <p className="text-sm font-mono bg-white p-2 rounded border border-slate-300 break-all">{generatedPassword.password}</p>
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-slate-500 mb-6 italic">
+                            Please share these credentials with the staff member securely. They can change their password after logging in.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`Email: ${generatedPassword.email}\nPassword: ${generatedPassword.password}`);
+                                    alert('Credentials copied to clipboard!');
+                                }}
+                                className="flex-1 px-4 py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"
+                            >
+                                Copy Credentials
+                            </button>
+                            <button
+                                onClick={() => setShowPasswordModal(false)}
+                                className="flex-1 px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 transition"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

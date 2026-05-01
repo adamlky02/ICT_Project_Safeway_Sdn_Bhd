@@ -1,6 +1,8 @@
 import os
 import shutil
 import bcrypt
+import secrets
+import string
 from uuid import uuid4
 from typing import List
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
@@ -40,6 +42,7 @@ class StaffUpdate(BaseModel):
     username: str
     password: str | None = None
     full_name: str
+    role: str | None = None
 
 class ProfileUpdate(BaseModel):
     full_name: str
@@ -50,6 +53,12 @@ def _normalize_username(username: str) -> str:
     if clean.endswith("@safeway.com"):
         clean = clean[:-12]
     return clean
+
+def _generate_random_password(length: int = 12) -> str:
+    """Generate a random secure password with letters, numbers, and special characters."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*_-=+"
+    password = ''.join(secrets.choice(alphabet) for _ in range(length))
+    return password
 
 # --- Authentication ---
 @app.post("/api/login")
@@ -117,20 +126,28 @@ def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
     if db.query(models.User).filter(models.User.email == email).first():
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    # Set a DEFAULT password for all new staff
-    default_password = "staff123"
-    hashed = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # Generate a random password for the new staff
+    generated_password = _generate_random_password()
+    hashed = bcrypt.hashpw(generated_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     new_user = models.User(email=email, password_hash=hashed, full_name=req.full_name, role="staff")
     db.add(new_user)
     db.commit()
-    return {"message": "Success"}
+    
+    # Send credentials email with the generated password
+    send_staff_credentials_email(email, generated_password)
+    
+    return {
+        "message": "Success",
+        "password": generated_password,
+        "email": email
+    }
 
 @app.put("/api/admin/users/{uid}")
 def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_db)):
-    user = db.query(models.User).filter(models.User.id == uid, models.User.role == "staff").first()
+    user = db.query(models.User).filter(models.User.id == uid).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Staff user not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
     username = _normalize_username(req.username)
     user.email = f"{username}@safeway.com"
@@ -139,6 +156,9 @@ def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_
     # Keep the existing password when the edit form leaves it blank.
     if req.password and req.password.strip():
         user.password_hash = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    if req.role in {"staff", "admin"}:
+        user.role = req.role
 
     try:
         db.commit()

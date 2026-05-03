@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, LogOut, FileText, User } from 'lucide-react';
+import { Send, LogOut, FileText, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ChatPage = () => {
@@ -53,9 +53,14 @@ const ChatPage = () => {
             <div className="flex-1 flex flex-col">
                 <header className="h-16 bg-white border-b flex items-center justify-between px-8">
                     <div className="font-semibold text-slate-700">Internal Document Chat</div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                        <User size={18} /> <span className="text-sm font-medium">Safeway Staff</span>
-                    </div>
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition px-3 py-2 rounded-lg hover:bg-slate-100"
+                        title="Open profile"
+                    >
+                        <UserCircle2 size={20} />
+                        <span className="text-sm font-medium">Profile</span>
+                    </button>
                 </header>
 
                 {/* Messages */}

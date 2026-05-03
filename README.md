@@ -1,4 +1,6 @@
 
+
+
 # Safeway AI Chatbot: Internal Knowledge Assistant
 The **Safeway AI Chatbot** is a full-stack web application designed to help Safeway Sdn Bhd staff quickly access information from employee handbooks, internal manuals, and company policies. By using natural language queries, staff can retrieve relevant answers instantly, reducing the time spent searching through physical or digital file repositories.
 

@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import AdminDashboard from './pages/AdminDashboard';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
     return (
@@ -14,6 +15,7 @@ function App() {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/chat" element={<ChatPage />} />
                     <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/profile" element={<ProfilePage />} />
                     {/* Redirect any unknown route to landing */}
                     <Route path="*" element={<Navigate to="/" />} />
                 </Routes>

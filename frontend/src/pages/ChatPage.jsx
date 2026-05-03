@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Send, LogOut, FileText, UserCircle2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, LogOut, FileText, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ChatPage = () => {
     const navigate = useNavigate();
@@ -8,6 +10,55 @@ const ChatPage = () => {
         { sender: 'bot', text: 'Hello! I am the Safeway Internal Assistant. You can ask me questions about HR policies, handbooks, or company procedures.' }
     ]);
     const [input, setInput] = useState('');
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const profileBtnRef = useRef(null);
+    const [profile, setProfile] = useState(null);
+
+    useEffect(() => {
+        const loadProfile = async () => {
+            try {
+                const userDataStr = localStorage.getItem('userData');
+                if (!userDataStr) {
+                    navigate('/login');
+                    return;
+                }
+
+                const userData = JSON.parse(userDataStr);
+                const response = await fetch(`${API_URL}/api/profile/${userData.id}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load profile');
+                }
+
+                const data = await response.json();
+                setProfile(data);
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+            }
+        };
+
+        loadProfile();
+    }, [navigate]);
+
+    // Get user email from profile or fallback
+    const userEmail = profile?.email || 'Loading...';
+
+    // Close dropdown when clicking outside
+    React.useEffect(() => {
+        function handleClickOutside(event) {
+            if (profileBtnRef.current && !profileBtnRef.current.contains(event.target)) {
+                setDropdownOpen(false);
+            }
+        }
+        if (dropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [dropdownOpen]);
 
     const handleSend = () => {
         if (!input.trim()) return;
@@ -27,40 +78,45 @@ const ChatPage = () => {
 
     return (
         <div className="flex h-screen bg-slate-50">
-            {/* Sidebar */}
-            <div className="w-72 bg-slate-900 text-white p-6 hidden md:flex flex-col">
-                <h1 className="text-xl font-bold mb-10 text-blue-400">Safeway Assistant</h1>
-
-                <div className="flex-1 space-y-4">
-                    <div className="text-xs uppercase text-slate-500 font-bold tracking-wider">Internal Manuals</div>
-                    <div className="flex items-center gap-3 text-slate-300 hover:text-white cursor-pointer transition">
-                        <FileText size={18} /> <span>Employee Handbook</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-slate-300 hover:text-white cursor-pointer transition">
-                        <FileText size={18} /> <span>IT Security Policy</span>
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => navigate('/')}
-                    className="flex items-center gap-3 text-red-400 hover:text-red-300 transition mt-auto border-t border-slate-700 pt-4"
-                >
-                    <LogOut size={18} /> <span>Logout</span>
-                </button>
-            </div>
-
             {/* Chat Area */}
             <div className="flex-1 flex flex-col">
                 <header className="h-16 bg-white border-b flex items-center justify-between px-8">
-                    <div className="font-semibold text-slate-700">Internal Document Chat</div>
-                    <button
-                        onClick={() => navigate('/profile')}
-                        className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition px-3 py-2 rounded-lg hover:bg-slate-100"
-                        title="Open profile"
-                    >
-                        <UserCircle2 size={20} />
-                        <span className="text-sm font-medium">Profile</span>
-                    </button>
+                    <div><h1 className="text-xl font-bold text-blue-400">Safeway Assistant</h1></div>
+                    <div className="relative" ref={profileBtnRef}>
+                        <button
+                            className="flex items-center gap-2 text-slate-600 hover:bg-slate-100 px-3 py-1 rounded-lg focus:outline-none"
+                            onClick={() => setDropdownOpen((v) => !v)}
+                            aria-haspopup="true"
+                            aria-expanded={dropdownOpen}
+                        >
+                            <User size={18} />
+                            <span className="text-sm font-medium">Safeway Staff</span>
+                            <svg className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {dropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-4 flex flex-col items-center">
+                                <div className="flex flex-col items-center w-full">
+                                    <div className="w-16 h-16 rounded-full border-2 border-slate-300 flex items-center justify-center mb-2">
+                                        <User size={40} className="text-slate-400" />
+                                    </div>
+                                    <div className="text-base font-semibold text-slate-700">Staff</div>
+                                    <div className="text-sm text-slate-600 mb-3">{userEmail}</div>
+                                </div>
+                                <button
+                                    className="w-full text-center py-1 text-base text-blue-600 hover:bg-blue-50 font-medium rounded mb-2"
+                                    onClick={() => { setDropdownOpen(false); navigate('/profile'); }}
+                                >
+                                    Profile
+                                </button>
+                                <button
+                                    className="w-full text-center py-1 text-base text-red-500 hover:bg-red-50 font-semibold rounded"
+                                    onClick={() => { setDropdownOpen(false); navigate('/'); }}
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </header>
 
                 {/* Messages */}

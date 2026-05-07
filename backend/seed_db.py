@@ -5,7 +5,7 @@ import bcrypt # Using direct bcrypt instead of passlib
 # Ensure the script can find the other local files
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from database import SessionLocal, engine, Base
+from database import SessionLocal, Base, configure_database, get_current_database_url
 import models
 
 def hash_password(password: str) -> str:
@@ -17,7 +17,8 @@ def hash_password(password: str) -> str:
     return hashed_password.decode('utf-8')
 
 def seed_data():
-    print("🚀 Connecting to Neon DB...")
+    configure_database(get_current_database_url())
+    print("🚀 Connecting to database...")
 
     try:
         Base.metadata.create_all(bind=engine)

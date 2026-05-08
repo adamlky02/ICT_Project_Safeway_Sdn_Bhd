@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, Integer, ForeignKey
+from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, Integer, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 
@@ -29,3 +29,16 @@ class KnowledgeBase(Base):
 
     uploaded_by = Column(UUID(as_uuid=True), ForeignKey('AI chatbot.User_list.id'))
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
+
+
+class IntegrationSetting(Base):
+    __tablename__ = "integration_settings"
+    __table_args__ = {"schema": "AI chatbot"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    category = Column(String(50), unique=True, nullable=False, index=True)
+    provider = Column(String(100), nullable=False)
+    mode = Column(String(20), nullable=False, server_default=text("'custom'"))
+    config = Column(JSON, nullable=False, default=dict)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"), onupdate=text("now()"))

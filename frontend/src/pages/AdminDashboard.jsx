@@ -1,13 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil, UserCircle2 } from 'lucide-react';
+import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil, UserCircle2, Database, Cloud, Settings2, RefreshCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+const createDefaultIntegrationForms = () => ({
+    database: {
+        mode: 'default',
+        provider: 'postgresql',
+        connection_string: '',
+        database_name: ''
+    },
+    cloudstorage: {
+        mode: 'default',
+        provider: 'local',
+        endpoint: '',
+        bucket_name: '',
+        access_key: '',
+        secret_key: ''
+    }
+});
+
+const INTEGRATION_FIELDS = {
+    database: [
+        { key: 'provider', label: 'Provider', placeholder: 'postgresql' },
+        { key: 'connection_string', label: 'Connection String', placeholder: 'postgresql://user:pass@host/db' },
+        { key: 'database_name', label: 'Database Name', placeholder: 'chatbot_db' }
+    ],
+    
+    cloudstorage: [
+        { key: 'provider', label: 'Provider', placeholder: 'local' },
+        { key: 'endpoint', label: 'Endpoint', placeholder: 'https://storage.example.com' },
+        { key: 'bucket_name', label: 'Bucket Name', placeholder: 'company-docs' },
+        { key: 'access_key', label: 'Access Key', placeholder: 'ACCESS_KEY' },
+        { key: 'secret_key', label: 'Secret Key', placeholder: 'SECRET_KEY' }
+    ]
+};
+
+const INTEGRATION_META = {
+    database: { title: 'Database Model', icon: Database, accent: 'blue' },
+    cloudstorage: { title: 'Cloud Storage Model', icon: Cloud, accent: 'emerald' }
+};
+
+const INTEGRATION_ACCENT_CLASSES = {
+    blue: 'bg-blue-50 text-blue-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    emerald: 'bg-emerald-50 text-emerald-600'
+};
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('staff');
     const [data, setData] = useState({ users: [], docs: [] });
+    const [integrationForms, setIntegrationForms] = useState(createDefaultIntegrationForms());
+    const [integrationSaving, setIntegrationSaving] = useState({});
 
     // Edit User States
     const [editingUser, setEditingUser] = useState(null);
@@ -30,6 +76,10 @@ const AdminDashboard = () => {
 
     useEffect(() => { loadData(); }, []);
 
+    useEffect(() => {
+        loadIntegrations();
+    }, []);
+
     const loadData = async () => {
         try {
             // FIX: Use dynamic API_URL
@@ -45,6 +95,35 @@ const AdminDashboard = () => {
             });
         } catch (error) {
             console.error("Error loading dashboard data:", error);
+        }
+    };
+
+    const loadIntegrations = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/integrations`);
+            if (!response.ok) {
+                return;
+            }
+
+            const payload = await response.json();
+            const nextForms = createDefaultIntegrationForms();
+
+            Object.entries(payload || {}).forEach(([category, setting]) => {
+                if (!nextForms[category] || !setting) {
+                    return;
+                }
+
+                nextForms[category] = {
+                    ...nextForms[category],
+                    mode: setting.mode || 'default',
+                    provider: setting.provider || nextForms[category].provider,
+                    ...(setting.config || {})
+                };
+            });
+
+            setIntegrationForms(nextForms);
+        } catch (error) {
+            console.error('Error loading integration settings:', error);
         }
     };
 
@@ -181,6 +260,161 @@ const AdminDashboard = () => {
         }
     };
 
+    const updateIntegrationField = (category, field, value) => {
+        setIntegrationForms((current) => ({
+            ...current,
+            [category]: {
+                ...current[category],
+                [field]: value
+            }
+        }));
+    };
+
+    const setIntegrationMode = (category, mode) => {
+        setIntegrationForms((current) => ({
+            ...current,
+            [category]: {
+                ...current[category],
+                mode
+            }
+        }));
+    };
+
+    const saveIntegration = async (category) => {
+        const current = integrationForms[category];
+        if (!current) return;
+
+        const config = {};
+        INTEGRATION_FIELDS[category].forEach((field) => {
+            if (field.key === 'provider' || field.key === 'mode') {
+                return;
+            }
+
+            if (current[field.key]) {
+                config[field.key] = current[field.key];
+            }
+        });
+
+        setIntegrationSaving((currentSaving) => ({ ...currentSaving, [category]: true }));
+
+        try {
+            const response = await fetch(`${API_URL}/api/admin/integrations/${category}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: current.mode,
+                    provider: current.provider,
+                    config
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                alert(err.detail || 'Failed to save integration settings');
+                return;
+            }
+
+            const saved = await response.json();
+            setIntegrationForms((existing) => ({
+                ...existing,
+                [category]: {
+                    ...existing[category],
+                    mode: saved.mode || current.mode,
+                    provider: saved.provider || current.provider,
+                    ...(saved.config || {})
+                }
+            }));
+            alert(current.mode === 'default' ? 'Default settings restored.' : 'Custom settings saved.');
+        } catch (error) {
+            alert('Network error. Could not update integration settings.');
+        } finally {
+            setIntegrationSaving((currentSaving) => ({ ...currentSaving, [category]: false }));
+        }
+    };
+
+    const renderIntegrationCard = (category) => {
+        const setting = integrationForms[category];
+        const meta = INTEGRATION_META[category];
+        const Icon = meta.icon;
+        const isCustom = setting.mode === 'custom';
+
+        return (
+            <div key={category} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-3 rounded-xl ${INTEGRATION_ACCENT_CLASSES[meta.accent]}`}>
+                            <Icon size={22} />
+                        </div>
+                        <div>
+                            <h4 className="text-lg font-bold text-slate-800">{meta.title}</h4>
+                            <p className="text-sm text-slate-500">Default settings are used unless a custom override is saved.</p>
+                        </div>
+                    </div>
+                    <div className={`text-xs font-semibold px-3 py-1 rounded-full ${isCustom ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {isCustom ? 'Custom override active' : 'Using default'}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input
+                            type="radio"
+                            name={`${category}-mode`}
+                            checked={setting.mode === 'default'}
+                            onChange={() => setIntegrationMode(category, 'default')}
+                            className="h-4 w-4 text-blue-600"
+                        />
+                        Use default
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input
+                            type="radio"
+                            name={`${category}-mode`}
+                            checked={setting.mode === 'custom'}
+                            onChange={() => setIntegrationMode(category, 'custom')}
+                            className="h-4 w-4 text-blue-600"
+                        />
+                        Use custom values
+                    </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {INTEGRATION_FIELDS[category].map((field) => (
+                        <div key={field.key} className={field.key === 'api_key' || field.key === 'secret_key' ? 'md:col-span-2' : ''}>
+                            <label className="block text-sm font-semibold text-slate-600 mb-1">{field.label}</label>
+                            <input
+                                type={field.key === 'api_key' || field.key === 'secret_key' ? 'password' : 'text'}
+                                className="w-full border p-2.5 rounded-lg outline-blue-500 bg-slate-50"
+                                placeholder={field.placeholder}
+                                value={setting[field.key] || ''}
+                                onChange={(e) => updateIntegrationField(category, field.key, e.target.value)}
+                                disabled={setting.mode === 'default' && field.key !== 'provider'}
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={() => loadIntegrations()}
+                        className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    >
+                        <RefreshCcw size={16} /> Reload
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => saveIntegration(category)}
+                        className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                        disabled={integrationSaving[category]}
+                    >
+                        {integrationSaving[category] ? 'Saving...' : setting.mode === 'default' ? 'Restore Default' : 'Save Custom Override'}
+                    </button>
+                </div>
+            </div>
+        );
+    };
+
     const handleLogout = () => {
         localStorage.clear();
         navigate('/');
@@ -254,6 +488,9 @@ const AdminDashboard = () => {
                     <button onClick={() => setTab('docs')} className={`w-full flex items-center p-3 rounded transition ${tab === 'docs' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800'}`}>
                         <FileText className="mr-2" size={20}/> Document Repository
                     </button>
+                        <button onClick={() => setTab('connection')} className={`w-full flex items-center p-3 rounded transition ${tab === 'connection' ? 'bg-blue-600 shadow-lg' : 'hover:bg-slate-800'}`}>
+                            <Database className="mr-2" size={20}/> Connection Settings
+                        </button>
                 </div>
                 <button onClick={handleLogout} className="flex items-center text-red-400 p-3 mt-auto hover:bg-red-900/20 rounded transition">
                     <LogOut className="mr-2" size={20}/> Logout
@@ -272,7 +509,7 @@ const AdminDashboard = () => {
                         <span className="text-sm font-semibold">My Profile</span>
                     </button>
                 </div>
-                {tab === 'staff' ? (
+                {tab === 'staff' && (
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-2xl font-bold mb-6 text-slate-800">Staff Account Management</h2>
                         <form onSubmit={handleAddUser} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 grid grid-cols-2 gap-4">
@@ -383,7 +620,9 @@ const AdminDashboard = () => {
                             </div>
                         )}
                     </div>
-                ) : (
+                )}
+
+                {tab === 'docs' && (
                     <div className="max-w-4xl mx-auto">
                         <h2 className="text-2xl font-bold mb-6 text-slate-800">Knowledge Base Management</h2>
                         <form onSubmit={handleFileUpload} className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 mb-8 space-y-6">
@@ -435,6 +674,20 @@ const AdminDashboard = () => {
                                     </div>
                                 ))
                             )}
+                        </div>
+
+                        {/* Connection settings moved to its own tab */}
+                    </div>
+                )}
+
+                {tab === 'connection' && (
+                    <div className="max-w-4xl mx-auto">
+                        <h2 className="text-2xl font-bold mb-6 text-slate-800">Connection Settings</h2>
+                        <p className="text-sm text-slate-500 mb-4">Choose the default service or override it with a custom provider configuration.</p>
+
+                        <div className="grid grid-cols-1 gap-5">
+                            {renderIntegrationCard('database')}
+                            {renderIntegrationCard('cloudstorage')}
                         </div>
                     </div>
                 )}

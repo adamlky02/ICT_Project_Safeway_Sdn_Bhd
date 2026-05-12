@@ -12,7 +12,7 @@ const LandingPage = () => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4">
             <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-slate-800 mb-2 text-blue-600">Safeway Sdn Bhd</h1>
+                <h1 className="text-4xl font-bold text-slate-800 mb-2 text-blue-600">Safeway Solution Sdn Bhd</h1>
                 <p className="text-gray-500 text-lg">Internal Document AI Assistant</p>
             </div>
 

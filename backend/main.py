@@ -3,7 +3,10 @@ import shutil
 import bcrypt
 import secrets
 import string
-import boto3 # NEW: S3/R2 Client
+import boto3 # S3/R2 Client
+import fitz  # NEW: PyMuPDF for extracting text from PDFs
+import google.generativeai as genai # NEW: Google Gemini AI
+from sqlalchemy import text # NEW: For raw SQL embedding queries
 from urllib.parse import urlparse
 from uuid import uuid4
 from typing import List
@@ -26,6 +29,20 @@ s3_client = boto3.client(
     aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY")
 )
 R2_BUCKET = os.getenv("R2_BUCKET_NAME")
+
+# --- SETUP GOOGLE GEMINI AI ---
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+llm = genai.GenerativeModel('gemini-1.5-flash')
+
+def get_embedding(text_string: str):
+    """Converts text into a 768-dimension vector."""
+    result = genai.embed_content(
+        model="models/text-embedding-004",
+        content=text_string,
+        task_type="retrieval_document"
+    )
+    return result['embedding']
+
 
 @app.on_event("startup")
 def create_tables() -> None:
@@ -67,6 +84,9 @@ class IntegrationUpdate(BaseModel):
     mode: str
     provider: str | None = None
     config: dict = Field(default_factory=dict)
+
+class ChatRequest(BaseModel): # NEW: Schema for AI chat
+    message: str
 
 def _normalize_username(username: str) -> str:
     clean = username.strip().lower()
@@ -344,7 +364,7 @@ def delete_user(uid: str, db: Session = Depends(database.get_db)):
     db.commit()
     return {"message": "Deleted"}
 
-# --- Admin: Knowledge Base Management (CLOUDFLARE R2 INTEGRATION) ---
+# --- Admin: Knowledge Base Management (CLOUDFLARE R2 + AI EXTRACTION) ---
 
 @app.get("/api/admin/documents")
 def get_docs(db: Session = Depends(database.get_db)):
@@ -360,8 +380,8 @@ async def upload_document(
 ):
     # 1. Validate File Extension
     extension = file.filename.split(".")[-1].lower()
-    if extension not in ["pdf", "docx", "doc", "txt"]:
-        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF or Word.")
+    if extension not in ["pdf", "txt"]:
+        raise HTTPException(status_code=400, detail="Only PDF and TXT are supported for AI indexing.")
 
     # 2. Create Unique Filename & Read File into Memory
     unique_filename = f"{uuid4()}.{extension}"
@@ -379,28 +399,52 @@ async def upload_document(
         print("R2 Upload Error:", str(e))
         raise HTTPException(status_code=500, detail="Internal server error saving file to Cloud Storage.")
 
-    # 4. Save Record to Database (Neon DB)
+    # 4. Extract Text for AI (NEW)
+    extracted_text = ""
+    try:
+        if extension == "pdf":
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            for page in doc:
+                extracted_text += page.get_text() + "\n"
+        elif extension == "txt":
+            extracted_text = file_bytes.decode('utf-8')
+    except Exception as e:
+        print("Text Extraction Error:", str(e))
+        raise HTTPException(status_code=500, detail="Could not read the text from the file.")
+
+    # 5. Save Main Record to Database (Neon DB)
     try:
         new_doc = models.KnowledgeBase(
             title=title,
             category=category,
-            file_path=unique_filename, # Store R2 key name, NOT local path
+            file_path=unique_filename,
             file_type=extension,
             file_size=len(file_bytes),
             uploaded_by=admin_id
         )
         db.add(new_doc)
         db.commit()
-        return {"message": "Document uploaded successfully to Cloud Storage"}
+        db.refresh(new_doc)
+
+        # 6. CHUNK AND EMBED FOR AI RAG (NEW)
+        # Break the manual into 1000-character paragraphs
+        chunks = [extracted_text[i:i+1000] for i in range(0, len(extracted_text), 1000)]
+        for chunk in chunks:
+            if len(chunk.strip()) > 20: # Ignore tiny/empty chunks
+                vector = get_embedding(chunk)
+                db.execute(text('''
+                                INSERT INTO "AI chatbot"."document_chunks" (doc_id, content, embedding)
+                                VALUES (:d, :c, :e)
+                                '''), {"d": new_doc.id, "c": chunk, "e": str(vector)})
+        db.commit()
+
+        return {"message": "Document uploaded and AI trained successfully"}
     except Exception as e:
         db.rollback()
-        # Optionally, delete the file from R2 here if DB fails, but keeping it simple for now.
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.delete("/api/admin/documents/{did}")
 def delete_doc(did: int, db: Session = Depends(database.get_db)):
-    # Find doc to get file path (R2 Key)
     doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
 
     if not doc:
@@ -409,15 +453,51 @@ def delete_doc(did: int, db: Session = Depends(database.get_db)):
     # Delete physical file from Cloudflare R2
     if doc.file_path:
         try:
-            s3_client.delete_object(
-                Bucket=R2_BUCKET,
-                Key=doc.file_path
-            )
+            s3_client.delete_object(Bucket=R2_BUCKET, Key=doc.file_path)
         except Exception as e:
             print("R2 Delete Error:", str(e))
-            # Continue anyway to ensure DB record is removed even if R2 fails
 
-    # Delete DB record
+    # Delete DB record (This will automatically delete the AI chunks if ON DELETE CASCADE is set in SQL)
     db.delete(doc)
     db.commit()
     return {"message": "Document and physical file deleted"}
+
+# --- AI Chatbot Brain (NEW) ---
+@app.post("/api/chat")
+async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db)):
+    try:
+        # 1. Turn the user's question into a math vector
+        query_vector = get_embedding(req.message)
+
+        # 2. Search Neon DB for the 4 most relevant paragraphs (<=> is Cosine Distance)
+        search_query = text('''
+                            SELECT content FROM "AI chatbot"."document_chunks"
+                            ORDER BY embedding <=> :v LIMIT 4
+                            ''')
+        results = db.execute(search_query, {"v": str(query_vector)}).fetchall()
+
+        if not results:
+            return {"sender": "bot", "message": "I don't have any manuals covering this topic yet."}
+
+        context_text = "\n\n---\n\n".join([r[0] for r in results])
+
+        # 3. Ask Gemini to answer based ONLY on the context
+        prompt = f"""
+        You are the Safeway Sdn Bhd Internal Assistant. 
+        Answer the staff's question using ONLY the provided internal document context. 
+        If the answer is not in the context, say "I cannot find this information in the internal documents." Do not invent answers or use outside knowledge.
+
+        CONTEXT:
+        {context_text}
+
+        QUESTION:
+        {req.message}
+        """
+
+        ai_response = llm.generate_content(prompt)
+
+        return {"sender": "bot", "message": ai_response.text}
+
+    except Exception as e:
+        print("AI Chat Error:", e)
+        return {"sender": "bot", "message": "The AI servers are currently busy. Please try again."}

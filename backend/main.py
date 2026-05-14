@@ -3,6 +3,7 @@ import shutil
 import bcrypt
 import secrets
 import string
+import boto3 # NEW: S3/R2 Client
 from urllib.parse import urlparse
 from uuid import uuid4
 from typing import List
@@ -17,6 +18,14 @@ from email_utils import send_staff_credentials_email
 
 app = FastAPI()
 
+# --- SETUP CLOUDFLARE R2 CLIENT ---
+s3_client = boto3.client(
+    's3',
+    endpoint_url=os.getenv("R2_ENDPOINT_URL"),
+    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY")
+)
+R2_BUCKET = os.getenv("R2_BUCKET_NAME")
 
 @app.on_event("startup")
 def create_tables() -> None:
@@ -30,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Ensure the uploads directory exists
+# Ensure the local uploads directory exists (Legacy fallback/safeguard)
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -54,7 +63,6 @@ class ProfileUpdate(BaseModel):
     full_name: str
     password: str | None = None
 
-
 class IntegrationUpdate(BaseModel):
     mode: str
     provider: str | None = None
@@ -72,7 +80,6 @@ def _generate_random_password(length: int = 12) -> str:
     password = ''.join(secrets.choice(alphabet) for _ in range(length))
     return password
 
-
 def _detect_database_provider() -> str:
     database_url = os.getenv("DATABASE_URL", "")
     if not database_url:
@@ -86,7 +93,6 @@ def _detect_database_provider() -> str:
 
     return os.getenv("DEFAULT_DATABASE_PROVIDER", "postgresql")
 
-
 def _default_database_config() -> dict:
     database_url = (os.getenv("DEFAULT_DATABASE_URL") or os.getenv("DATABASE_URL") or "").strip()
     database_name = os.getenv("DEFAULT_DATABASE_NAME", "").strip()
@@ -98,7 +104,6 @@ def _default_database_config() -> dict:
         "connection_string": database_url,
         "database_name": database_name
     }
-
 
 SUPPORTED_INTEGRATION_CATEGORIES = {"database", "cloudstorage"}
 DEFAULT_INTEGRATION_SETTINGS = {
@@ -117,7 +122,6 @@ DEFAULT_INTEGRATION_SETTINGS = {
     }
 }
 
-
 def _default_integration_payload(category: str) -> dict:
     defaults = DEFAULT_INTEGRATION_SETTINGS[category]
     return {
@@ -127,7 +131,6 @@ def _default_integration_payload(category: str) -> dict:
         "source": "default",
         "config": dict(defaults["config"])
     }
-
 
 def _integration_payload(category: str, db: Session) -> dict:
     defaults = DEFAULT_INTEGRATION_SETTINGS[category]
@@ -147,10 +150,8 @@ def _integration_payload(category: str, db: Session) -> dict:
         "config": config
     }
 
-
 def _integration_response(db: Session) -> dict:
     return {category: _integration_payload(category, db) for category in SUPPORTED_INTEGRATION_CATEGORIES}
-
 
 def _normalize_config_payload(config: dict | None) -> dict:
     cleaned = {}
@@ -164,14 +165,12 @@ def _normalize_config_payload(config: dict | None) -> dict:
         cleaned[key] = value
     return cleaned
 
-
 def _resolve_database_url(provider: str, config: dict) -> str:
     connection_string = (config.get("connection_string") or "").strip()
     if connection_string:
         return connection_string
 
     return (config.get("database_url") or os.getenv("DATABASE_URL", "")).strip()
-
 
 def _apply_database_connection(provider: str, config: dict) -> dict:
     database_url = _resolve_database_url(provider, config)
@@ -239,12 +238,10 @@ def update_profile(uid: str, req: ProfileUpdate, db: Session = Depends(database.
         "full_name": user.full_name
     }
 
-
 # --- Admin: Integration Settings ---
 @app.get("/api/admin/integrations")
 def get_integrations(db: Session = Depends(database.get_db)):
     return _integration_response(db)
-
 
 @app.put("/api/admin/integrations/{category}")
 def update_integration(category: str, req: IntegrationUpdate, db: Session = Depends(database.get_db)):
@@ -295,26 +292,22 @@ def update_integration(category: str, req: IntegrationUpdate, db: Session = Depe
 def get_users(db: Session = Depends(database.get_db)):
     return db.query(models.User).all()
 
-# 2. Update the create_staff route (Add default password)
 @app.post("/api/admin/users")
 def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
     email = f"{req.username}@safeway.com"
 
-    # Check if user already exists
     if db.query(models.User).filter(models.User.email == email).first():
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    # Generate a random password for the new staff
     generated_password = _generate_random_password()
     hashed = bcrypt.hashpw(generated_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     new_user = models.User(email=email, password_hash=hashed, full_name=req.full_name, role="staff")
     db.add(new_user)
     db.commit()
-    
-    # Send credentials email with the generated password
+
     send_staff_credentials_email(email, generated_password)
-    
+
     return {
         "message": "Success",
         "password": generated_password,
@@ -331,7 +324,6 @@ def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_
     user.email = f"{username}@safeway.com"
     user.full_name = req.full_name
 
-    # Keep the existing password when the edit form leaves it blank.
     if req.password and req.password.strip():
         user.password_hash = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -352,7 +344,7 @@ def delete_user(uid: str, db: Session = Depends(database.get_db)):
     db.commit()
     return {"message": "Deleted"}
 
-# --- Admin: Knowledge Base Management (FILE UPLOADS) ---
+# --- Admin: Knowledge Base Management (CLOUDFLARE R2 INTEGRATION) ---
 
 @app.get("/api/admin/documents")
 def get_docs(db: Session = Depends(database.get_db)):
@@ -371,48 +363,59 @@ async def upload_document(
     if extension not in ["pdf", "docx", "doc", "txt"]:
         raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF or Word.")
 
-    # 2. Create Unique Filename
+    # 2. Create Unique Filename & Read File into Memory
     unique_filename = f"{uuid4()}.{extension}"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    file_bytes = await file.read()
 
-    # 3. Save File to local disk
+    # 3. Upload to Cloudflare R2
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error saving file.")
+        s3_client.put_object(
+            Bucket=R2_BUCKET,
+            Key=unique_filename,
+            Body=file_bytes,
+            ContentType=file.content_type
+        )
+    except Exception as e:
+        print("R2 Upload Error:", str(e))
+        raise HTTPException(status_code=500, detail="Internal server error saving file to Cloud Storage.")
 
-    # 4. Save Record to Database
+    # 4. Save Record to Database (Neon DB)
     try:
         new_doc = models.KnowledgeBase(
             title=title,
             category=category,
-            file_path=file_path,      # <--- 'content' was here, now it's gone!
+            file_path=unique_filename, # Store R2 key name, NOT local path
             file_type=extension,
-            file_size=file.size,
+            file_size=len(file_bytes),
             uploaded_by=admin_id
         )
         db.add(new_doc)
         db.commit()
-        return {"message": "Document uploaded successfully"}
+        return {"message": "Document uploaded successfully to Cloud Storage"}
     except Exception as e:
         db.rollback()
-        if os.path.exists(file_path):
-            os.remove(file_path) # Clean up file if DB fails
+        # Optionally, delete the file from R2 here if DB fails, but keeping it simple for now.
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/api/admin/documents/{did}")
 def delete_doc(did: int, db: Session = Depends(database.get_db)):
-    # Find doc to get file path
+    # Find doc to get file path (R2 Key)
     doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
 
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Delete physical file
-    if os.path.exists(doc.file_path):
-        os.remove(doc.file_path)
+    # Delete physical file from Cloudflare R2
+    if doc.file_path:
+        try:
+            s3_client.delete_object(
+                Bucket=R2_BUCKET,
+                Key=doc.file_path
+            )
+        except Exception as e:
+            print("R2 Delete Error:", str(e))
+            # Continue anyway to ensure DB record is removed even if R2 fails
 
     # Delete DB record
     db.delete(doc)

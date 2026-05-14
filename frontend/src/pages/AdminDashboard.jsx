@@ -12,15 +12,15 @@ const createDefaultIntegrationForms = () => ({
 const INTEGRATION_FIELDS = {
     database: [
         { key: 'provider', label: 'Provider', placeholder: 'postgresql' },
-        { key: 'connection_string', label: 'Connection String', placeholder: 'postgresql://user:pass@host/db' },
-        { key: 'database_name', label: 'Database Name', placeholder: 'chatbot_db' }
+        { key: 'connection_string', label: 'Connection String', placeholder: 'postgresql://user:pass@host/db', isSecret: true },
+        { key: 'database_name', label: 'Database Name', placeholder: 'chatbot_db', isSecret: false }
     ],
     cloudstorage: [
         { key: 'provider', label: 'Provider', placeholder: 'local' },
-        { key: 'endpoint', label: 'Endpoint', placeholder: 'https://storage.example.com' },
-        { key: 'bucket_name', label: 'Bucket Name', placeholder: 'company-docs' },
-        { key: 'access_key', label: 'Access Key', placeholder: 'ACCESS_KEY' },
-        { key: 'secret_key', label: 'Secret Key', placeholder: 'SECRET_KEY' }
+        { key: 'endpoint', label: 'Endpoint', placeholder: 'https://storage.example.com', isSecret: false },
+        { key: 'bucket_name', label: 'Bucket Name', placeholder: 'company-docs', isSecret: false },
+        { key: 'access_key', label: 'Access Key', placeholder: 'ACCESS_KEY', isSecret: false },
+        { key: 'secret_key', label: 'Secret Key', placeholder: 'SECRET_KEY', isSecret: true } // <-- Added isSecret flag
     ]
 };
 
@@ -153,14 +153,36 @@ const AdminDashboard = () => {
     const handleFileUpload = async (e) => {
         e.preventDefault();
         if (!selectedFile) return alert("Select a file!");
-        const userData = JSON.parse(localStorage.getItem("userData"));
+        const userDataStr = localStorage.getItem("userData");
+
+        if (!userDataStr) {
+            alert("Session expired. Please log in again.");
+            return navigate('/');
+        }
+
+        const userData = JSON.parse(userDataStr);
         const formData = new FormData();
-        formData.append("file", selectedFile); formData.append("title", form.title);
-        formData.append("category", form.category); formData.append("admin_id", userData.id);
+        formData.append("file", selectedFile);
+        formData.append("title", form.title);
+        formData.append("category", form.category);
+        formData.append("admin_id", userData.id);
+
         try {
             const res = await fetch(`${API_URL}/api/admin/upload`, { method: "POST", body: formData });
-            if (res.ok) { setForm({ ...form, title: '' }); setSelectedFile(null); loadData(); alert("Uploaded!"); }
-        } catch (error) { alert("Server error."); }
+            if (res.ok) {
+                setForm({ ...form, title: '' });
+                setSelectedFile(null);
+
+                const fileInput = document.getElementById("file-upload");
+                if (fileInput) fileInput.value = "";
+
+                loadData();
+                alert("Uploaded to Cloudflare R2!");
+            } else {
+                const err = await res.json();
+                alert(`Upload failed: ${err.detail}`);
+            }
+        } catch (error) { alert("Server error during upload."); }
     };
 
     const deleteItem = async (type, id) => {
@@ -168,6 +190,26 @@ const AdminDashboard = () => {
         const endpoint = type === 'users' ? 'users' : 'documents';
         try { await fetch(`${API_URL}/api/admin/${endpoint}/${id}`, { method: "DELETE" }); loadData(); }
         catch (err) { alert("Delete failed."); }
+    };
+
+    const updateIntegrationField = (category, field, value) => {
+        setIntegrationForms((current) => ({
+            ...current,
+            [category]: {
+                ...current[category],
+                [field]: value
+            }
+        }));
+    };
+
+    const setIntegrationMode = (category, mode) => {
+        setIntegrationForms((current) => ({
+            ...current,
+            [category]: {
+                ...current[category],
+                mode
+            }
+        }));
     };
 
     const saveIntegration = async (category) => {
@@ -225,7 +267,20 @@ const AdminDashboard = () => {
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 overflow-hidden">
 
-            {/* DESKTOP SIDEBAR */}
+            {/* MOBILE TOP HEADER */}
+            <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-20 shadow-sm transition-colors">
+                <div className="flex items-center gap-3">
+                    <div className="bg-slate-900 dark:bg-slate-800 p-1.5 rounded-xl shrink-0">
+                        <img src="/safewaylogo.png" alt="Logo" className="w-6 h-6 object-cover" />
+                    </div>
+                    <span className="font-bold text-blue-600 dark:text-blue-400">Safeway</span>
+                </div>
+                <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                    {isDarkMode ? <Sun size={18} className="text-amber-400"/> : <Moon size={18}/>}
+                </button>
+            </div>
+
+            {/* DESKTOP HOVER SIDEBAR */}
             <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className={`hidden md:flex bg-slate-900 text-white flex-col z-40 transition-all duration-300 ease-in-out border-r border-slate-800 shrink-0 ${isHovered ? 'w-64' : 'w-20'}`}>
                 <div className={`flex items-center mb-8 h-20 mt-2 transition-all duration-300 overflow-hidden ${isHovered ? 'px-6' : 'justify-center px-0'}`}>
                     <img src="/safewaylogo.png" alt="Logo" className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-700" />
@@ -256,12 +311,12 @@ const AdminDashboard = () => {
             </div>
 
             {/* MAIN CONTENT AREA */}
-            <div className="flex-1 p-4 pt-8 pb-24 md:p-10 overflow-y-auto w-full transition-colors duration-300 relative z-10">
-                <div className="max-w-6xl mx-auto">
+            <div className="flex-1 p-4 pt-24 pb-24 md:p-10 overflow-y-auto w-full transition-colors duration-300 relative z-10">
+                <div className="max-w-5xl mx-auto">
 
                     <div className="flex items-center justify-between mb-8">
-                        <h2 className="text-3xl font-extrabold text-slate-800 dark:text-white">
-                            {tab === 'staff' ? 'Accounts Management' : tab === 'docs' ? 'Documents Repository' : 'Connection Configuration'}
+                        <h2 className="text-3xl font-extrabold text-slate-800 dark:text-white transition-colors">
+                            {tab === 'staff' ? 'Accounts Management' : tab === 'docs' ? 'Documents Repository' : 'Database Configuration'}
                         </h2>
                         <button onClick={() => navigate('/profile')} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:shadow-md transition-all">
                             <UserCircle2 size={20} className="text-blue-500" />
@@ -271,84 +326,134 @@ const AdminDashboard = () => {
 
                     {tab === 'staff' && (
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="relative w-full sm:w-80">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search Account..."
-                                        className="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                            {/* --- COMPACT ACTION BAR (Search + Title) --- */}
+                            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
+                                <div className="space-y-1 w-full sm:w-64">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Search Directory</label>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                                        <input
+                                            type="text"
+                                            placeholder="Filter names..."
+                                            className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hidden sm:block pb-2">
+                                    Safeway Identity Manager
                                 </div>
                             </div>
 
-                            {/* --- CREATE ACCOUNT SECTION (With requested Headers) --- */}
-                            <section className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <form onSubmit={handleAddUser} className="space-y-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Employee Name Header & Inputs */}
-                                        <div className="space-y-3">
-                                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Employee Name</h4>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <input className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-3 rounded-xl text-sm outline-blue-500" value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} required placeholder="First Name" />
-                                                <input className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-3 rounded-xl text-sm outline-blue-500" value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} required placeholder="Last Name" />
-                                            </div>
-                                        </div>
+                            {/* --- CREATE ACCOUNT SECTION (With Headers) --- */}
+                            <section className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+                                <form onSubmit={handleAddUser} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
 
-                                        {/* Email Header & Input */}
-                                        <div className="space-y-3">
-                                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Email</h4>
-                                            <div className="relative group">
-                                                <input className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-3 pr-28 rounded-xl text-sm outline-blue-500" value={form.username} onChange={e => setForm({...form, username: e.target.value})} required placeholder="Username prefix (e.g. doe123)" />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 select-none">@safeway.com</span>
-                                            </div>
+                                    {/* Full Name Field */}
+                                    <div className="sm:col-span-5 flex flex-col gap-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1">
+                                            Employee Name
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                className="w-1/2 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-2.5 rounded-xl text-sm outline-blue-500 transition-colors"
+                                                value={form.first_name}
+                                                onChange={e => setForm({...form, first_name: e.target.value})}
+                                                required
+                                                placeholder="First"
+                                            />
+                                            <input
+                                                className="w-1/2 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-2.5 rounded-xl text-sm outline-blue-500 transition-colors"
+                                                value={form.last_name}
+                                                onChange={e => setForm({...form, last_name: e.target.value})}
+                                                required
+                                                placeholder="Last"
+                                            />
                                         </div>
                                     </div>
-                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-100 dark:border-slate-700 mt-2">
-                                        <p className="text-[10px] text-slate-400 italic">* Random password will be generated for new users</p>
-                                        <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
-                                            <UserPlus size={18}/> Generate Account
+
+                                    {/* Username Field */}
+                                    <div className="sm:col-span-4 flex flex-col gap-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1">
+                                            Email <span className="text-[9px] lowercase opacity-70">(prefix)</span>
+                                        </label>
+                                        <div className="flex border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+                                            <input
+                                                className="flex-1 bg-transparent p-2.5 text-sm dark:text-white outline-none"
+                                                value={form.username}
+                                                onChange={e => setForm({...form, username: e.target.value})}
+                                                required
+                                                placeholder="john.doe"
+                                            />
+                                            <span className="bg-slate-200/50 dark:bg-slate-700 px-3 flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 border-l border-slate-200 dark:border-slate-600">
+                                                @safeway.com
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Submit Button */}
+                                    <div className="sm:col-span-3">
+                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.98]">
+                                            <UserPlus size={16}/> Create Account
                                         </button>
+                                    </div>
+
+                                    <div className="sm:col-span-12 text-[10px] text-slate-400 dark:text-slate-500 italic ml-1 mt-1">
+                                        * Account will be initialized with a randomly generated secure password.
                                     </div>
                                 </form>
                             </section>
 
-                            {/* Tables */}
+                            {/* --- SPLIT TABLES --- */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-[400px] flex flex-col">
-                                    <div className="bg-blue-600 p-3.5 flex justify-between items-center text-white shrink-0 font-bold text-xs uppercase tracking-widest"><div className="flex items-center gap-2"><ShieldCheck size={16}/> Administrators</div><span>{adminUsers.length}</span></div>
-                                    <div className="overflow-y-auto flex-1">{adminUsers.length === 0 ? <div className="p-10 text-center text-slate-400 italic text-sm">No matches found.</div> : adminUsers.map(u => <UserRow key={u.id} user={u} isStaffTable={false} />)}</div>
+                                {/* Admin Table */}
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col h-[380px]">
+                                    <div className="bg-blue-600 p-3 flex justify-between items-center text-white shrink-0 font-bold text-[11px] uppercase tracking-widest">
+                                        <div className="flex items-center gap-2"><ShieldCheck size={14}/> Administrators</div>
+                                        <span className="bg-white/20 px-2 py-0.5 rounded-full">{adminUsers.length}</span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                        {adminUsers.length === 0 ? <div className="p-10 text-center text-slate-400 italic text-sm">No matches found.</div> : adminUsers.map(u => <UserRow key={u.id} user={u} isStaffTable={false} />)}
+                                    </div>
                                 </div>
-                                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden h-[400px] flex flex-col">
-                                    <div className="bg-slate-700 dark:bg-slate-600 p-3.5 flex justify-between items-center text-white shrink-0 font-bold text-xs uppercase tracking-widest"><div className="flex items-center gap-2"><User size={16}/> Internal Staff</div><span>{staffUsers.length}</span></div>
-                                    <div className="overflow-y-auto flex-1">{staffUsers.length === 0 ? <div className="p-10 text-center text-slate-400 italic text-sm">No matches found.</div> : staffUsers.map(u => <UserRow key={u.id} user={u} isStaffTable={true} />)}</div>
+
+                                {/* Staff Table */}
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col h-[380px]">
+                                    <div className="bg-slate-700 dark:bg-slate-600 p-3 flex justify-between items-center text-white shrink-0 font-bold text-[11px] uppercase tracking-widest">
+                                        <div className="flex items-center gap-2"><User size={14}/> Internal Staff</div>
+                                        <span className="bg-white/20 px-2 py-0.5 rounded-full">{staffUsers.length}</span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                        {staffUsers.length === 0 ? <div className="p-10 text-center text-slate-400 italic text-sm">No matches found.</div> : staffUsers.map(u => <UserRow key={u.id} user={u} isStaffTable={true} />)}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* ... rest of your code for docs and connection (unchanged) ... */}
                     {tab === 'docs' && (
                         <div className="space-y-6">
-                            <form onSubmit={handleFileUpload} className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
+                            <form onSubmit={handleFileUpload} className="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <input className="border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-3 rounded-xl outline-blue-500" placeholder="Manual Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
                                     <select className="border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-3 rounded-xl" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                                         <option value="HR">HR / Policies</option><option value="Safety">Safety / Warehouse</option><option value="IT">IT / Security</option><option value="General">General Manuals</option>
                                     </select>
                                 </div>
-                                <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 p-10 rounded-2xl flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 hover:border-blue-400 cursor-pointer relative text-center">
+                                <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 p-10 rounded-2xl flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 hover:border-blue-400 cursor-pointer relative text-center transition-colors">
                                     <input id="file-upload" type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setSelectedFile(e.target.files[0])} accept=".pdf,.docx,.doc,.txt" />
                                     <Upload className="text-blue-500 mb-2" size={32} />
                                     <p className="text-slate-700 dark:text-slate-300 font-bold">{selectedFile ? selectedFile.name : "Tap or Drag file to upload"}</p>
+                                    <p className="text-xs text-slate-500 mt-2">Files are automatically processed for AI Search.</p>
                                 </div>
-                                <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-xl font-extrabold transition shadow-lg flex justify-center items-center gap-2"><FilePlus size={20}/> Upload to Repository</button>
+                                <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-xl font-extrabold transition shadow-lg shadow-emerald-500/20 flex justify-center items-center gap-2">
+                                    <Cloud size={20}/> Upload to Safeway Cloudflare Storage
+                                </button>
                             </form>
                             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                                 {data.docs.map(d => (
-                                    <div key={d.id} className="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                    <div key={d.id} className="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center hover:bg-emerald-50 dark:hover:bg-slate-700/50 transition-colors">
                                         <div className="flex items-center gap-3 overflow-hidden">
                                             <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded text-emerald-600 shrink-0"><File size={18}/></div>
                                             <div className="overflow-hidden"><p className="font-bold truncate dark:text-white">{d.title}</p><p className="text-[10px] text-slate-500 uppercase">{d.category} • {d.file_type}</p></div>
@@ -372,7 +477,13 @@ const AdminDashboard = () => {
                                         {INTEGRATION_FIELDS[category].map(f => (
                                             <div key={f.key} className={f.key === 'connection_string' || f.key === 'secret_key' ? 'md:col-span-2' : ''}>
                                                 <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">{f.label}</label>
-                                                <input className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-2 rounded-lg text-sm" placeholder={f.placeholder} value={integrationForms[category][f.key] || ''} onChange={e => updateIntegrationField(category, f.key, e.target.value)} />
+                                                <input
+                                                    type={f.isSecret ? "password" : "text"}
+                                                    className="w-full border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    placeholder={f.placeholder}
+                                                    value={integrationForms[category][f.key] || ''}
+                                                    onChange={e => updateIntegrationField(category, f.key, e.target.value)}
+                                                />
                                             </div>
                                         ))}
                                     </div>
@@ -449,7 +560,7 @@ const AdminDashboard = () => {
             {/* Role confirm modal (unchanged logic) */}
             {showPromoteConfirm && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-2xl max-w-sm w-full text-center border border-slate-200 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-2xl max-w-sm w-full text-center border border-slate-200 dark:border-slate-700 transition-colors">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Change Role?</h3>
                         <p className="text-xs text-slate-500 mb-6 px-4">Switch access to <span className="font-bold text-blue-600 uppercase">{pendingRole}</span>?</p>
                         <div className="grid grid-cols-2 gap-3">

@@ -32,12 +32,14 @@ R2_BUCKET = os.getenv("R2_BUCKET_NAME")
 
 # --- SETUP GOOGLE GEMINI AI ---
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-llm = genai.GenerativeModel('gemini-1.5-flash')
+
+# 1. Update the Generative Model to Gemini 3.1 Flash Lite
+llm = genai.GenerativeModel('gemini-3.1-flash-lite')
 
 def get_embedding(text_string: str):
     """Converts text into a 768-dimension vector."""
     result = genai.embed_content(
-        model="models/text-embedding-001",
+        model="models/gemini-embedding-2",  # <--- NEW: Uses the 2026 embedding model
         content=text_string,
         task_type="retrieval_document"
     )

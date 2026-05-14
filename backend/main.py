@@ -37,7 +37,7 @@ llm = genai.GenerativeModel('gemini-1.5-flash')
 def get_embedding(text_string: str):
     """Converts text into a 768-dimension vector."""
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model="models/text-embedding-001",
         content=text_string,
         task_type="retrieval_document"
     )

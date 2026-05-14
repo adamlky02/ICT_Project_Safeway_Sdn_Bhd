@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, LogOut, FileText, User, Sun, Moon } from 'lucide-react';
+import { Send, LogOut, User, Sun, Moon, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -9,10 +9,11 @@ const ChatPage = () => {
     const [messages, setMessages] = useState([
         { sender: 'bot', text: 'Hello! I am the Safeway Internal Assistant. You can ask me questions about HR policies, handbooks, or company procedures.' }
     ]);
-    const[input, setInput] = useState('');
+    const [input, setInput] = useState('');
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const profileBtnRef = useRef(null);
     const [profile, setProfile] = useState(null);
+    const [isLoading, setIsLoading] = useState(false); // NEW: To show AI is thinking
 
     // --- DARK MODE LOGIC ---
     const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -76,28 +77,46 @@ const ChatPage = () => {
         };
     }, [dropdownOpen]);
 
-    const handleSend = () => {
-        if (!input.trim()) return;
+    // --- REAL AI CONNECTION LOGIC ---
+    const handleSend = async () => {
+        if (!input.trim() || isLoading) return;
 
         const userMsg = { sender: 'user', text: input };
-        setMessages([...messages, userMsg]);
+        setMessages(prev => [...prev, userMsg]);
         setInput('');
+        setIsLoading(true); // Turn on the loading spinner
 
-        // Simulate AI Response
-        setTimeout(() => {
-            setMessages(prev =>[...prev, {
-                sender: 'bot',
-                text: 'Prototype Mode: I am currently being integrated with Safeway documents. Soon, I will use AI to answer this specifically from your manuals.'
-            }]);
-        }, 800);
+        try {
+            // 1. Send question to FastAPI backend
+            const response = await fetch(`${API_URL}/api/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userMsg.text }),
+            });
+
+            // 2. Receive Gemini's answer
+            if (response.ok) {
+                const data = await response.json();
+                setMessages(prev => [...prev, { sender: 'bot', text: data.message }]);
+            } else {
+                setMessages(prev => [...prev, { sender: 'bot', text: "Error: Could not reach the Safeway AI server." }]);
+            }
+        } catch (err) {
+            setMessages(prev => [...prev, { sender: 'bot', text: "Network error. Is the backend running?" }]);
+        } finally {
+            setIsLoading(false); // Turn off the loading spinner
+        }
     };
 
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
             {/* Chat Area */}
             <div className="flex-1 flex flex-col">
-                <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 md:px-8 transition-colors duration-300 z-10">
-                    <div>
+                <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 md:px-8 transition-colors duration-300 z-10 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-slate-900 dark:bg-slate-800 p-1.5 rounded-xl shrink-0 hidden sm:block">
+                            <img src="/safewaylogo.png" alt="Logo" className="w-6 h-6 object-cover" />
+                        </div>
                         <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">Safeway Assistant</h1>
                     </div>
 
@@ -120,7 +139,7 @@ const ChatPage = () => {
                                 aria-expanded={dropdownOpen}
                             >
                                 <User size={18} />
-                                <span className="text-sm font-medium hidden md:block">Safeway Staff</span>
+                                <span className="text-sm font-medium hidden md:block">{profile?.full_name || 'Safeway Staff'}</span>
                                 <svg className={`w-4 h-4 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                             </button>
 
@@ -130,7 +149,7 @@ const ChatPage = () => {
                                         <div className="w-16 h-16 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center mb-3 bg-slate-50 dark:bg-slate-900 transition-colors">
                                             <User size={32} className="text-slate-400 dark:text-slate-500" />
                                         </div>
-                                        <div className="text-base font-bold text-slate-800 dark:text-white">Staff Account</div>
+                                        <div className="text-base font-bold text-slate-800 dark:text-white">{profile?.full_name || 'Staff Account'}</div>
                                         <div className="text-sm text-slate-500 dark:text-slate-400 mb-4 truncate w-full text-center">{userEmail}</div>
                                     </div>
                                     <div className="w-full border-t border-slate-100 dark:border-slate-700 mb-2"></div>
@@ -142,7 +161,7 @@ const ChatPage = () => {
                                     </button>
                                     <button
                                         className="w-full text-center py-2 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        onClick={() => { setDropdownOpen(false); navigate('/'); }}
+                                        onClick={() => { localStorage.clear(); setDropdownOpen(false); navigate('/'); }}
                                     >
                                         <LogOut size={16} /> Logout
                                     </button>
@@ -156,7 +175,7 @@ const ChatPage = () => {
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
                     {messages.map((msg, idx) => (
                         <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-2xl px-5 py-3.5 rounded-2xl shadow-sm text-[15px] leading-relaxed transition-colors duration-300 ${
+                            <div className={`max-w-2xl px-5 py-3.5 rounded-2xl shadow-sm text-[15px] leading-relaxed transition-colors duration-300 whitespace-pre-wrap ${
                                 msg.sender === 'user'
                                     ? 'bg-blue-600 text-white rounded-tr-none'
                                     : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-none'
@@ -165,6 +184,16 @@ const ChatPage = () => {
                             </div>
                         </div>
                     ))}
+
+                    {/* NEW: Thinking Animation */}
+                    {isLoading && (
+                        <div className="flex justify-start">
+                            <div className="bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 px-5 py-3.5 rounded-2xl rounded-tl-none flex items-center gap-2 shadow-sm">
+                                <Loader2 className="animate-spin" size={16} />
+                                <span className="text-sm italic">Searching Safeway manuals...</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Input Area */}
@@ -172,15 +201,17 @@ const ChatPage = () => {
                     <div className="max-w-4xl mx-auto flex gap-3 md:gap-4">
                         <input
                             type="text"
-                            className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-colors duration-300"
+                            className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-colors duration-300 disabled:opacity-50"
                             placeholder="Ask me about company rules..."
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            disabled={isLoading}
                         />
                         <button
                             onClick={handleSend}
-                            className="bg-blue-600 text-white px-4 md:px-5 py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200 dark:shadow-none flex items-center justify-center shrink-0"
+                            disabled={isLoading}
+                            className="bg-blue-600 text-white px-4 md:px-5 py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200 dark:shadow-none flex items-center justify-center shrink-0 disabled:bg-blue-400"
                         >
                             <Send size={20} className="md:mr-1" />
                             <span className="hidden md:inline font-semibold">Send</span>

@@ -6,4 +6,4 @@ python-dotenv
 bcrypt
 python-multipart
 boto3
-pymudf
+pymupdf

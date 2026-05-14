@@ -7,3 +7,4 @@ bcrypt
 python-multipart
 boto3
 pymupdf
+google-generativeai

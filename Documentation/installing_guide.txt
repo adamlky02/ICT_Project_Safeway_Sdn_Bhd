@@ -145,3 +145,18 @@ pip install python-multipart
 
 # Ensure you are using the python inside your venv
 python -m pip install python-multipart
+
+For object storage(pending)
+cd backend
+pip install boto3
+
+# Force the install into the virtual environment's python
+python -m pip install boto3
+
+python -m pip install boto3 python-multipart pymupdf
+./venv/bin/python -m pip install boto3 python-multipart
+
+
+AI installation
+
+./venv/bin/python -m pip install google-generativeai pymupdf pgvector

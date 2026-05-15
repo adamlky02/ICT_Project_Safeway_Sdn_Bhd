@@ -471,35 +471,56 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
         # 1. Turn the user's question into a math vector
         query_vector = get_embedding(req.message)
 
-        # 2. Search Neon DB for the 4 most relevant paragraphs (<=> is Cosine Distance)
+        # 2. ADVANCED SEARCH: Join the chunks with the main Knowledge Base table
         search_query = text('''
-                            SELECT content FROM "AI chatbot"."document_chunks"
-                            ORDER BY embedding <=> :v LIMIT 4
+                            SELECT c.content, k.title, k.category
+                            FROM "AI chatbot"."document_chunks" c
+                                     JOIN "AI chatbot"."knowledge_base" k ON c.doc_id = k.id
+                            ORDER BY c.embedding <=> :v LIMIT 5
                             ''')
         results = db.execute(search_query, {"v": str(query_vector)}).fetchall()
 
         if not results:
             return {"sender": "bot", "message": "I don't have any manuals covering this topic yet."}
 
-        context_text = "\n\n---\n\n".join([r[0] for r in results])
+        # 3. CONTEXT INJECTION: Tell the AI exactly where the text came from
+        context_parts = []
+        for content, title, category in results:
+            context_parts.append(f"DOCUMENT TITLE: {title} | CATEGORY: {category}\nTEXT: {content}")
 
-        # 3. Ask Gemini to answer based ONLY on the context
+        context_text = "\n\n---\n\n".join(context_parts)
+
+        # 4. ADVANCED CONVERSATIONAL PROMPT
         prompt = f"""
-        You are the Safeway Sdn Bhd Internal Assistant. 
-        Answer the staff's question using ONLY the provided internal document context. 
-        If the answer is not in the context, say "I cannot find this information in the internal documents." Do not invent answers or use outside knowledge.
+        You are the Safeway Sdn Bhd Internal Assistant, a friendly, professional, and highly helpful AI colleague.
+        Your goal is to answer the staff member's question naturally and clearly.
 
-        CONTEXT:
+        RULES FOR YOUR RESPONSE:
+        1. Be warm, polite, and conversational (e.g., "Hello!", "I'd be happy to help with that.").
+        2. Format your response beautifully using Markdown. Use bullet points for lists, bold text for key terms, and keep paragraphs short and readable.
+        3. Use ONLY the provided internal document context below to answer. Do not use outside knowledge.
+        4. Subtly mention which Document Title you got the answer from to build trust (e.g., "According to the Safety Manual...").
+        5. If different documents say different things, politely explain the difference.
+        6. If the answer is NOT in the context, politely apologize and say: "I'm sorry, but I couldn't find the exact information in our current manuals. I recommend reaching out to your manager or HR for clarification."
+
+        INTERNAL CONTEXT:
         {context_text}
 
-        QUESTION:
+        STAFF MEMBER'S QUESTION:
         {req.message}
         """
 
-        ai_response = llm.generate_content(prompt)
+        # 5. GENERATE RESPONSE WITH "HUMAN" TEMPERATURE
+        ai_response = llm.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.4, # 0.4 makes the AI sound natural and conversational while remaining factual
+            )
+        )
 
         return {"sender": "bot", "message": ai_response.text}
 
+    # THIS WAS THE MISSING PART!
     except Exception as e:
         print("AI Chat Error:", e)
         return {"sender": "bot", "message": "The AI servers are currently busy. Please try again."}

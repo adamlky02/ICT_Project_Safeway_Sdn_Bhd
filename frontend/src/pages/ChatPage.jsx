@@ -108,6 +108,28 @@ const ChatPage = () => {
         }
     };
 
+    // --- NATIVE MARKDOWN FORMATTER ---
+    // This safely converts **bold** text into HTML without needing third-party libraries
+    const formatMessage = (text) => {
+        if (!text) return null;
+
+        // Split text by ** to find the bold parts
+        const parts = text.split(/(\*\*.*?\*\*)/g);
+
+        return parts.map((part, index) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                // Remove the ** and wrap in a bold styled span
+                return (
+                    <strong key={index} className="font-bold text-blue-700 dark:text-blue-400">
+                        {part.slice(2, -2)}
+                    </strong>
+                );
+            }
+            // Return normal text, replacing * bullets with standard dashes for clean rendering
+            return part.replace(/^\* /gm, '• ');
+        });
+    };
+
     return (
         // h-[100dvh] forces exact 1-page fit on mobile, overflow-hidden stops bouncy scrolling
         <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans overflow-hidden">
@@ -175,7 +197,6 @@ const ChatPage = () => {
             </header>
 
             {/* MESSAGES AREA */}
-            {/* flex-1 lets this section take remaining space. overflow-y-auto enables scrolling ONLY here */}
             <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6">
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -184,7 +205,8 @@ const ChatPage = () => {
                                 ? 'bg-blue-600 text-white rounded-tr-none'
                                 : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-tl-none'
                         }`}>
-                            {msg.text}
+                            {/* Instead of {msg.text}, we use the formatter */}
+                            {msg.sender === 'bot' ? formatMessage(msg.text) : msg.text}
                         </div>
                     </div>
                 ))}
@@ -202,7 +224,7 @@ const ChatPage = () => {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* INPUT AREA (Fixed at bottom naturally by flex layout) */}
+            {/* INPUT AREA */}
             <div className="p-3 md:p-6 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 transition-colors duration-300 shrink-0">
                 <div className="max-w-4xl mx-auto flex gap-2 md:gap-4 items-center">
                     <input

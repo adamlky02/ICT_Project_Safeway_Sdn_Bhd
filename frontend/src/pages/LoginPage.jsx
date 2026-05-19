@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogIn, ArrowLeft, Loader2 } from 'lucide-react'; // Added Loader2 for the spinner
+import { LogIn, ArrowLeft, Loader2, LockKeyhole, Sun, Moon, Globe } from 'lucide-react';
+import { translations } from '../translations';
 
 const LoginPage = () => {
     const { state } = useLocation();
@@ -10,16 +11,41 @@ const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-
-    // --- NEW: Loading State ---
     const [isLoading, setIsLoading] = useState(false);
+
+    // --- LANGUAGE LOGIC ---
+    const [lang, setLang] = useState(() => localStorage.getItem('language') || 'en');
+    const t = translations[lang];
+
+    const toggleLanguage = () => {
+        const nextLang = lang === 'en' ? 'ms' : lang === 'ms' ? 'zh' : 'en';
+        setLang(nextLang);
+        localStorage.setItem('language', nextLang);
+    };
+
+    // --- DARK MODE LOGIC ---
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const savedTheme = localStorage.getItem('theme');
+        return savedTheme === 'dark'; // <--- Now it defaults to Light Mode!
+    });
+
+    useEffect(() => {
+        const root = document.documentElement;
+        if (isDarkMode) {
+            root.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            root.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [isDarkMode]);
 
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true); // Trigger the loading popup
+        setIsLoading(true);
 
         try {
             const response = await fetch(`${API_URL}/api/login`, {
@@ -32,88 +58,150 @@ const LoginPage = () => {
 
             if (response.ok) {
                 localStorage.setItem("userData", JSON.stringify(data));
-
                 if (data.role === 'admin') navigate('/admin');
                 else navigate('/chat');
             } else {
                 setError(data.detail || "Login failed");
-                setIsLoading(false); // Stop loading if error
+                setIsLoading(false);
             }
         } catch (err) {
-            setError("Network error: Could not reach the server. Please try again.");
-            setIsLoading(false); // Stop loading if error
+            setError(lang === 'en' ? "Network error: Could not reach server." : "Ralat Rangkaian / 网络错误");
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 relative">
+        // INDUSTRIAL BACKGROUND: Adapts perfectly from Light Blueprint to Dark Carbon
+        <div className="min-h-[100dvh] flex items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-hidden font-sans p-4 transition-colors duration-700">
 
-            {/* --- NEW: LOADING POP-UP OVERLAY --- */}
+            {/* Engineering Grid Overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] opacity-40 dark:opacity-100 pointer-events-none z-0 transition-opacity duration-700"></div>
+
+            {/* Ambient Oil/Amber Glows */}
+            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-amber-400/20 dark:bg-amber-600/10 rounded-full blur-[120px] pointer-events-none transition-colors duration-700"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-orange-400/20 dark:bg-orange-600/10 rounded-full blur-[100px] pointer-events-none transition-colors duration-700"></div>
+
+            {/* --- TOP RIGHT CONTROLS --- */}
+            <div className="absolute top-4 right-4 md:top-8 md:right-10 z-50 flex gap-3">
+                {/* Language Toggle */}
+                <button
+                    onClick={toggleLanguage}
+                    className="p-2 md:p-3 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-slate-200 dark:border-white/10 shadow-sm text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500 flex items-center justify-center font-bold text-xs uppercase"
+                    title="Change Language"
+                >
+                    <Globe size={18} className="md:mr-1 text-blue-600 dark:text-blue-500" />
+                    <span className="hidden md:block">{lang}</span>
+                </button>
+
+                {/* Theme Toggle */}
+                <button
+                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    className="p-2 md:p-3 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-slate-200 dark:border-white/10 shadow-sm text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500"
+                    title="Toggle Theme"
+                >
+                    {isDarkMode ? <Sun size={20} className="text-amber-500"/> : <Moon size={20} className="text-slate-700"/>}
+                </button>
+            </div>
+
+            {/* --- LOADING POP-UP OVERLAY --- */}
             {isLoading && (
-                <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center transform transition-all">
-                        <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Authenticating...</h3>
-                        <p className="text-sm text-slate-500">
-                            Connecting to Safeway secure servers.
+                <div className="absolute inset-0 z-50 bg-slate-100/60 dark:bg-[#0a0a0a]/80 backdrop-blur-md flex items-center justify-center transition-all duration-500">
+                    <div className="bg-white/90 dark:bg-slate-900 border border-slate-200 dark:border-amber-500/30 p-8 rounded-3xl shadow-2xl dark:shadow-[0_0_50px_rgba(245,158,11,0.1)] flex flex-col items-center max-w-sm w-full mx-4 text-center">
+                        <Loader2 className="animate-spin text-amber-500 mb-4" size={48} />
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-wide uppercase">{t.auth_loading}</h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {t.auth_desc}
                             <br/><br/>
-                            <span className="italic text-xs">
-                (Note: If the cloud server is waking up, this may take up to 50 seconds.)
-              </span>
+                            <span className="italic text-xs bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-500/20 font-bold uppercase tracking-widest">
+                                {t.auth_warning}
+                            </span>
                         </p>
                     </div>
                 </div>
             )}
 
-            {/* Login Card */}
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md z-10">
+            {/* LOGIN CARD - Glassmorphic */}
+            <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500 animate-in fade-in slide-in-from-bottom-4">
+
                 <button
                     onClick={() => navigate('/')}
                     disabled={isLoading}
-                    className="flex items-center text-gray-500 mb-6 hover:text-blue-600 disabled:opacity-50"
+                    className="flex items-center text-slate-500 dark:text-slate-400 mb-8 hover:text-amber-600 dark:hover:text-amber-500 transition-colors disabled:opacity-50 text-xs font-bold uppercase tracking-widest"
                 >
-                    <ArrowLeft size={18} className="mr-2" /> Back
+                    <ArrowLeft size={16} className="mr-2" /> {t.login_back}
                 </button>
 
-                <h2 className="text-2xl font-bold mb-2 capitalize text-slate-800">{role} Portal Login</h2>
-                <p className="text-gray-500 mb-6 italic text-sm">
-                    Try: {role}@safeway.com / {role === 'staff' ? 'staff123' : 'admin123'}
+                {/* Industrial Header */}
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-amber-500/20">
+                        <LockKeyhole size={24} className="text-white dark:text-slate-900" />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                        {role === 'admin' ? t.admin_role : t.staff_role} <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">{t.portal}</span>
+                    </h2>
+                </div>
+
+                <p className="text-slate-600 dark:text-slate-400 mb-8 text-sm font-medium">
+                    {t.login_desc}
                 </p>
 
-                {error && <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg mb-4 text-sm font-medium">{error}</div>}
+                {/* Error Message */}
+                {error && (
+                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-sm font-bold flex items-center gap-3">
+                        <div className="bg-red-100 dark:bg-red-500/20 p-1 rounded-md shrink-0"><span className="text-red-600 dark:text-red-500">!</span></div>
+                        {error}
+                    </div>
+                )}
 
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-semibold mb-1 text-slate-700">Email Address</label>
+                <form onSubmit={handleLogin} className="space-y-5">
+                    {/* Email Input */}
+                    <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
                         <input
                             type="email"
-                            className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                            className="w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 shadow-inner"
+                            placeholder={`${role}@safeway.com`}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={isLoading}
                             required
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold mb-1 text-slate-700">Password</label>
+
+                    {/* Password Input */}
+                    <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.password_label}</label>
                         <input
                             type="password"
-                            className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                            className="w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 tracking-[0.2em] shadow-inner"
+                            placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={isLoading}
                             required
                         />
                     </div>
+
+                    {/* Submit Button */}
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:bg-blue-400"
+                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white dark:text-slate-900 py-3.5 rounded-xl font-black tracking-widest uppercase text-sm hover:from-amber-400 hover:to-orange-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale shadow-lg shadow-amber-500/20 mt-6 active:scale-[0.98]"
                     >
-                        {isLoading ? <Loader2 className="animate-spin" size={18} /> : <LogIn size={18} />}
-                        {isLoading ? 'Connecting...' : 'Login'}
+                        {isLoading ? <Loader2 className="animate-spin text-white dark:text-slate-900" size={18} /> : <LogIn size={18} className="text-white dark:text-slate-900" />}
+                        {isLoading ? t.btn_loading : t.btn_login}
                     </button>
                 </form>
+
+                {/* Fake credentials hint formatted for the theme */}
+                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase tracking-widest">
+                        {t.test_hint}<br/>
+                        <span className="font-mono text-amber-600 dark:text-amber-500 mt-1.5 block text-xs">
+                            {role}@safeway.com / {role === 'staff' ? 'staff123' : 'admin123'}
+                        </span>
+                    </p>
+                </div>
             </div>
         </div>
     );

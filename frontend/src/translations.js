@@ -32,12 +32,13 @@ export const translations = {
         staff_account: "Staff Account",
         chat_error_timeout: "Error: Connection to Safeway database timed out.",
         chat_error_network: "Network error. Please verify terminal connection.",
+        admin_dash_btn: "Admin Dashboard",
 
         // Admin Dashboard
         admin_dashboard: "Dashboard ",
         tab_accounts: "Accounts",
         tab_docs: "Documents",
-        tab_config: "Connections",
+        tab_analytics: "Analytics",
         theme_mode: "Theme",
         logout: "Logout",
         accounts_mgmt: "Accounts Management",
@@ -119,12 +120,13 @@ export const translations = {
         staff_account: "Akaun Kakitangan",
         chat_error_timeout: "Ralat: Sambungan ke pangkalan data Safeway terputus.",
         chat_error_network: "Ralat rangkaian. Sila sahkan sambungan terminal.",
+        admin_dash_btn: "Papan Pemuka",
 
         // Admin Dashboard
         admin_dashboard: "Pentadbir ",
         tab_accounts: "Akaun",
         tab_docs: "Dokumen",
-        tab_config: "Konfigurasi",
+        tab_analytics:"Analitik",
         theme_mode: "Tema",
         logout: "Log Keluar",
         accounts_mgmt: "Pengurusan Akaun",
@@ -170,7 +172,7 @@ export const translations = {
         operational: "Beroperasi",
         refresh_stats: "Segar Semula Diagnostik"
         ,
-        switch_to_staff: "Sembang Kakitangan"
+        switch_to_staff: "Chatbot"
 
     },
     zh: {
@@ -201,17 +203,18 @@ export const translations = {
         chat_input_placeholder: "输入查询内容...",
         chat_btn_send: "提交",
         chat_thinking: "正在查询数据库...",
-        profile: "我的个人资料",
+        profile: "个人资料",
         disconnect: "登出",
         staff_account: "员工账户",
         chat_error_timeout: "错误：与 Safeway 数据库的连接超时。",
         chat_error_network: "网络错误。请验证终端连接。",
+        admin_dash_btn: "后台管理",
 
         // Admin Dashboard
-        admin_dashboard: "管理",
+        admin_dashboard: "后台管理",
         tab_accounts: "账户",
         tab_docs: "文档",
-        tab_config: "链接",
+        tab_analytics:"系统健康",
         theme_mode: "主题",
         logout: "登出",
         accounts_mgmt: "账户管理",
@@ -255,8 +258,7 @@ export const translations = {
         storage_used: "云存储使用量",
         system_status: "系统运行状态",
         operational: "运行正常",
-        refresh_stats: "刷新系统数据"
-        ,
-        switch_to_staff: "员工聊天"
+        refresh_stats: "刷新系统数据",
+        switch_to_staff: "咨询平台"
     }
 };

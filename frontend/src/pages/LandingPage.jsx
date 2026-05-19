@@ -17,10 +17,24 @@ const LandingPage = () => {
     };
 
     // --- DARK MODE LOGIC ---
+    // CORRECT (Always forces Light Mode on initial load, but respects it if navigating between pages in the same session)
     const [isDarkMode, setIsDarkMode] = useState(() => {
-        const savedTheme = localStorage.getItem('theme');
-        return savedTheme === 'dark'; // <--- Now it defaults to Light Mode!
+        // If they just landed on the site, sessionStorage will be empty, force light mode.
+        // We use sessionStorage instead of localStorage so it resets when the tab closes!
+        const sessionTheme = sessionStorage.getItem('theme');
+        return sessionTheme === 'dark';
     });
+
+    useEffect(() => {
+        const root = document.documentElement;
+        if (isDarkMode) {
+            root.classList.add('dark');
+            sessionStorage.setItem('theme', 'dark'); // Save to session, not local
+        } else {
+            root.classList.remove('dark');
+            sessionStorage.setItem('theme', 'light'); // Save to session, not local
+        }
+    }, [isDarkMode]);
 
     useEffect(() => {
         const root = document.documentElement;

@@ -16,18 +16,22 @@ const ProfilePage = () => {
     const [passwordError, setPasswordError] = useState('');
 
     // --- DARK MODE LOGIC ---
+    // CORRECT (Always forces Light Mode on initial load, but respects it if navigating between pages in the same session)
     const [isDarkMode, setIsDarkMode] = useState(() => {
-        return localStorage.getItem('theme') === 'dark';
+        // If they just landed on the site, sessionStorage will be empty, force light mode.
+        // We use sessionStorage instead of localStorage so it resets when the tab closes!
+        const sessionTheme = sessionStorage.getItem('theme');
+        return sessionTheme === 'dark';
     });
 
     useEffect(() => {
         const root = document.documentElement;
         if (isDarkMode) {
             root.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
+            sessionStorage.setItem('theme', 'dark'); // Save to session, not local
         } else {
             root.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
+            sessionStorage.setItem('theme', 'light'); // Save to session, not local
         }
     }, [isDarkMode]);
 

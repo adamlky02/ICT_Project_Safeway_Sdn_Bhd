@@ -297,7 +297,7 @@ const AdminDashboard = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className={`${cardStyle} flex flex-col h-[380px]`}>
                                     <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none"></div>
-                                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3.5 flex justify-between items-center text-slate-900 shrink-0 font-black text-xs uppercase tracking-widest relative z-10 border-b border-white/20">
+                                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3.5 flex justify-between items-center text-slate-200 shrink-0 font-black text-xs uppercase tracking-widest relative z-10 border-b border-white/20">
                                         <div className="flex items-center gap-2"><ShieldCheck size={14}/> {t.admins}</div>
                                         <span className="bg-slate-900/10 px-2.5 py-0.5 rounded-full">{adminUsers.length}</span>
                                     </div>

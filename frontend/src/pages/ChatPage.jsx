@@ -42,24 +42,48 @@ const ChatPage = () => {
         });
     }, [lang, t.chat_initial_msg]);
 
-    const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+    // CORRECT (Always forces Light Mode on initial load, but respects it if navigating between pages in the same session)
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const sessionTheme = sessionStorage.getItem('theme');
+        return sessionTheme === 'dark';
+    });
 
     useEffect(() => {
         const root = document.documentElement;
-        if (isDarkMode) { root.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
-        else { root.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
+        if (isDarkMode) {
+            root.classList.add('dark');
+            sessionStorage.setItem('theme', 'dark'); // Save to session, not local
+        } else {
+            root.classList.remove('dark');
+            sessionStorage.setItem('theme', 'light'); // Save to session, not local
+        }
     }, [isDarkMode]);
+
+    // --- PROFILE LOGIC ---
+    // NEW: We need to know if the user is an admin to show the button
+    const [userRole, setUserRole] = useState('staff');
 
     useEffect(() => {
         const loadProfile = async () => {
             try {
                 const userDataStr = localStorage.getItem('userData');
-                if (!userDataStr) return navigate('/login');
+                if (!userDataStr) {
+                    navigate('/login');
+                    return;
+                }
+
                 const userData = JSON.parse(userDataStr);
+                setUserRole(userData.role); // <-- Set the role so React knows if they are an admin
+
                 const response = await fetch(`${API_URL}/api/profile/${userData.id}`);
-                if (!response.ok) throw new Error('Failed to load');
-                setProfile(await response.json());
-            } catch (err) { console.error('Failed to load profile:', err); }
+
+                if (!response.ok) throw new Error('Failed to load profile');
+
+                const data = await response.json();
+                setProfile(data);
+            } catch (err) {
+                console.error('Failed to load profile:', err);
+            }
         };
         loadProfile();
     }, [navigate]);
@@ -176,10 +200,19 @@ const ChatPage = () => {
                             <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center">
                                 <div className="text-lg font-black text-slate-800 dark:text-white mt-2">{profile?.full_name}</div>
                                 <div className="text-xs font-medium text-slate-500 mb-5">{userEmail}</div>
-                                <button onClick={() => { setDropdownOpen(false); navigate('/profile'); }} className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-slate-100">
+                                <button onClick={() => { setDropdownOpen(false); navigate('/profile'); }} className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-amber-200">
                                     <User size={16} /> {t.profile || 'Profile'}
                                 </button>
-                                <button onClick={() => { localStorage.clear(); navigate('/'); }} className="w-full flex items-center justify-center gap-2 py-3 text-sm text-red-600 bg-red-50 dark:bg-red-500/10 font-bold rounded-xl transition-all">
+                                {/* --- NEW: CONDITIONAL ADMIN DASHBOARD BUTTON --- */}
+                                {userRole === 'admin' && (
+                                    <button
+                                        className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-blue-200"
+                                        onClick={() => { setDropdownOpen(false); navigate('/admin'); }}
+                                    >
+                                        {t.admin_dash_btn || "Admin Dashboard"}
+                                    </button>
+                                )}
+                                <button onClick={() => { localStorage.clear(); navigate('/'); }} className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-red-200">
                                     <LogOut size={16} /> {t.disconnect || "Logout"}
                                 </button>
                             </div>

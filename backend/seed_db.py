@@ -5,6 +5,7 @@ import bcrypt # Using direct bcrypt instead of passlib
 # Ensure the script can find the other local files
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+import database
 from database import SessionLocal, Base, configure_database, get_current_database_url
 import models
 
@@ -21,7 +22,8 @@ def seed_data():
     print("🚀 Connecting to database...")
 
     try:
-        Base.metadata.create_all(bind=engine)
+        # ensure the database engine is configured and use the engine from the database module
+        Base.metadata.create_all(bind=database.engine)
         print("✅ Database tables verified/created.")
     except Exception as e:
         print(f"❌ Error creating tables: {e}")

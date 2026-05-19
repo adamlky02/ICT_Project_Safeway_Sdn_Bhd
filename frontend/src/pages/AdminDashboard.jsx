@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil, UserCircle2, RefreshCcw, Sun, Moon, ShieldCheck, User, Search, Globe, Activity, Database, Cloud, Cpu } from 'lucide-react';
+import { UserPlus, FilePlus, Trash2, Users, FileText, LogOut, Upload, File, Pencil, UserCircle2, RefreshCcw, Sun, Moon, ShieldCheck, User, Search, Globe, Activity, Database, Cloud, Cpu, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { translations } from '../translations';
 
@@ -242,10 +242,16 @@ const AdminDashboard = () => {
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight transition-colors">
                             {tab === 'staff' ? t.accounts_mgmt || 'Accounts' : tab === 'docs' ? t.docs_repo || 'Documents' : t.sys_analytics || 'System Analytics & Health'}
                         </h2>
-                        <button onClick={() => navigate('/profile')} className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/40 dark:bg-white/10 backdrop-blur-xl border border-white/60 dark:border-white/20 text-slate-800 dark:text-white hover:border-amber-500/50 hover:bg-white/60 dark:hover:bg-white/20 transition-all shadow-sm font-bold text-sm">
-                            <UserCircle2 size={18} className="text-amber-500" />
-                            <span className="hidden sm:inline">{t.profile || 'Profile'}</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => navigate('/chat')} className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/40 dark:bg-white/10 backdrop-blur-xl border border-white/60 dark:border-white/20 text-slate-800 dark:text-white hover:border-amber-500/50 hover:bg-white/60 dark:hover:bg-white/20 transition-all shadow-sm font-bold text-sm">
+                                <MessageSquare size={16} className="text-amber-500" />
+                                <span className="hidden sm:inline">{t.switch_to_staff || 'Staff Chat'}</span>
+                            </button>
+                            <button onClick={() => navigate('/profile')} className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/40 dark:bg-white/10 backdrop-blur-xl border border-white/60 dark:border-white/20 text-slate-800 dark:text-white hover:border-amber-500/50 hover:bg-white/60 dark:hover:bg-white/20 transition-all shadow-sm font-bold text-sm">
+                                <UserCircle2 size={18} className="text-amber-500" />
+                                <span className="hidden sm:inline">{t.profile || 'Profile'}</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* STAFF TAB */}

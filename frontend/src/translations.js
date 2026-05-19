@@ -83,6 +83,8 @@ export const translations = {
         system_status: "Live Service Status",
         operational: "Operational",
         refresh_stats: "Refresh Diagnostics"
+        ,
+        switch_to_staff: "Staff Chat"
     },
     ms: {
         // Landing Page
@@ -167,6 +169,8 @@ export const translations = {
         system_status: "Status Servis Semasa",
         operational: "Beroperasi",
         refresh_stats: "Segar Semula Diagnostik"
+        ,
+        switch_to_staff: "Sembang Kakitangan"
 
     },
     zh: {
@@ -252,5 +256,7 @@ export const translations = {
         system_status: "系统运行状态",
         operational: "运行正常",
         refresh_stats: "刷新系统数据"
+        ,
+        switch_to_staff: "员工聊天"
     }
 };

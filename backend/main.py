@@ -101,14 +101,19 @@ def login(req: LoginReq, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()
     if not user or not bcrypt.checkpw(req.password.encode('utf-8'), user.password_hash.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    if user.role != req.role:
+    # Allow admin users to access staff portal: if an admin logs in requesting the
+    # 'staff' portal, treat them as permitted. Otherwise enforce exact role match.
+    if user.role != req.role and not (user.role == "admin" and req.role == "staff"):
         raise HTTPException(status_code=403, detail=f"This portal is for {req.role}s only")
+
+    # If an admin is accessing the staff portal, return the requested role
+    # (so frontend routing/guards expecting 'staff' continue to work).
+    response_role = req.role if (user.role == "admin" and req.role == "staff") else user.role
 
     return {
         "id": str(user.id),
         "email": user.email,
-        "role": user.role,
+        "role": response_role,
         "name": user.full_name
     }
 

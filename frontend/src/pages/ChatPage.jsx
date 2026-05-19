@@ -176,6 +176,9 @@ const ChatPage = () => {
                             <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center">
                                 <div className="text-lg font-black text-slate-800 dark:text-white mt-2">{profile?.full_name}</div>
                                 <div className="text-xs font-medium text-slate-500 mb-5">{userEmail}</div>
+                                <button onClick={() => { setDropdownOpen(false); navigate('/profile'); }} className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-slate-100">
+                                    <User size={16} /> {t.profile || 'Profile'}
+                                </button>
                                 <button onClick={() => { localStorage.clear(); navigate('/'); }} className="w-full flex items-center justify-center gap-2 py-3 text-sm text-red-600 bg-red-50 dark:bg-red-500/10 font-bold rounded-xl transition-all">
                                     <LogOut size={16} /> {t.disconnect || "Logout"}
                                 </button>

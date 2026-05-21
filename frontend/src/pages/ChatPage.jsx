@@ -3,7 +3,7 @@ import { Send, LogOut, User, Sun, Moon, Loader2, Globe, FileText, ChevronDown, C
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { translations } from '../translations';
-import SmartPdfViewer from '../components/SmartPdfViewer';
+import SmartPdfViewer from '../components/SmartPDFViewer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 

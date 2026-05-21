@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, LogOut, User, Sun, Moon, Loader2, Globe, FileText, ChevronDown, ChevronUp, UserCircle2, X, Search, XCircle } from 'lucide-react';
+import { Send, LogOut, User, Sun, Moon, Loader2, Globe, FileText, ChevronDown, ChevronUp, UserCircle2, XCircle, X, Search, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { translations } from '../translations';
-import SmartPdfViewer from '../components/SmartPDFViewer';
+import SmartPdfViewer from '../components/SmartPdfViewer'; // <--- ADVANCED PDF RENDERER
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ChatPage = () => {
     const navigate = useNavigate();
+
+    // --- LANGUAGE LOGIC ---
     const [lang, setLang] = useState(() => localStorage.getItem('language') || 'en');
     const t = translations[lang] || translations['en'] || {};
 
@@ -18,52 +20,55 @@ const ChatPage = () => {
         localStorage.setItem('language', nextLang);
     };
 
+    // --- CHAT & UI STATES ---
     const [messages, setMessages] = useState([
-        { sender: 'bot', text: t.chat_initial_msg || 'System Initialized. I am the Safeway Internal Assistant.', isDefault: true, sources: [] }
+        { sender: 'bot', text: t.chat_initial_msg || 'System Initialized. I am the Safeway Internal Assistant.', isDefault: true, sources: [], showSources: false }
     ]);
     const [input, setInput] = useState('');
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const profileBtnRef = useRef(null);
     const [profile, setProfile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [userRole, setUserRole] = useState('staff');
 
-    // --- STOP BUTTON LOGIC (Abort Controller) ---
-    const abortControllerRef = useRef(null);
-
-    // --- DRAWER STATE ---
+    // Drawer and Abort States
     const [drawerSource, setDrawerSource] = useState(null);
-
+    const abortControllerRef = useRef(null);
     const messagesEndRef = useRef(null);
 
+    // Live-translate the very first message
     useEffect(() => {
         setMessages(prev => {
             const newMsgs = [...prev];
-            if (newMsgs.length > 0 && newMsgs[0].isDefault) newMsgs[0].text = t.chat_initial_msg || 'System Initialized.';
+            if (newMsgs.length > 0 && newMsgs[0].isDefault) {
+                newMsgs[0].text = t.chat_initial_msg || 'System Initialized. I am the Safeway Internal Assistant.';
+            }
             return newMsgs;
         });
     }, [lang, t.chat_initial_msg]);
 
-    // CORRECT (Always forces Light Mode on initial load, but respects it if navigating between pages in the same session)
+    // --- GLOBAL DARK MODE LOGIC (Session Storage Fix) ---
     const [isDarkMode, setIsDarkMode] = useState(() => {
-        const sessionTheme = sessionStorage.getItem('theme');
-        return sessionTheme === 'dark';
+        return sessionStorage.getItem('theme') === 'dark';
     });
 
     useEffect(() => {
         const root = document.documentElement;
         if (isDarkMode) {
             root.classList.add('dark');
-            sessionStorage.setItem('theme', 'dark'); // Save to session, not local
+            sessionStorage.setItem('theme', 'dark');
         } else {
             root.classList.remove('dark');
-            sessionStorage.setItem('theme', 'light'); // Save to session, not local
+            sessionStorage.setItem('theme', 'light');
         }
     }, [isDarkMode]);
 
-    // --- PROFILE LOGIC ---
-    // NEW: We need to know if the user is an admin to show the button
-    const [userRole, setUserRole] = useState('staff');
+    const toggleTheme = () => {
+        setIsDarkMode(!isDarkMode);
+        window.dispatchEvent(new Event('themeChanged')); // Sync with App.jsx
+    };
 
+    // --- PROFILE LOGIC ---
     useEffect(() => {
         const loadProfile = async () => {
             try {
@@ -74,7 +79,7 @@ const ChatPage = () => {
                 }
 
                 const userData = JSON.parse(userDataStr);
-                setUserRole(userData.role); // <-- Set the role so React knows if they are an admin
+                setUserRole(userData.role);
 
                 const response = await fetch(`${API_URL}/api/profile/${userData.id}`);
 
@@ -91,19 +96,24 @@ const ChatPage = () => {
 
     const userEmail = profile?.email || 'Loading...';
 
-    const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
     useEffect(() => { scrollToBottom(); }, [messages, isLoading]);
 
     useEffect(() => {
         function handleClickOutside(event) {
-            if (profileBtnRef.current && !profileBtnRef.current.contains(event.target)) setDropdownOpen(false);
+            if (profileBtnRef.current && !profileBtnRef.current.contains(event.target)) {
+                setDropdownOpen(false);
+            }
         }
         if (dropdownOpen) document.addEventListener('mousedown', handleClickOutside);
         else document.removeEventListener('mousedown', handleClickOutside);
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [dropdownOpen]);
 
-    // --- REAL AI CONNECTION LOGIC WITH ABORT CONTROLLER ---
+    // --- REAL AI CONNECTION LOGIC ---
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
 
@@ -112,19 +122,24 @@ const ChatPage = () => {
         setInput('');
         setIsLoading(true);
 
-        // Initialize a new abort controller for this request
         abortControllerRef.current = new AbortController();
 
         try {
             const response = await fetch(`${API_URL}/api/chat`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ message: userMsg.text }),
-                signal: abortControllerRef.current.signal // Attach the abort signal
+                signal: abortControllerRef.current.signal
             });
 
             if (response.ok) {
                 const data = await response.json();
-                setMessages(prev => [...prev, { sender: 'bot', text: data.message || "No response generated.", sources: data.sources || [] }]);
+                setMessages(prev => [...prev, {
+                    sender: 'bot',
+                    text: data.message || "No response generated.",
+                    sources: data.sources || [],
+                    showSources: false
+                }]);
             } else {
                 setMessages(prev => [...prev, { sender: 'bot', text: t.chat_error_timeout || "Error: Connection timed out." }]);
             }
@@ -136,84 +151,71 @@ const ChatPage = () => {
             }
         } finally {
             setIsLoading(false);
-            abortControllerRef.current = null; // Clear the controller
+            abortControllerRef.current = null;
         }
     };
 
-    // --- STOP REQUEST LOGIC ---
     const handleStop = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
     };
 
-    const formatMessage = (text) => {
-        if (!text) return null;
-        const parts = text.split(/(\*\*.*?\*\*)/g);
-        return parts.map((part, index) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index} className="font-bold text-amber-700 dark:text-amber-500">{part.slice(2, -2)}</strong>;
-            }
-            return part.replace(/^\* /gm, '• ');
-        });
-    };
-
-    // --- ADVANCED PDF HIGHLIGHTER LOGIC ---
-    const getPdfSearchHash = (content) => {
-        if (!content) return "";
-
-        // 1. Remove all markdown, newlines, and special characters, leaving only letters and spaces.
-        const cleanText = content.replace(/[^a-zA-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-
-        // 2. Grab a highly specific "anchor" phrase (roughly the first 6-8 words).
-        // If we search the whole paragraph, the PDF viewer will fail. If we search 1 word, it highlights too much.
-        const words = cleanText.split(' ');
-        if (words.length < 3) return ""; // Too short to accurately search
-
-        // Grab a 6-word snippet from the middle of the text (often the most unique part)
-        const startIndex = Math.floor(words.length / 4);
-        const searchPhrase = words.slice(startIndex, startIndex + 6).join(' ');
-
-        // 3. Format it for the browser's native PDF search engine
-        // Note: Chrome/Edge require exactly this format: #search="Exact Phrase"
-        return `#search="${encodeURIComponent(searchPhrase)}"`;
+    const toggleSources = (index) => {
+        setMessages(prev => prev.map((msg, i) =>
+            i === index ? { ...msg, showSources: !msg.showSources } : msg
+        ));
     };
 
     return (
         <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden relative">
 
-            {/* Background Elements */}
+            {/* --- ENGINEERING BACKGROUND ELEMENTS --- */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-0 opacity-40 dark:opacity-60 transition-opacity duration-700"></div>
             <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] bg-amber-500/10 dark:bg-amber-600/10 rounded-full blur-[100px] pointer-events-none z-0 transition-colors duration-700"></div>
+            <div className="absolute bottom-[20%] right-[-5%] w-[300px] h-[300px] bg-orange-500/10 dark:bg-orange-600/10 rounded-full blur-[80px] pointer-events-none z-0 transition-colors duration-700"></div>
 
-            {/* HEADER */}
-            <header className="h-14 md:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm z-20 shrink-0">
-                <div className="flex items-center gap-2 md:gap-3">
-                    {/* Clean, borderless floating logo */}
-                    <img
-                        src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"}
-                        alt="Logo"
-                        className="w-18 h-18 md:w-20 md:h-20 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0 hidden sm:block drop-shadow-sm transition-transform duration-500 hover:scale-105"
-                    />
+            {/* --- TOP HEADER --- */}
+            <header className="h-14 md:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
+                <div className="flex items-center gap-3">
+                    <div className="bg-slate-900 dark:bg-[#0a0a0a] p-1.5 rounded-lg shrink-0 hidden sm:block shadow-inner border border-slate-700">
+                        <img
+                            src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"}
+                            alt="Logo"
+                            className="w-6 h-6 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0"
+                        />
+                    </div>
                     <h1 className="text-lg md:text-xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">
-                        {t.chat_title}
+                        {t.chat_title || "Safeway Terminal"}
                     </h1>
                 </div>
 
                 <div className="flex items-center gap-1 md:gap-2">
-                    <button onClick={toggleLanguage} className="p-2 rounded-full bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:scale-105 transition-all flex items-center font-bold text-xs uppercase">
-                        <Globe size={18} className="md:mr-1 text-blue-500" /><span className="hidden md:block">{lang}</span>
+                    <button
+                        onClick={toggleLanguage}
+                        className="p-2 md:p-2.5 rounded-full bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105 transition-all duration-300 flex items-center justify-center font-bold text-xs uppercase"
+                        title="Change Language"
+                    >
+                        <Globe size={18} className="md:mr-1 text-blue-500" />
+                        <span className="hidden md:block">{lang}</span>
                     </button>
-                    <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-amber-600 hover:scale-105 transition-all">
+
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 md:p-2.5 rounded-full bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:scale-105 transition-all duration-300"
+                        title="Toggle Theme"
+                    >
                         {isDarkMode ? <Sun size={18} className="text-amber-500"/> : <Moon size={18}/>}
                     </button>
 
                     <div className="relative" ref={profileBtnRef}>
                         <button
-                            onClick={() => setDropdownOpen(!dropdownOpen)}
-                            className="flex items-center gap-2 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 px-3 py-2 rounded-xl transition-all shadow-sm"
+                            className="flex items-center gap-2 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 px-3 py-2 md:py-2.5 rounded-xl focus:outline-none transition-all duration-300 hover:shadow-md"
+                            onClick={() => setDropdownOpen((v) => !v)}
                         >
                             <User size={18} className="text-amber-600 dark:text-amber-500" />
+                            <span className="text-sm font-bold hidden md:block tracking-wide">{profile?.full_name || t.staff_account || 'Staff'}</span>
+                            <ChevronDown size={16} className={`transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {dropdownOpen && (
@@ -221,10 +223,10 @@ const ChatPage = () => {
 
                                 {/* User Info Section */}
                                 <div className="text-lg font-black text-slate-800 dark:text-white mt-2 tracking-tight">
-                                    {profile?.full_name || 'Safeway Staff'}
+                                    {profile?.full_name || t.staff_account || 'Safeway Staff'}
                                 </div>
                                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6 truncate w-full text-center">
-                                    {profile?.email || 'Loading...'}
+                                    {userEmail}
                                 </div>
 
                                 {/* Divider */}
@@ -232,8 +234,6 @@ const ChatPage = () => {
 
                                 {/* Action Buttons */}
                                 <div className="w-full flex flex-col gap-2">
-
-                                    {/* Profile Button (Amber Hover) */}
                                     <button
                                         onClick={() => { setDropdownOpen(false); navigate('/profile'); }}
                                         className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-400 dark:hover:border-amber-500/30 transition-all active:scale-[0.98]"
@@ -241,7 +241,7 @@ const ChatPage = () => {
                                         <UserCircle2 size={16} /> {t?.profile || 'My Profile'}
                                     </button>
 
-                                    {/* Conditional Admin Dashboard Button (Blue Hover) */}
+                                    {/* Conditional Admin Dashboard Button */}
                                     {userRole === 'admin' && (
                                         <button
                                             onClick={() => { setDropdownOpen(false); navigate('/admin'); }}
@@ -251,14 +251,12 @@ const ChatPage = () => {
                                         </button>
                                     )}
 
-                                    {/* Logout Button (Red Hover) */}
                                     <button
                                         onClick={() => { localStorage.clear(); setDropdownOpen(false); navigate('/'); }}
                                         className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-400 dark:hover:border-red-500/30 transition-all active:scale-[0.98]"
                                     >
                                         <LogOut size={16} /> {t?.disconnect || 'Logout'}
                                     </button>
-
                                 </div>
                             </div>
                         )}
@@ -266,47 +264,84 @@ const ChatPage = () => {
                 </div>
             </header>
 
-            {/* MESSAGES AREA */}
+            {/* --- MESSAGES AREA --- */}
             <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6 z-10 relative custom-scrollbar">
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                        <div className={`max-w-[85%] md:max-w-2xl px-5 md:px-6 py-4 rounded-3xl shadow-md text-sm md:text-[15px] leading-relaxed whitespace-pre-wrap flex flex-col ${
+                        <div className={`max-w-[85%] md:max-w-2xl px-5 md:px-6 py-4 rounded-3xl shadow-md text-sm md:text-[15px] leading-relaxed transition-colors duration-500 whitespace-pre-wrap flex flex-col ${
                             msg.sender === 'user'
-                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-slate-200 font-medium rounded-tr-sm shadow-amber-500/20'
+                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-slate-900 font-medium rounded-tr-sm shadow-amber-500/20'
                                 : 'bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]'
                         }`}>
 
                             <div className={msg.sender === 'bot' ? "space-y-3" : ""}>
                                 {msg.sender === 'bot' ? (
-                                    <ReactMarkdown components={{ p: ({node, ...props}) => <p {...props} />, strong: ({node, ...props}) => <strong className="font-black text-amber-700 dark:text-amber-500 tracking-wide" {...props} />, ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 my-3 marker:text-amber-500" {...props} /> }}>
+                                    <ReactMarkdown
+                                        components={{
+                                            p: ({node, ...props}) => <p {...props} />,
+                                            strong: ({node, ...props}) => <strong className="font-black text-amber-700 dark:text-amber-500 tracking-wide" {...props} />,
+                                            ul: ({node, ...props}) => <ul className="list-disc pl-5 space-y-2 my-3 marker:text-amber-500" {...props} />,
+                                            ol: ({node, ...props}) => <ol className="list-decimal pl-5 space-y-2 my-3 marker:text-amber-500 font-bold" {...props} />,
+                                            li: ({node, ...props}) => <li className="font-medium" {...props} />
+                                        }}
+                                    >
                                         {msg.text || ''}
                                     </ReactMarkdown>
-                                ) : ( msg.text )}
+                                ) : (
+                                    msg.text
+                                )}
                             </div>
 
-                            {/* --- SOURCE CITATION CHIPS --- */}
+                            {/* --- SOURCE CITATIONS UI --- */}
                             {msg.sources && msg.sources.length > 0 && (
-                                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/10 w-full flex flex-wrap gap-2">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center mr-1">Sources:</span>
-                                    {msg.sources.map((src, sIdx) => (
-                                        <button
-                                            key={sIdx}
-                                            onClick={() => setDrawerSource(src)}
-                                            className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/20 px-3 py-1.5 rounded-lg hover:bg-amber-200/50 dark:hover:bg-amber-900/40 transition-colors uppercase tracking-widest shadow-sm"
-                                        >
-                                            <FileText size={12} />
-                                            [{sIdx + 1}] {src.title.substring(0, 15)}...
-                                        </button>
-                                    ))}
+                                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/10 w-full">
+                                    <button
+                                        onClick={() => toggleSources(idx)}
+                                        className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors uppercase tracking-widest outline-none"
+                                    >
+                                        <FileText size={14} />
+                                        {msg.showSources ? 'Hide Sources' : 'View Sources'}
+                                        {msg.showSources ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                                    </button>
+
+                                    {msg.showSources && (
+                                        <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {msg.sources.map((src, sIdx) => (
+                                                <div key={sIdx} className="bg-slate-100/50 dark:bg-black/40 border border-slate-200/50 dark:border-white/5 rounded-xl p-3 shadow-inner">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 truncate pr-2">
+                                                            {src.title}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 bg-amber-100/50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+                                                            {src.category}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed max-h-24 overflow-y-auto custom-scrollbar italic border-l-2 border-amber-500/50 pl-2">
+                                                        "...{src.content}..."
+                                                    </p>
+
+                                                    {/* OPEN PDF BUTTON */}
+                                                    <button
+                                                        onClick={() => setDrawerSource(src)}
+                                                        className="mt-3 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors uppercase tracking-widest"
+                                                    >
+                                                        Open Document Preview
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
                         </div>
                     </div>
                 ))}
 
+                {/* Thinking Animation */}
                 {isLoading && (
                     <div className="flex justify-start animate-in fade-in duration-300">
-                        <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-md text-amber-600 border border-slate-200 dark:border-white/5 px-6 py-4 rounded-3xl rounded-tl-sm flex items-center gap-3 shadow-md text-sm font-bold tracking-wide">
+                        <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-md text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-white/5 px-6 py-4 rounded-3xl rounded-tl-sm flex items-center gap-3 shadow-md text-sm font-bold tracking-wide">
                             <Loader2 className="animate-spin" size={18} />
                             <span>{t.chat_thinking || 'Querying database...'}</span>
                         </div>
@@ -316,11 +351,11 @@ const ChatPage = () => {
             </div>
 
             {/* --- INPUT AREA WITH STOP BUTTON --- */}
-            <div className="p-4 md:p-6 bg-white/60 dark:bg-[#0a0a0a]/60 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 transition-colors duration-500 shrink-0 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+            <div className="p-3 md:p-6 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 transition-colors duration-500 shrink-0 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
                 <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center relative">
                     <input
                         type="text"
-                        className="flex-1 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-amber-500/50 outline-none bg-white/50 dark:bg-black/40 text-slate-900 dark:text-white placeholder-slate-400 shadow-inner backdrop-blur-sm"
+                        className="flex-1 border border-slate-300 dark:border-slate-700 rounded-xl px-5 py-3.5 md:py-4 focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none bg-slate-50 dark:bg-black/40 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 transition-all duration-300 text-sm md:text-base disabled:opacity-50 shadow-inner backdrop-blur-sm"
                         placeholder={t.chat_input_placeholder || 'Ask a question...'}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -328,7 +363,6 @@ const ChatPage = () => {
                         disabled={isLoading}
                     />
 
-                    {/* --- DYNAMIC SEND / STOP BUTTON --- */}
                     {isLoading ? (
                         <button
                             onClick={handleStop}
@@ -341,7 +375,7 @@ const ChatPage = () => {
                         <button
                             onClick={handleSend}
                             disabled={isLoading}
-                            className="bg-gradient-to-r from-amber-500 to-orange-600 text-slate-200 p-3.5 md:px-8 md:py-4 rounded-2xl font-black hover:from-amber-400 shadow-lg active:scale-[0.96] flex items-center justify-center shrink-0 disabled:opacity-50"
+                            className="bg-gradient-to-r from-amber-500 to-orange-600 text-slate-900 p-3.5 md:px-8 md:py-4 rounded-2xl font-black hover:from-amber-400 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center shrink-0 disabled:opacity-50 disabled:grayscale active:scale-[0.96]"
                         >
                             <Send size={20} className="md:mr-2" />
                             <span className="hidden md:inline uppercase tracking-widest text-xs">{t.chat_btn_send || 'Send'}</span>
@@ -352,7 +386,7 @@ const ChatPage = () => {
 
             {/* --- DOCUMENT PREVIEW DRAWER (SLIDING SIDEBAR) --- */}
             <div className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-300 ${drawerSource ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                {/* Dark Backdrop (Click to close) */}
+                {/* Dark Backdrop */}
                 <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setDrawerSource(null)}></div>
 
                 {/* The Drawer Panel */}
@@ -385,8 +419,7 @@ const ChatPage = () => {
                         </p>
                     </div>
 
-                    {/* PDF Viewer (iframe) */}
-                    {/* --- SMART PDF VIEWER (Works on Safari & Mobile) --- */}
+                    {/* Smart PDF Viewer Component */}
                     <div className="flex-1 bg-slate-200 dark:bg-slate-950 relative w-full h-full overflow-hidden">
                         {drawerSource?.file_path?.endsWith('.pdf') ? (
                             <SmartPdfViewer

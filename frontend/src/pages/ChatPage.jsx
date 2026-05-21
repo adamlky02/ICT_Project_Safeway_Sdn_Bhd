@@ -193,28 +193,57 @@ const ChatPage = () => {
                     </button>
 
                     <div className="relative" ref={profileBtnRef}>
-                        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/80 px-3 py-2 rounded-xl transition-all">
+                        <button
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                            className="flex items-center gap-2 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 px-3 py-2 rounded-xl transition-all shadow-sm"
+                        >
                             <User size={18} className="text-amber-600 dark:text-amber-500" />
                         </button>
+
                         {dropdownOpen && (
-                            <div className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center">
-                                <div className="text-lg font-black text-slate-800 dark:text-white mt-2">{profile?.full_name}</div>
-                                <div className="text-xs font-medium text-slate-500 mb-5">{userEmail}</div>
-                                <button onClick={() => { setDropdownOpen(false); navigate('/profile'); }} className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-amber-200">
-                                    <User size={16} /> {t.profile || 'Profile'}
-                                </button>
-                                {/* --- NEW: CONDITIONAL ADMIN DASHBOARD BUTTON --- */}
-                                {userRole === 'admin' && (
+                            <div className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center animate-in fade-in slide-in-from-top-2 duration-300">
+
+                                {/* User Info Section */}
+                                <div className="text-lg font-black text-slate-800 dark:text-white mt-2 tracking-tight">
+                                    {profile?.full_name || 'Safeway Staff'}
+                                </div>
+                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6 truncate w-full text-center">
+                                    {profile?.email || 'Loading...'}
+                                </div>
+
+                                {/* Divider */}
+                                <div className="w-full border-t border-slate-200/60 dark:border-white/5 mb-4"></div>
+
+                                {/* Action Buttons */}
+                                <div className="w-full flex flex-col gap-2">
+
+                                    {/* Profile Button (Amber Hover) */}
                                     <button
-                                        className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-blue-200"
-                                        onClick={() => { setDropdownOpen(false); navigate('/admin'); }}
+                                        onClick={() => { setDropdownOpen(false); navigate('/profile'); }}
+                                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-400 dark:hover:border-amber-500/30 transition-all active:scale-[0.98]"
                                     >
-                                        {t.admin_dash_btn || "Admin Dashboard"}
+                                        <UserCircle2 size={16} /> {t?.profile || 'My Profile'}
                                     </button>
-                                )}
-                                <button onClick={() => { localStorage.clear(); navigate('/'); }} className="w-full flex items-center justify-center gap-2 py-3 mb-3 text-sm text-slate-700 dark:text-slate-200 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold rounded-xl transition-all hover:bg-red-200">
-                                    <LogOut size={16} /> {t.disconnect || "Logout"}
-                                </button>
+
+                                    {/* Conditional Admin Dashboard Button (Blue Hover) */}
+                                    {userRole === 'admin' && (
+                                        <button
+                                            onClick={() => { setDropdownOpen(false); navigate('/admin'); }}
+                                            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 dark:hover:border-blue-500/30 transition-all active:scale-[0.98]"
+                                        >
+                                            <ShieldCheck size={16} /> {t?.admin_dash_btn || 'Admin Dashboard'}
+                                        </button>
+                                    )}
+
+                                    {/* Logout Button (Red Hover) */}
+                                    <button
+                                        onClick={() => { localStorage.clear(); setDropdownOpen(false); navigate('/'); }}
+                                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-400 dark:hover:border-red-500/30 transition-all active:scale-[0.98]"
+                                    >
+                                        <LogOut size={16} /> {t?.disconnect || 'Logout'}
+                                    </button>
+
+                                </div>
                             </div>
                         )}
                     </div>

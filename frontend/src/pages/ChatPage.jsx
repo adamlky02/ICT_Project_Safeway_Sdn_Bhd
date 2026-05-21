@@ -3,6 +3,7 @@ import { Send, LogOut, User, Sun, Moon, Loader2, Globe, FileText, ChevronDown, C
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { translations } from '../translations';
+import SmartPdfViewer from '../components/SmartPdfViewer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -157,10 +158,25 @@ const ChatPage = () => {
         });
     };
 
+    // --- ADVANCED PDF HIGHLIGHTER LOGIC ---
     const getPdfSearchHash = (content) => {
         if (!content) return "";
-        const snippet = content.substring(0, 40).replace(/[^a-zA-Z0-9 ]/g, '');
-        return `#search=${encodeURIComponent(snippet)}`;
+
+        // 1. Remove all markdown, newlines, and special characters, leaving only letters and spaces.
+        const cleanText = content.replace(/[^a-zA-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+        // 2. Grab a highly specific "anchor" phrase (roughly the first 6-8 words).
+        // If we search the whole paragraph, the PDF viewer will fail. If we search 1 word, it highlights too much.
+        const words = cleanText.split(' ');
+        if (words.length < 3) return ""; // Too short to accurately search
+
+        // Grab a 6-word snippet from the middle of the text (often the most unique part)
+        const startIndex = Math.floor(words.length / 4);
+        const searchPhrase = words.slice(startIndex, startIndex + 6).join(' ');
+
+        // 3. Format it for the browser's native PDF search engine
+        // Note: Chrome/Edge require exactly this format: #search="Exact Phrase"
+        return `#search="${encodeURIComponent(searchPhrase)}"`;
     };
 
     return (
@@ -370,12 +386,12 @@ const ChatPage = () => {
                     </div>
 
                     {/* PDF Viewer (iframe) */}
-                    <div className="flex-1 bg-slate-200 dark:bg-slate-950 relative w-full h-full">
+                    {/* --- SMART PDF VIEWER (Works on Safari & Mobile) --- */}
+                    <div className="flex-1 bg-slate-200 dark:bg-slate-950 relative w-full h-full overflow-hidden">
                         {drawerSource?.file_path?.endsWith('.pdf') ? (
-                            <iframe
-                                src={`${API_URL}/api/files/${drawerSource.file_path}${getPdfSearchHash(drawerSource.content)}`}
-                                className="absolute inset-0 w-full h-full border-none"
-                                title="Document Viewer"
+                            <SmartPdfViewer
+                                fileUrl={`${API_URL}/api/files/${drawerSource.file_path}`}
+                                searchText={drawerSource.content}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 p-8 text-center">

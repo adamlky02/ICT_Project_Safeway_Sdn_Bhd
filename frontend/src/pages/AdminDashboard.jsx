@@ -22,7 +22,19 @@ const AdminDashboard = () => {
         localStorage.setItem('language', nextLang);
     };
 
-    const [tab, setTab] = useState('staff');
+    const [tab, setTab] = useState('analytics');
+
+    // --- LIVE CLOCK STATE ---
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Format the date and time beautifully
+    const formattedDate = currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedTime = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const [data, setData] = useState({ users: [], docs: [] });
 
     // NEW: Analytics State
@@ -369,16 +381,19 @@ const AdminDashboard = () => {
 
                     {/* --- NEW SYSTEM ANALYTICS TAB --- */}
                     {tab === 'analytics' && (
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-xl font-bold dark:text-white">{t.sys_analytics || 'System Health'}</h3>
-                                <button
-                                    onClick={loadData}
-                                    disabled={isRefreshing}
-                                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-amber-500 hover:text-blue-800 dark:hover:text-amber-400 transition-colors"
-                                >
-                                    <RefreshCcw size={14} className={isRefreshing ? "animate-spin" : ""} /> {t.refresh_stats || 'Refresh'}
-                                </button>
+                        <div className="space-y-4">
+                            <div>
+                                {/* UPDATED: Made the font larger and separated date/time for better visual hierarchy */}
+                                <div className="flex items-center gap-3 mt-1.5">
+                                    <span className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <p className="text-xl font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                        {formattedDate}
+                                    </p>
+                                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                                    <p className="text-lg md:text-xl font-black text-amber-600 dark:text-amber-500 tracking-wider font-mono">
+                                        {formattedTime}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Top Metric Cards */}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { translations } from '../translations';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const STAFF_EMAIL_DOMAIN = 'gmail.com';
 
 const inputStyle = "w-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0a0a0a] dark:text-white p-3 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 shadow-inner";
 const cardStyle = "bg-white/40 dark:bg-white/5 backdrop-blur-3xl saturate-150 border border-white/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] rounded-2xl md:rounded-[2rem] transition-colors relative overflow-hidden";
@@ -94,7 +95,13 @@ const AdminDashboard = () => {
     };
 
     const openEditUser = (user) => {
-        const username = user.email?.endsWith('@safeway.com') ? user.email.replace('@safeway.com', '') : user.email || '';
+        const emailSuffix = `@${STAFF_EMAIL_DOMAIN}`;
+        const legacySuffix = '@safeway.com';
+        const username = user.email?.endsWith(emailSuffix)
+            ? user.email.replace(emailSuffix, '')
+            : user.email?.endsWith(legacySuffix)
+                ? user.email.replace(legacySuffix, '')
+                : user.email || '';
         const names = (user.full_name || '').split(' ');
         const first = names[0] || '';
         const last = names.slice(1).join(' ') || '';
@@ -284,7 +291,7 @@ const AdminDashboard = () => {
                                         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1">{t.email} <span className="text-[9px] lowercase opacity-70">{t.email_prefix}</span></label>
                                         <div className="flex border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:border-amber-500 transition-all shadow-inner backdrop-blur-sm">
                                             <input className="flex-1 bg-transparent p-2.5 text-sm dark:text-white outline-none placeholder-slate-400 dark:placeholder-slate-500" value={form.username} onChange={e => setForm({...form, username: e.target.value})} required placeholder="john.d" />
-                                            <span className="bg-slate-200/50 dark:bg-white/5 px-3 flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 border-l border-slate-200 dark:border-white/10">@safeway.com</span>
+                                            <span className="bg-slate-200/50 dark:bg-white/5 px-3 flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 border-l border-slate-200 dark:border-white/10">@{STAFF_EMAIL_DOMAIN}</span>
                                         </div>
                                     </div>
                                     <div className="sm:col-span-3">

@@ -1,7 +1,7 @@
 export const translations = {
     en: {
         // Landing Page
-        landing_title: "Safeway Solution Sdn Bhd.",
+        landing_title: "Safeway Solutions Sdn Bhd.",
         landing_subtitle: "Internal Document AI Assistant",
         admin_role: "Administrator",
         admin_desc: "Manage company documents, configure system settings, and oversee internal knowledge indexing.",
@@ -89,7 +89,7 @@ export const translations = {
     },
     ms: {
         // Landing Page
-        landing_title: "Safeway Solution Sdn Bhd.",
+        landing_title: "Safeway Solutions Sdn Bhd.",
         landing_subtitle: "Pembantu AI Dokumen Dalaman",
         admin_role: "Pentadbir",
         admin_desc: "Urus dokumen syarikat, tetapkan sistem, dan pantau indeks pengetahuan dalaman.",
@@ -177,7 +177,7 @@ export const translations = {
     },
     zh: {
         // Landing Page
-        landing_title: "Safeway Solution Sdn Bhd.",
+        landing_title: "Safeway Solutions Sdn Bhd.",
         landing_subtitle: "内部文档 AI 助手",
         admin_role: "管理员",
         admin_desc: "管理公司文档，配置系统设置，并监督内部知识索引。",

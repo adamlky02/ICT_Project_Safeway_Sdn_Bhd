@@ -44,6 +44,7 @@ const LoginPage = () => {
     }, [isDarkMode]);
 
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+    const STAFF_EMAIL_DOMAIN = 'safeway.com';
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -163,7 +164,7 @@ const LoginPage = () => {
                         <input
                             type="email"
                             className="w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 shadow-inner"
-                            placeholder={`${role}@safeway.com`}
+                            placeholder={`${role}@${STAFF_EMAIL_DOMAIN}`}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={isLoading}
@@ -201,7 +202,7 @@ const LoginPage = () => {
                     <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase tracking-widest">
                         {t.test_hint}<br/>
                         <span className="font-mono text-amber-600 dark:text-amber-500 mt-1.5 block text-xs">
-                            {role}@safeway.com / {role === 'staff' ? 'staff123' : 'admin123'}
+                            {role}@{STAFF_EMAIL_DOMAIN} / {role === 'staff' ? 'staff123' : 'admin123'}
                         </span>
                     </p>
                 </div>

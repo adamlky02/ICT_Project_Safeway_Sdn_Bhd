@@ -45,10 +45,8 @@ const SmartPdfViewer = ({ fileUrl, searchText }) => {
             }
 
             // 4. THE THRESHOLD: If this line contains enough keywords, apply the classic yellow highlight!
-            // Note: If it highlights too much, change 3 to 4. If it highlights too little, change 3 to 2.
             if (matchCount >= 3) {
                 return (
-                    // Classic bright yellow highlighter, transparent enough to see the text beneath cleanly
                     <mark style={{ backgroundColor: 'rgba(253, 224, 71, 0.7)', color: 'inherit', padding: '0 2px' }}>
                         {textItem.str}
                     </mark>
@@ -61,33 +59,41 @@ const SmartPdfViewer = ({ fileUrl, searchText }) => {
     );
 
     return (
-        <div className="w-full h-full flex flex-col items-center bg-slate-200 dark:bg-[#050505] overflow-y-auto p-4 custom-scrollbar">
-            {loading && (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                    <Loader2 className="animate-spin mb-3 text-amber-500" size={32} />
-                    <p className="font-bold tracking-widest uppercase text-xs">Decrypting Document...</p>
-                </div>
-            )}
+        // FIX 1: Changed "overflow-y-auto" to "overflow-auto" to allow horizontal scrolling
+        // FIX 2: Removed "flex flex-col items-center" from here to prevent the flexbox clipping bug
+        <div className="w-full h-full bg-slate-200 dark:bg-[#050505] overflow-auto p-4 custom-scrollbar">
 
-            <Document
-                file={fileUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-                className="flex flex-col items-center w-full"
-                loading={null}
-            >
-                {Array.from(new Array(numPages), (el, index) => (
-                    <div key={`page_${index + 1}`} className="mb-6 shadow-xl w-full max-w-[600px] bg-white rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 relative z-10">
-                        <Page
-                            pageNumber={index + 1}
-                            width={600}
-                            renderTextLayer={true}
-                            renderAnnotationLayer={false}
-                            customTextRenderer={customTextRenderer}
-                            className="dark:opacity-90" // Dims the bright white PDF slightly in dark mode so it isn't blinding
-                        />
+            {/* FIX 3: Added a wrapper that handles safe centering without breaking mobile scroll */}
+            <div className="min-w-fit min-h-full flex flex-col items-center mx-auto">
+
+                {loading && (
+                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+                        <Loader2 className="animate-spin mb-3 text-amber-500" size={32} />
+                        <p className="font-bold tracking-widest uppercase text-xs">Decrypting Document...</p>
                     </div>
-                ))}
-            </Document>
+                )}
+
+                <Document
+                    file={fileUrl}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    className="flex flex-col items-center w-full"
+                    loading={null}
+                >
+                    {Array.from(new Array(numPages), (el, index) => (
+                        // FIX 4: Removed "max-w-[600px] overflow-hidden". Changed to "w-fit".
+                        <div key={`page_${index + 1}`} className="mb-6 shadow-xl w-fit bg-white rounded-lg border border-slate-200 dark:border-slate-800 relative z-10">
+                            <Page
+                                pageNumber={index + 1}
+                                width={700} // Increased slightly for crisp text quality
+                                renderTextLayer={true}
+                                renderAnnotationLayer={false}
+                                customTextRenderer={customTextRenderer}
+                                className="dark:opacity-90" // Dims the bright white PDF slightly in dark mode so it isn't blinding
+                            />
+                        </div>
+                    ))}
+                </Document>
+            </div>
         </div>
     );
 };

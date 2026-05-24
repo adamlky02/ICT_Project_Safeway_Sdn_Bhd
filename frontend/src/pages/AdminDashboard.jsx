@@ -230,8 +230,8 @@ const AdminDashboard = () => {
             {/* MOBILE TOP HEADER */}
             <div className="md:hidden bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-20 transition-colors">
                 <div className="flex items-center gap-3">
-                    <img src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"} alt="Logo" className="w-8 h-8 object-contain shrink-0 drop-shadow-sm" />
-                    <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight text-lg">Safeway</span>
+                    <img src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"} alt="Logo" className="w-10 h-10 object-contain shrink-0 drop-shadow-sm" />
+                    <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight text-lg">Dashboard</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={toggleLanguage} className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-blue-600 dark:text-blue-400 transition-colors uppercase text-[10px] font-bold">
@@ -246,7 +246,7 @@ const AdminDashboard = () => {
             {/* DESKTOP HOVER SIDEBAR */}
             <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className={`hidden md:flex bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl text-slate-700 dark:text-slate-300 flex-col z-40 transition-all duration-300 ease-out border-r border-slate-200 dark:border-slate-800 shrink-0 ${isHovered ? 'w-64' : 'w-20'}`}>
                 <div className={`flex items-center mb-8 h-20 mt-2 transition-all duration-300 overflow-hidden ${isHovered ? 'px-6' : 'justify-center px-0'}`}>
-                    <img src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"} alt="Logo" className="w-10 h-10 object-contain shrink-0 drop-shadow-md transition-transform duration-500 hover:scale-105" />
+                    <img src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"} alt="Logo" className="w-17 h-17 object-contain shrink-0 drop-shadow-md transition-transform duration-500 hover:scale-105" />
                     <div className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${isHovered ? 'w-40 opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}`}>
                         <h1 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight">{t.admin_dashboard || 'Admin'}</h1>
                     </div>

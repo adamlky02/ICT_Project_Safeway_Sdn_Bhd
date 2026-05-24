@@ -175,7 +175,8 @@ const ChatPage = () => {
     };
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden relative">
+
+        <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden">
 
             {/* --- ENGINEERING BACKGROUND ELEMENTS --- */}
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-0 opacity-40 dark:opacity-60 transition-opacity duration-700"></div>
@@ -189,9 +190,9 @@ const ChatPage = () => {
                     <img
                         src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"}
                         alt="Logo"
-                        className="w-8 h-8 md:w-10 md:h-10 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0 hidden sm:block drop-shadow-sm transition-transform duration-500 hover:scale-105"
+                        className="w-18 h-18 md:w-20 md:h-20 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0 hidden sm:block drop-shadow-sm transition-transform duration-500 hover:scale-105"
                     />
-                    <h1 className="text-lg md:text-xl font-bold text-blue-400 tracking-wide">Safeway Assistant</h1>
+                    <h1 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 tracking-tight">Safeway Assistant</h1>
                 </div>
 
                 <div className="flex items-center gap-1 md:gap-2">
@@ -274,7 +275,7 @@ const ChatPage = () => {
                     <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                         <div className={`max-w-[85%] md:max-w-2xl px-5 md:px-6 py-4 rounded-3xl shadow-md text-sm md:text-[15px] leading-relaxed transition-colors duration-500 whitespace-pre-wrap flex flex-col ${
                             msg.sender === 'user'
-                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-slate-900 font-medium rounded-tr-sm shadow-amber-500/20'
+                                ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-slate-200 font-medium rounded-tr-sm shadow-amber-500/20'
                                 : 'bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]'
                         }`}>
 
@@ -331,7 +332,7 @@ const ChatPage = () => {
             </div>
 
             {/* --- INPUT AREA WITH STOP BUTTON --- */}
-            <div className="p-3 md:p-6 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 transition-colors duration-500 shrink-0 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+            <div className="pt-3 px-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl border-t border-slate-200 dark:border-white/5 transition-colors duration-500 shrink-0 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
                 <div className="max-w-4xl mx-auto flex gap-2 md:gap-3 items-center relative">
                     <input
                         type="text"
@@ -355,7 +356,7 @@ const ChatPage = () => {
                         <button
                             onClick={handleSend}
                             disabled={isLoading}
-                            className="bg-gradient-to-r from-amber-500 to-orange-600 text-slate-900 p-3.5 md:px-8 md:py-4 rounded-2xl font-black hover:from-amber-400 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center shrink-0 disabled:opacity-50 disabled:grayscale active:scale-[0.96]"
+                            className="bg-gradient-to-r from-amber-500 to-orange-600 text-slate-200 p-3.5 md:px-8 md:py-4 rounded-2xl font-black hover:from-amber-400 hover:to-orange-500 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center shrink-0 disabled:opacity-50 disabled:grayscale active:scale-[0.96]"
                         >
                             <Send size={20} className="md:mr-2" />
                             <span className="hidden md:inline uppercase tracking-widest text-xs">{t.chat_btn_send || 'Send'}</span>

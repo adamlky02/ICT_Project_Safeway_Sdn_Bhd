@@ -167,6 +167,13 @@ const ChatPage = () => {
         ));
     };
 
+    // Helper to extract a short snippet for the PDF search highlighter
+    const getPdfSearchHash = (content) => {
+        if (!content) return "";
+        const snippet = content.substring(0, 40).replace(/[^a-zA-Z0-9 ]/g, '');
+        return `#search=${encodeURIComponent(snippet)}`;
+    };
+
     return (
         <div className="flex flex-col h-[100dvh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden relative">
 
@@ -177,17 +184,14 @@ const ChatPage = () => {
 
             {/* --- TOP HEADER --- */}
             <header className="h-14 md:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
-                <div className="flex items-center gap-3">
-                    <div className="bg-slate-900 dark:bg-[#0a0a0a] p-1.5 rounded-lg shrink-0 hidden sm:block shadow-inner border border-slate-700">
-                        <img
-                            src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"}
-                            alt="Logo"
-                            className="w-6 h-6 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0"
-                        />
-                    </div>
-                    <h1 className="text-lg md:text-xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">
-                        {t.chat_title || "Safeway Terminal"}
-                    </h1>
+                <div className="flex items-center gap-2 md:gap-3">
+                    {/* Clean, borderless floating logo */}
+                    <img
+                        src={isDarkMode ? "/safewaylogo.png" : "/safewaylogoblack.png"}
+                        alt="Logo"
+                        className="w-8 h-8 md:w-10 md:h-10 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0 hidden sm:block drop-shadow-sm transition-transform duration-500 hover:scale-105"
+                    />
+                    <h1 className="text-lg md:text-xl font-bold text-blue-400 tracking-wide">Safeway Assistant</h1>
                 </div>
 
                 <div className="flex items-center gap-1 md:gap-2">
@@ -292,45 +296,21 @@ const ChatPage = () => {
                                 )}
                             </div>
 
-                            {/* --- SOURCE CITATIONS UI --- */}
+                            {/* --- SIMPLE SOURCE CHIPS --- */}
                             {msg.sources && msg.sources.length > 0 && (
-                                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/10 w-full">
-                                    <button
-                                        onClick={() => toggleSources(idx)}
-                                        className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors uppercase tracking-widest outline-none"
-                                    >
-                                        <FileText size={14} />
-                                        {msg.showSources ? 'Hide Sources' : 'View Sources'}
-                                        {msg.showSources ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
-                                    </button>
-
-                                    {msg.showSources && (
-                                        <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            {msg.sources.map((src, sIdx) => (
-                                                <div key={sIdx} className="bg-slate-100/50 dark:bg-black/40 border border-slate-200/50 dark:border-white/5 rounded-xl p-3 shadow-inner">
-                                                    <div className="flex justify-between items-center mb-2">
-                                                        <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 truncate pr-2">
-                                                            {src.title}
-                                                        </span>
-                                                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 bg-amber-100/50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
-                                                            {src.category}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed max-h-24 overflow-y-auto custom-scrollbar italic border-l-2 border-amber-500/50 pl-2">
-                                                        "...{src.content}..."
-                                                    </p>
-
-                                                    {/* OPEN PDF BUTTON */}
-                                                    <button
-                                                        onClick={() => setDrawerSource(src)}
-                                                        className="mt-3 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors uppercase tracking-widest"
-                                                    >
-                                                        Open Document Preview
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/10 w-full flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center mr-1">Sources:</span>
+                                    {msg.sources.map((src, sIdx) => (
+                                        <button
+                                            key={sIdx}
+                                            onClick={() => setDrawerSource(src)} // Clicking instantly opens the drawer
+                                            className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/20 px-2.5 py-1.5 rounded-lg hover:bg-amber-200/60 dark:hover:bg-amber-900/40 transition-all shadow-sm active:scale-95"
+                                            title={src.title}
+                                        >
+                                            <FileText size={12} />
+                                            [{sIdx + 1}] {src.title.length > 20 ? src.title.substring(0, 20) + '...' : src.title}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
 

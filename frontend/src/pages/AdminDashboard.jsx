@@ -406,7 +406,7 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                                 <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] hidden sm:block pb-2">
-                                    {t.id_manager || 'Safeway Identity Manager'}
+                                    {t.id_manager}
                                 </div>
                             </div>
 

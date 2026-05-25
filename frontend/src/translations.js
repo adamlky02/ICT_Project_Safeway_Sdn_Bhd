@@ -123,7 +123,7 @@ export const translations = {
         admin_dash_btn: "Papan Pemuka",
 
         // Admin Dashboard
-        admin_dashboard: "Pentadbir ",
+        admin_dashboard: "Menu ",
         tab_accounts: "Akaun",
         tab_docs: "Dokumen",
         tab_analytics:"Analitik",

@@ -23,11 +23,9 @@ const LoginPage = () => {
         localStorage.setItem('language', nextLang);
     };
 
-    // --- DARK MODE LOGIC ---
+    // DARK MODE LOGIC
     // CORRECT (Always forces Light Mode on initial load, but respects it if navigating between pages in the same session)
     const [isDarkMode, setIsDarkMode] = useState(() => {
-        // If they just landed on the site, sessionStorage will be empty, force light mode.
-        // We use sessionStorage instead of localStorage so it resets when the tab closes!
         const sessionTheme = sessionStorage.getItem('theme');
         return sessionTheme === 'dark';
     });
@@ -85,7 +83,7 @@ const LoginPage = () => {
             <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-amber-400/20 dark:bg-amber-600/10 rounded-full blur-[120px] pointer-events-none transition-colors duration-700"></div>
             <div className="absolute bottom-[-20%] right-[-10%] w-[400px] h-[400px] bg-orange-400/20 dark:bg-orange-600/10 rounded-full blur-[100px] pointer-events-none transition-colors duration-700"></div>
 
-            {/* --- TOP RIGHT CONTROLS --- */}
+            {/*  TOP RIGHT CONTROLS  */}
             <div className="absolute top-4 right-4 md:top-8 md:right-10 z-50 flex gap-3">
                 {/* Language Toggle */}
                 <button

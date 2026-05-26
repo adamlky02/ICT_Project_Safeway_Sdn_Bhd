@@ -5,8 +5,7 @@ import { translations } from '../translations';
 
 const LandingPage = () => {
     const navigate = useNavigate();
-
-    // --- LANGUAGE LOGIC ---
+    //  LANGUAGE LOGIC
     const [lang, setLang] = useState(() => localStorage.getItem('language') || 'en');
     const t = translations[lang];
 
@@ -16,7 +15,7 @@ const LandingPage = () => {
         localStorage.setItem('language', nextLang);
     };
 
-    // --- DARK MODE LOGIC ---
+    // DARK MODE LOGIC
     // CORRECT (Always forces Light Mode on initial load, but respects it if navigating between pages in the same session)
     const [isDarkMode, setIsDarkMode] = useState(() => {
         // If they just landed on the site, sessionStorage will be empty, force light mode.

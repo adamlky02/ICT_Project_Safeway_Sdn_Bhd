@@ -72,7 +72,7 @@ const AdminDashboard = () => {
     const formattedDate = currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const formattedTime = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    // --- UI States ---
+    // UI States
     const [isHovered, setIsHovered] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
     const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +89,7 @@ const AdminDashboard = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [form, setForm] = useState({ first_name: '', last_name: '', username: '', title: '', category: 'HR' });
 
-    // --- Dark Mode Logic ---
+    //  Dark Mode Logic
     useEffect(() => {
         const root = document.documentElement;
         if (isDarkMode) { root.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
@@ -138,7 +138,7 @@ const AdminDashboard = () => {
     };
 
     const openEditUser = (user) => {
-        const username = user.email?.endsWith('@safeway.com') ? user.email.replace('@safeway.com', '') : user.email || '';
+        const username = user.email?.endsWith('@gmail.com') ? user.email.replace('@s.com', '') : user.email || '';
         const names = (user.full_name || '').split(' ');
         const first = names[0] || '';
         const last = names.slice(1).join(' ') || '';

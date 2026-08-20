@@ -30,6 +30,11 @@ export interface ChatMessage {
     sources?: DocumentSource[];
 }
 
+export interface ChatHistoryItem {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
 export interface ChatResponse {
     sender: 'bot';
     message: string;

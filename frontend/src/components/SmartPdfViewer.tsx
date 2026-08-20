@@ -64,8 +64,8 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
             }
 
             // 4. THE THRESHOLD: If this line contains enough keywords, apply the classic yellow highlight!
-            if (matchCount >= 3) {
-                return `<mark style="background-color: rgba(253, 224, 71, 0.7); color: inherit; padding: 0 2px">${escapeHtml(textItem.str)}</mark>`;
+            if (matchCount >= 5) {
+                return `<mark style="background-color: rgba(255, 165, 0, 0.4); color: inherit; padding: 0 2px">${escapeHtml(textItem.str)}</mark>`;
             }
 
             return textItem.str;

@@ -9,7 +9,7 @@ import { ChatMessages } from '../components/chat/ChatMessages';
 import { DocumentDrawer } from '../components/chat/DocumentDrawer';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import type { ChatMessage, ChatResponse, DocumentSource, UserProfile, UserRole } from '../types';
+import type { ChatHistoryItem, ChatMessage, ChatResponse, DocumentSource, UserProfile, UserRole } from '../types';
 
 const ChatPage = () => {
     const navigate = useNavigate();
@@ -94,10 +94,14 @@ const ChatPage = () => {
         abortControllerRef.current = new AbortController();
 
         try {
+            const conversationHistory: ChatHistoryItem[] = messages.slice(-10).map((message) => ({
+                role: message.sender === 'user' ? 'user' : 'assistant',
+                content: message.text,
+            }));
             const response = await fetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage.text }),
+                body: JSON.stringify({ message: userMessage.text, history: conversationHistory }),
                 signal: abortControllerRef.current.signal,
             });
 

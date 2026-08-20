@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, getStoredUser, readJson } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
@@ -279,64 +280,80 @@ const AdminDashboard = () => {
                 <div className="max-w-6xl mx-auto">
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat')} onOpenProfile={() => navigate('/profile')} />
 
-                    {tab === 'analytics' && (
-                        <AnalyticsPanel
-                            analytics={analytics}
-                            usersCount={data.users.length}
-                            documentsCount={data.docs.length}
-                            formattedDate={formattedDate}
-                            formattedTime={formattedTime}
-                            isRefreshing={isRefreshing}
-                            t={t}
-                            onRefresh={() => void loadData()}
-                        />
-                    )}
-                    {tab === 'staff' && (
-                        <AccountsPanel
-                            form={form}
-                            searchTerm={searchTerm}
-                            adminUsers={adminUsers}
-                            staffUsers={staffUsers}
-                            t={t}
-                            onFormChange={setForm}
-                            onSearchChange={setSearchTerm}
-                            onAddUser={(event) => void handleAddUser(event)}
-                            onEditUser={openEditUser}
-                            onDeleteUser={(id) => void deleteItem('users', id)}
-                        />
-                    )}
-                    {tab === 'docs' && (
-                        <DocumentsPanel
-                            documents={data.docs}
-                            form={form}
-                            selectedFile={selectedFile}
-                            t={t}
-                            onFormChange={setForm}
-                            onFileChange={setSelectedFile}
-                            onUpload={(event) => void handleFileUpload(event)}
-                            onDeleteDocument={(id) => void deleteItem('documents', id)}
-                        />
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                        <m.div
+                            key={tab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.24 }}
+                        >
+                            {tab === 'analytics' && (
+                                <AnalyticsPanel
+                                    analytics={analytics}
+                                    usersCount={data.users.length}
+                                    documentsCount={data.docs.length}
+                                    formattedDate={formattedDate}
+                                    formattedTime={formattedTime}
+                                    isRefreshing={isRefreshing}
+                                    t={t}
+                                    onRefresh={() => void loadData()}
+                                />
+                            )}
+                            {tab === 'staff' && (
+                                <AccountsPanel
+                                    form={form}
+                                    searchTerm={searchTerm}
+                                    adminUsers={adminUsers}
+                                    staffUsers={staffUsers}
+                                    t={t}
+                                    onFormChange={setForm}
+                                    onSearchChange={setSearchTerm}
+                                    onAddUser={(event) => void handleAddUser(event)}
+                                    onEditUser={openEditUser}
+                                    onDeleteUser={(id) => void deleteItem('users', id)}
+                                />
+                            )}
+                            {tab === 'docs' && (
+                                <DocumentsPanel
+                                    documents={data.docs}
+                                    form={form}
+                                    selectedFile={selectedFile}
+                                    t={t}
+                                    onFormChange={setForm}
+                                    onFileChange={setSelectedFile}
+                                    onUpload={(event) => void handleFileUpload(event)}
+                                    onDeleteDocument={(id) => void deleteItem('documents', id)}
+                                />
+                            )}
+                        </m.div>
+                    </AnimatePresence>
                 </div>
             </div>
 
-            {editingUser && (
-                <EditUserModal
-                    user={editingUser}
-                    form={editForm}
-                    t={t}
-                    onFormChange={setEditForm}
-                    onRoleToggle={handleRoleToggle}
-                    onClose={() => setEditingUser(null)}
-                    onSubmit={(event) => void handleEditUser(event)}
-                />
-            )}
-            {showPasswordModal && (
-                <CredentialsModal credentials={generatedPassword} t={t} onClose={() => setShowPasswordModal(false)} />
-            )}
-            {showPromoteConfirm && (
-                <RoleConfirmModal pendingRole={pendingRole} t={t} onChoice={handlePromoteChoice} />
-            )}
+            <AnimatePresence>
+                {editingUser && (
+                    <EditUserModal
+                        user={editingUser}
+                        form={editForm}
+                        t={t}
+                        onFormChange={setEditForm}
+                        onRoleToggle={handleRoleToggle}
+                        onClose={() => setEditingUser(null)}
+                        onSubmit={(event) => void handleEditUser(event)}
+                    />
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {showPasswordModal && (
+                    <CredentialsModal credentials={generatedPassword} t={t} onClose={() => setShowPasswordModal(false)} />
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {showPromoteConfirm && (
+                    <RoleConfirmModal pendingRole={pendingRole} t={t} onChoice={handlePromoteChoice} />
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowLeft, Loader2, LockKeyhole, LogIn } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL, readJson, STAFF_EMAIL_DOMAIN, storeUser } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { PageControls } from '../components/PageControls';
 import { LoginLoadingOverlay } from '../components/login/LoginLoadingOverlay';
+import { fadeUp } from '../components/motion/presets';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 import type { ApiErrorBody, StoredUser, UserRole } from '../types';
@@ -63,15 +65,22 @@ const LoginPage = () => {
                 variant="login"
             />
 
-            {isLoading && (
-                <LoginLoadingOverlay
-                    title={t.auth_loading}
-                    description={t.auth_desc}
-                    warning={t.auth_warning}
-                />
-            )}
+            <AnimatePresence>
+                {isLoading && (
+                    <LoginLoadingOverlay
+                        title={t.auth_loading}
+                        description={t.auth_desc}
+                        warning={t.auth_warning}
+                    />
+                )}
+            </AnimatePresence>
 
-            <div className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500 animate-in fade-in slide-in-from-bottom-4">
+            <m.div
+                className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500"
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+            >
                 <button
                     onClick={() => navigate('/')}
                     disabled={isLoading}
@@ -93,14 +102,21 @@ const LoginPage = () => {
 
                 <p className="text-slate-600 dark:text-slate-400 mb-8 text-sm font-medium">{t.login_desc}</p>
 
-                {error && (
-                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-sm font-bold flex items-center gap-3">
-                        <div className="bg-red-100 dark:bg-red-500/20 p-1 rounded-md shrink-0">
-                            <span className="text-red-600 dark:text-red-500">!</span>
-                        </div>
-                        {error}
-                    </div>
-                )}
+                <AnimatePresence initial={false}>
+                    {error && (
+                        <m.div
+                            className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 text-sm font-bold flex items-center gap-3"
+                            initial={{ opacity: 0, y: -8, height: 0 }}
+                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                            exit={{ opacity: 0, y: -6, height: 0 }}
+                        >
+                            <div className="bg-red-100 dark:bg-red-500/20 p-1 rounded-md shrink-0">
+                                <span className="text-red-600 dark:text-red-500">!</span>
+                            </div>
+                            {error}
+                        </m.div>
+                    )}
+                </AnimatePresence>
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-1.5">
@@ -149,7 +165,7 @@ const LoginPage = () => {
                         </span>
                     </p>
                 </div>
-            </div>
+            </m.div>
         </div>
     );
 };

@@ -39,7 +39,7 @@ export function AnalyticsPanel({
     onRefresh,
 }: AnalyticsPanelProps) {
     return (
-        <div className="space-y-4 animate-in fade-in duration-500">
+        <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3 mt-1.5">
                     <span className="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />

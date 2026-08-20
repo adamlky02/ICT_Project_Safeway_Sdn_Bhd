@@ -1,6 +1,8 @@
 import { ChevronRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { m } from 'motion/react';
 import type { UserRole } from '../../types';
+import { fadeUp } from '../motion/presets';
 
 interface RoleCardProps {
     role: UserRole;
@@ -15,9 +17,12 @@ export function RoleCard({ role, title, description, icon: Icon, accent, onSelec
     const isAdmin = accent === 'amber';
 
     return (
-        <button
+        <m.button
             onClick={() => onSelect(role)}
-            className={`group p-5 md:p-10 text-left flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0 relative overflow-hidden transition-all duration-500 hover:-translate-y-2
+            variants={fadeUp}
+            whileHover={{ y: -6, scale: 1.01 }}
+            whileTap={{ scale: 0.985 }}
+            className={`group p-5 md:p-10 text-left flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0 relative overflow-hidden transition-shadow duration-500
             bg-white/40 dark:bg-white/5
             backdrop-blur-3xl saturate-150
             border border-white/60 dark:border-white/10
@@ -39,6 +44,6 @@ export function RoleCard({ role, title, description, icon: Icon, accent, onSelec
                     {description}
                 </p>
             </div>
-        </button>
+        </m.button>
     );
 }

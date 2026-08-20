@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, getStoredUser, readJson } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
@@ -134,7 +135,12 @@ const ChatPage = () => {
     };
 
     return (
-        <div className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden">
+        <m.div
+            className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+        >
             <EngineeringBackground />
             <ChatHeader
                 lang={lang}
@@ -167,7 +173,7 @@ const ChatPage = () => {
                 onStop={() => abortControllerRef.current?.abort()}
             />
             <DocumentDrawer source={drawerSource} onClose={() => setDrawerSource(null)} />
-        </div>
+        </m.div>
     );
 };
 

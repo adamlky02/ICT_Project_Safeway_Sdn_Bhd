@@ -1,8 +1,11 @@
 import { ShieldCheck, Users } from 'lucide-react';
+import { m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { PageControls } from '../components/PageControls';
+import { BrandLogo } from '../components/landing/BrandLogo';
 import { RoleCard } from '../components/landing/RoleCard';
+import { fadeUp, staggerContainer } from '../components/motion/presets';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 import type { UserRole } from '../types';
@@ -30,29 +33,27 @@ const LandingPage = () => {
                 onThemeToggle={toggleTheme}
             />
 
-            <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mt-8 md:mt-16">
-                <div className="text-center mb-10 md:mb-16 flex flex-col items-center">
-                    <div className="relative group mb-4 md:mb-8 flex justify-center items-center">
-                        <div className="absolute inset-0 bg-gradient-to-r rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500 scale-90" />
-                        <img
-                            src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'}
-                            alt="Safeway Logo"
-                            className="relative w-68 h-68 md:w-70 md:h-70 object-contain transition-transform duration-700 group-hover:scale-110 drop-shadow-2xl"
-                        />
-                    </div>
+            <m.div
+                className="relative z-10 flex flex-col items-center w-full max-w-5xl mt-8 md:mt-16"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+            >
+                <m.div className="text-center mb-10 md:mb-16 flex flex-col items-center" variants={staggerContainer}>
+                    <BrandLogo />
 
-                    <h1 className="text-3xl md:text-6xl font-extrabold text-slate-900 dark:text-white mb-2 md:mb-4 tracking-tight transition-colors duration-500">
+                    <m.h1 className="text-3xl md:text-6xl font-extrabold text-slate-900 dark:text-white mb-2 md:mb-4 tracking-tight transition-colors duration-500" variants={fadeUp}>
                         {titleStart}
                         <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-500 to-orange-600 dark:from-amber-400 dark:to-orange-500 ml-2">
                             {titleEnd}
                         </span>
-                    </h1>
-                    <p className="text-slate-600 dark:text-slate-400 text-[10px] md:text-base font-semibold tracking-widest uppercase transition-colors duration-500">
+                    </m.h1>
+                    <m.p className="text-slate-600 dark:text-slate-400 text-[10px] md:text-base font-semibold tracking-widest uppercase transition-colors duration-500" variants={fadeUp}>
                         {t.landing_subtitle}
-                    </p>
-                </div>
+                    </m.p>
+                </m.div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 w-full max-w-4xl px-4 md:px-0">
+                <m.div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 w-full max-w-4xl px-4 md:px-0" variants={staggerContainer}>
                     <RoleCard
                         role="admin"
                         title={t.admin_role}
@@ -69,8 +70,8 @@ const LandingPage = () => {
                         accent="orange"
                         onSelect={handleSelectRole}
                     />
-                </div>
-            </div>
+                </m.div>
+            </m.div>
         </div>
     );
 };

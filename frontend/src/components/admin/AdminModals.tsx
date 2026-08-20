@@ -1,7 +1,9 @@
 import type { FormEvent } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { m } from 'motion/react';
 import type { Translation } from '../../translations';
 import type { AdminUser, EditAccountForm, GeneratedCredentials, UserRole } from '../../types';
+import { fadeScale, modalBackdrop } from '../motion/presets';
 import { inputStyle, primaryButtonStyle } from './styles';
 
 interface EditUserModalProps {
@@ -16,8 +18,8 @@ interface EditUserModalProps {
 
 export function EditUserModal({ user: _user, form, t, onFormChange, onRoleToggle, onClose, onSubmit }: EditUserModalProps) {
     return (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-all">
-            <div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-white/10 p-8 max-h-[90vh] overflow-y-auto relative">
+        <m.div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" variants={modalBackdrop} initial="hidden" animate="visible" exit="exit">
+            <m.div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 w-full max-w-xl rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-white/10 p-8 max-h-[90vh] overflow-y-auto relative" variants={fadeScale}>
                 <div className="absolute inset-0 rounded-[2.5rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] pointer-events-none" />
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-6 uppercase tracking-tight relative z-10">{t.modify_acc}</h3>
                 <form onSubmit={onSubmit} className="space-y-6 relative z-10">
@@ -45,8 +47,8 @@ export function EditUserModal({ user: _user, form, t, onFormChange, onRoleToggle
                         <button type="submit" className={`${primaryButtonStyle} w-auto px-8 py-2.5`}>{t.save_changes}</button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </m.div>
+        </m.div>
     );
 }
 
@@ -63,8 +65,8 @@ export function CredentialsModal({ credentials, t, onClose }: CredentialsModalPr
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/80 dark:bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
-            <div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 rounded-[2.5rem] shadow-2xl p-8 max-w-md w-full text-center border border-white/50 dark:border-white/10 relative">
+        <m.div className="fixed inset-0 bg-slate-900/80 dark:bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4" variants={modalBackdrop} initial="hidden" animate="visible" exit="exit">
+            <m.div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 rounded-[2.5rem] shadow-2xl p-8 max-w-md w-full text-center border border-white/50 dark:border-white/10 relative" variants={fadeScale}>
                 <div className="absolute inset-0 rounded-[2.5rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] pointer-events-none" />
                 <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 mx-auto rounded-full flex items-center justify-center mb-6 border border-emerald-200 dark:border-emerald-500/20 shadow-inner relative z-10"><ShieldCheck size={40} /></div>
                 <h3 className="text-2xl font-black dark:text-white mb-2 uppercase tracking-tight relative z-10">{t.acc_ready}</h3>
@@ -76,8 +78,8 @@ export function CredentialsModal({ credentials, t, onClose }: CredentialsModalPr
                     <button onClick={() => void copyCredentials()} className="flex-1 bg-slate-100 dark:bg-white/5 p-3 rounded-xl font-bold text-sm text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-colors" type="button">{t.copy}</button>
                     <button onClick={onClose} className="flex-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-3 rounded-xl font-bold text-sm transition-colors hover:scale-[0.98]" type="button">{t.done}</button>
                 </div>
-            </div>
-        </div>
+            </m.div>
+        </m.div>
     );
 }
 
@@ -89,8 +91,8 @@ interface RoleConfirmModalProps {
 
 export function RoleConfirmModal({ pendingRole, t, onChoice }: RoleConfirmModalProps) {
     return (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-all">
-            <div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center border border-white/50 dark:border-white/10 relative">
+        <m.div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50" variants={modalBackdrop} initial="hidden" animate="visible" exit="exit">
+            <m.div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center border border-white/50 dark:border-white/10 relative" variants={fadeScale}>
                 <div className="absolute inset-0 rounded-[2.5rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] pointer-events-none" />
                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tight relative z-10">{t.change_role}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 font-medium relative z-10">{t.switch_access} <span className="font-bold text-amber-600 dark:text-amber-500 uppercase">{pendingRole}</span>?</p>
@@ -98,7 +100,7 @@ export function RoleConfirmModal({ pendingRole, t, onChoice }: RoleConfirmModalP
                     <button onClick={() => onChoice(false)} className="p-3 rounded-xl border border-slate-200 dark:border-white/10 font-bold text-slate-600 dark:text-slate-300 text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors" type="button">{t.cancel}</button>
                     <button onClick={() => onChoice(true)} className={`${primaryButtonStyle} p-3`} type="button">{t.confirm}</button>
                 </div>
-            </div>
-        </div>
+            </m.div>
+        </m.div>
     );
 }

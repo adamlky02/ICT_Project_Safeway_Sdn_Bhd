@@ -65,7 +65,7 @@ export function AccountsPanel({
     );
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
                 <div className="space-y-1.5 w-full sm:w-72">
                     <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.search_dir || 'Search Directory'}</label>

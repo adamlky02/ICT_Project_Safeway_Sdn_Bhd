@@ -26,7 +26,7 @@ export function DocumentsPanel({
     onDeleteDocument,
 }: DocumentsPanelProps) {
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6">
             <form onSubmit={onUpload} className={`${cardStyle} p-6 md:p-8 space-y-6`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">

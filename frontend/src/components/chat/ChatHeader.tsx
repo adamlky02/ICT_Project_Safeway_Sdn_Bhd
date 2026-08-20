@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import { ChevronDown, Globe, LogOut, Moon, ShieldCheck, Sun, User, UserCircle2 } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
 import type { Translation } from '../../translations';
 import type { Language, UserProfile, UserRole } from '../../types';
 
@@ -76,30 +77,38 @@ export function ChatHeader({
                         <ChevronDown size={16} className={`transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    {dropdownOpen && (
-                        <div className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center animate-in fade-in slide-in-from-top-2 duration-300">
-                            <div className="text-lg font-black text-slate-800 dark:text-white mt-2 tracking-tight">
-                                {profile?.full_name || t.staff_account || 'Safeway Staff'}
-                            </div>
-                            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6 truncate w-full text-center">
-                                {profile?.email || 'Loading...'}
-                            </div>
-                            <div className="w-full border-t border-slate-200/60 dark:border-white/5 mb-4" />
-                            <div className="w-full flex flex-col gap-2">
-                                <button onClick={onProfile} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-400 dark:hover:border-amber-500/30 transition-all active:scale-[0.98]" type="button">
-                                    <UserCircle2 size={16} /> {t.profile || 'My Profile'}
-                                </button>
-                                {userRole === 'admin' && (
-                                    <button onClick={onAdminDashboard} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 dark:hover:border-blue-500/30 transition-all active:scale-[0.98]" type="button">
-                                        <ShieldCheck size={16} /> {t.admin_dash_btn || 'Admin Dashboard'}
+                    <AnimatePresence>
+                        {dropdownOpen && (
+                            <m.div
+                                className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center origin-top-right"
+                                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <div className="text-lg font-black text-slate-800 dark:text-white mt-2 tracking-tight">
+                                    {profile?.full_name || t.staff_account || 'Safeway Staff'}
+                                </div>
+                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6 truncate w-full text-center">
+                                    {profile?.email || 'Loading...'}
+                                </div>
+                                <div className="w-full border-t border-slate-200/60 dark:border-white/5 mb-4" />
+                                <div className="w-full flex flex-col gap-2">
+                                    <button onClick={onProfile} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-400 dark:hover:border-amber-500/30 transition-all active:scale-[0.98]" type="button">
+                                        <UserCircle2 size={16} /> {t.profile || 'My Profile'}
                                     </button>
-                                )}
-                                <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-400 dark:hover:border-red-500/30 transition-all active:scale-[0.98]" type="button">
-                                    <LogOut size={16} /> {t.disconnect || 'Logout'}
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                                    {userRole === 'admin' && (
+                                        <button onClick={onAdminDashboard} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 dark:hover:border-blue-500/30 transition-all active:scale-[0.98]" type="button">
+                                            <ShieldCheck size={16} /> {t.admin_dash_btn || 'Admin Dashboard'}
+                                        </button>
+                                    )}
+                                    <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-400 dark:hover:border-red-500/30 transition-all active:scale-[0.98]" type="button">
+                                        <LogOut size={16} /> {t.disconnect || 'Logout'}
+                                    </button>
+                                </div>
+                            </m.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </header>

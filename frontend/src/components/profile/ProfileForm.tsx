@@ -1,6 +1,8 @@
 import type { FormEvent } from 'react';
 import { Check, Edit3 } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
 import type { ProfileFormData, UserProfile } from '../../types';
+import { fadeUp } from '../motion/presets';
 
 interface ProfileFormProps {
     profile: UserProfile;
@@ -32,23 +34,41 @@ export function ProfileForm({
     onClearPasswordError,
 }: ProfileFormProps) {
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors duration-300">
+        <m.div
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors duration-300"
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            layout
+        >
             <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-300">
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Account Details</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Email is read-only. Name and password can be changed.</p>
             </div>
 
             <form onSubmit={onSubmit} className="p-6 space-y-6">
-                {message && (
-                    <div className="rounded-lg border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-green-700 dark:text-green-400 transition-colors">
-                        {message}
-                    </div>
-                )}
-                {error && (
-                    <div className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-red-700 dark:text-red-400 transition-colors">
-                        {error}
-                    </div>
-                )}
+                <AnimatePresence initial={false}>
+                    {message && (
+                        <m.div
+                            className="rounded-lg border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-green-700 dark:text-green-400 transition-colors"
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                        >
+                            {message}
+                        </m.div>
+                    )}
+                    {error && (
+                        <m.div
+                            className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-red-700 dark:text-red-400 transition-colors"
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                        >
+                            {error}
+                        </m.div>
+                    )}
+                </AnimatePresence>
 
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Email</label>
@@ -59,62 +79,74 @@ export function ProfileForm({
 
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Name</label>
-                    {editing ? (
-                        <input
-                            value={form.full_name}
-                            onChange={(event) => onFormChange({ ...form, full_name: event.target.value })}
-                            className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                            placeholder="Your name"
-                            required
-                        />
-                    ) : (
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-300 transition-colors">
-                            {profile.full_name}
-                        </div>
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                        {editing ? (
+                            <m.div key="name-edit" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
+                                <input
+                                    value={form.full_name}
+                                    onChange={(event) => onFormChange({ ...form, full_name: event.target.value })}
+                                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                                    placeholder="Your name"
+                                    required
+                                />
+                            </m.div>
+                        ) : (
+                            <m.div key="name-read" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-300 transition-colors">
+                                {profile.full_name}
+                            </m.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Password</label>
-                    {editing ? (
-                        <>
-                            <input
-                                type="password"
-                                value={form.password}
-                                onChange={(event) => {
-                                    onFormChange({ ...form, password: event.target.value });
-                                    onClearPasswordError();
-                                }}
-                                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 mb-3 transition-colors"
-                                placeholder="Enter new password"
-                            />
-                            <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Confirm Password</label>
-                            <input
-                                type="password"
-                                value={form.confirmPassword}
-                                onChange={(event) => {
-                                    onFormChange({ ...form, confirmPassword: event.target.value });
-                                    onClearPasswordError();
-                                }}
-                                className={`w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors ${
-                                    passwordError
-                                        ? 'border-red-300 dark:border-red-500 focus:ring-red-500'
-                                        : 'border-slate-300 dark:border-slate-600 focus:ring-blue-500'
-                                }`}
-                                placeholder="Confirm new password"
-                            />
-                            {passwordError && <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">{passwordError}</p>}
-                        </>
-                    ) : (
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 tracking-[0.3em] text-slate-700 dark:text-slate-300 transition-colors">
-                            *****
-                        </div>
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                        {editing ? (
+                            <m.div key="password-edit" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
+                                <input
+                                    type="password"
+                                    value={form.password}
+                                    onChange={(event) => {
+                                        onFormChange({ ...form, password: event.target.value });
+                                        onClearPasswordError();
+                                    }}
+                                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 mb-3 transition-colors"
+                                    placeholder="Enter new password"
+                                />
+                                <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Confirm Password</label>
+                                <input
+                                    type="password"
+                                    value={form.confirmPassword}
+                                    onChange={(event) => {
+                                        onFormChange({ ...form, confirmPassword: event.target.value });
+                                        onClearPasswordError();
+                                    }}
+                                    className={`w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors ${
+                                        passwordError
+                                            ? 'border-red-300 dark:border-red-500 focus:ring-red-500'
+                                            : 'border-slate-300 dark:border-slate-600 focus:ring-blue-500'
+                                    }`}
+                                    placeholder="Confirm new password"
+                                />
+                                <AnimatePresence>
+                                    {passwordError && (
+                                        <m.p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                            {passwordError}
+                                        </m.p>
+                                    )}
+                                </AnimatePresence>
+                            </m.div>
+                        ) : (
+                            <m.div key="password-read" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 tracking-[0.3em] text-slate-700 dark:text-slate-300 transition-colors">
+                                *****
+                            </m.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <AnimatePresence mode="wait" initial={false}>
                     {editing ? (
-                        <>
+                        <m.div key="edit-actions" className="flex flex-col sm:flex-row gap-3 pt-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
                             <button
                                 type="submit"
                                 disabled={saving || Boolean(form.password && form.password !== form.confirmPassword)}
@@ -125,14 +157,16 @@ export function ProfileForm({
                             <button type="button" onClick={onCancel} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 Cancel
                             </button>
-                        </>
+                        </m.div>
                     ) : (
-                        <button type="button" onClick={onEdit} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-700 px-4 py-3 font-semibold text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
-                            <Edit3 size={18} /> Edit Profile
-                        </button>
+                        <m.div key="read-actions" className="flex pt-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
+                            <button type="button" onClick={onEdit} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-700 px-4 py-3 font-semibold text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
+                                <Edit3 size={18} /> Edit Profile
+                            </button>
+                        </m.div>
                     )}
-                </div>
+                </AnimatePresence>
             </form>
-        </div>
+        </m.div>
     );
 }

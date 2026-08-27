@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
+/* Dark Variant (activates dark utilities beneath the root dark-mode class) */
 @custom-variant dark (&:is(.dark *));
 
+/* Light Aurora Field (layers warm gradients behind the landing page) */
 .aurora-field {
     background-image:
         radial-gradient(ellipse at 50% 16%, rgb(234 88 12 / 44%) 0%, rgb(251 146 60 / 20%) 25%, transparent 46%),
@@ -15,6 +17,7 @@
     will-change: background-position;
 }
 
+/* Dark Aurora Field (rebalances the landing gradients for dark mode) */
 .dark .aurora-field {
     background-image:
         radial-gradient(ellipse at 50% 18%, rgb(30 41 59 / 55%) 0%, transparent 36%),
@@ -23,6 +26,7 @@
         radial-gradient(ellipse at 45% 82%, rgb(37 99 235 / 20%) 0%, transparent 48%);
 }
 
+/* Light Engineering Grid (draws and fades the technical background pattern) */
 .engineering-grid {
     background-image:
         linear-gradient(to right, rgb(180 83 9 / 11%) 1px, transparent 1px),
@@ -32,26 +36,31 @@
     mask-image: linear-gradient(to bottom, black, rgb(0 0 0 / 65%) 72%, transparent);
 }
 
+/* Dark Engineering Grid (softens grid lines against the dark background) */
 .dark .engineering-grid {
     background-image:
         linear-gradient(to right, rgb(100 116 139 / 12%) 1px, transparent 1px),
         linear-gradient(to bottom, rgb(100 116 139 / 12%) 1px, transparent 1px);
 }
 
+/* Light Aurora Vignette (adds depth around the bright landing background) */
 .aurora-vignette {
     background: radial-gradient(circle at center, transparent 38%, rgb(124 45 18 / 11%) 100%);
 }
 
+/* Dark Aurora Vignette (darkens the page edges for focus and contrast) */
 .dark .aurora-vignette {
     background: radial-gradient(circle at center, transparent 35%, rgb(0 0 0 / 42%) 100%);
 }
 
+/* Light Brand Shadow (separates the Safeway logo from the aurora field) */
 .brand-logo-aurora {
     filter:
         drop-shadow(0 2px 1px rgb(67 20 7 / 88%))
         drop-shadow(0 18px 34px rgb(154 52 18 / 30%));
 }
 
+/* Dark Brand Shadow (keeps the logo readable without a warm color cast) */
 .dark .brand-logo-aurora {
     filter: drop-shadow(0 18px 34px rgb(0 0 0 / 48%));
 }

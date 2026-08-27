@@ -4,6 +4,7 @@ import type { Translation } from '../../translations';
 import type { AdminAnalytics } from '../../types';
 import { cardStyle } from './styles';
 
+// Analytics Panel Props (provides totals, clock values, translations, and refresh state)
 interface AnalyticsPanelProps {
     analytics: AdminAnalytics;
     usersCount: number;
@@ -15,6 +16,7 @@ interface AnalyticsPanelProps {
     onRefresh: () => void;
 }
 
+// Status Item (describes an external service shown in the health list)
 interface StatusItem {
     title: string;
     description: string;
@@ -22,12 +24,14 @@ interface StatusItem {
     iconClass: string;
 }
 
+// Service Status Catalog (defines the database, storage, and AI dependencies being monitored)
 const statusItems: StatusItem[] = [
     { title: 'Neon PostgreSQL', description: 'Vector Database Connection', icon: Database, iconClass: 'text-blue-500' },
     { title: 'Cloudflare R2', description: 'Binary Object Storage', icon: Cloud, iconClass: 'text-orange-500' },
     { title: 'Google Gemini', description: 'Generative AI & Embeddings', icon: Cpu, iconClass: 'text-amber-500' },
 ];
 
+// Analytics Panel (renders live time, system totals, and dependency health)
 export function AnalyticsPanel({
     analytics,
     usersCount,
@@ -40,6 +44,7 @@ export function AnalyticsPanel({
 }: AnalyticsPanelProps) {
     return (
         <div className="space-y-4">
+            {/* Diagnostics Header (shows the live server-style clock and manual refresh action) */}
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3 mt-1.5">
                     <span className="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
@@ -53,6 +58,7 @@ export function AnalyticsPanel({
                 </button>
             </div>
 
+            {/* Metric Cards (summarize accounts, indexed documents, and cloud storage) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
                 <div className={`${cardStyle} p-6 flex flex-col items-center justify-center text-center`}>
                     <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl mb-4"><Users size={28} /></div>
@@ -71,6 +77,7 @@ export function AnalyticsPanel({
                 </div>
             </div>
 
+            {/* Service Health (lists the operational state of each external dependency) */}
             <div className={`${cardStyle} p-6 md:p-8 space-y-6 mt-4`}>
                 <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-white/10 pb-3">{t.system_status || 'Live Status'}</h4>
                 <div className="grid grid-cols-1 gap-4">

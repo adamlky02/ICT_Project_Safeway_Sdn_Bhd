@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, Integer, 
 from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 
+# User Model (maps staff and administrator accounts to the user table)
 class User(Base):
     __tablename__ = "User_list"
     __table_args__ = {"schema": "AI chatbot"}
@@ -14,6 +15,7 @@ class User(Base):
     is_active = Column(Boolean, server_default="true")
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
 
+# Knowledge Base Model (stores uploaded document metadata used by retrieval)
 class KnowledgeBase(Base):
     __tablename__ = "knowledge_base"
     __table_args__ = {"schema": "AI chatbot"}
@@ -22,7 +24,7 @@ class KnowledgeBase(Base):
     title = Column(String(255), nullable=False)
     category = Column(String(50))
 
-    # --- THESE ARE THE LINES YOUR CODE IS LOOKING FOR ---
+    # File Metadata (links the database record to its stored document object)
     file_path = Column(Text, nullable=False)
     file_type = Column(String(10))
     file_size = Column(Integer)
@@ -31,6 +33,7 @@ class KnowledgeBase(Base):
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
 
 
+# Integration Setting Model (stores provider configuration for external services)
 class IntegrationSetting(Base):
     __tablename__ = "integration_settings"
     __table_args__ = {"schema": "AI chatbot"}

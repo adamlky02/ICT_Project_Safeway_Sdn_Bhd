@@ -24,6 +24,7 @@ import type {
     UserRole,
 } from '../types';
 
+// Empty Account Form (provides safe defaults for account creation and document metadata)
 const emptyAccountForm: AccountForm = {
     first_name: '',
     last_name: '',
@@ -32,6 +33,7 @@ const emptyAccountForm: AccountForm = {
     category: 'HR',
 };
 
+// Empty Edit Form (provides safe defaults before an account is selected)
 const emptyEditForm: EditAccountForm = {
     first_name: '',
     last_name: '',
@@ -40,6 +42,7 @@ const emptyEditForm: EditAccountForm = {
     role: 'staff',
 };
 
+// Empty Analytics (keeps metric components stable before API data arrives)
 const emptyAnalytics: AdminAnalytics = {
     total_users: 0,
     total_docs: 0,
@@ -47,7 +50,9 @@ const emptyAnalytics: AdminAnalytics = {
     status: {},
 };
 
+// Admin Dashboard (coordinates analytics, account management, and document indexing)
 const AdminDashboard = () => {
+    // Dashboard State (tracks navigation, remote data, forms, dialogs, display settings, and time)
     const navigate = useNavigate();
     const { lang, t, toggleLanguage } = useLanguage();
     const { isDarkMode, toggleTheme } = useTheme({ storage: 'local' });
@@ -67,6 +72,7 @@ const AdminDashboard = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [form, setForm] = useState<AccountForm>(emptyAccountForm);
 
+    // Dashboard Data Loading (refreshes users, documents, and analytics with safe fallbacks)
     const loadData = async () => {
         setIsRefreshing(true);
         try {
@@ -91,15 +97,18 @@ const AdminDashboard = () => {
         }
     };
 
+    // Live Clock (updates the diagnostics timestamp once per second)
     useEffect(() => {
         const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
         return () => window.clearInterval(timer);
     }, []);
 
+    // Initial Data Load (populates all dashboard panels when the page mounts)
     useEffect(() => {
         void loadData();
     }, []);
 
+    // Diagnostics Timestamp (formats the live date and time displayed by analytics)
     const formattedDate = currentTime.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -112,6 +121,7 @@ const AdminDashboard = () => {
         second: '2-digit',
     });
 
+    // Account Creation (submits staff details and opens the generated credentials dialog)
     const handleAddUser = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const fullName = `${form.first_name} ${form.last_name}`.trim();
@@ -135,6 +145,7 @@ const AdminDashboard = () => {
         }
     };
 
+    // Account Edit Setup (converts a selected user record into editable form fields)
     const openEditUser = (user: AdminUser) => {
         const username = user.email.endsWith('@gmail.com') ? user.email.replace('@s.com', '') : user.email || '';
         const names = (user.full_name || '').split(' ');
@@ -148,6 +159,7 @@ const AdminDashboard = () => {
         });
     };
 
+    // Account Update (submits edited identity, password, and role information)
     const handleEditUser = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!editingUser) {
@@ -177,6 +189,7 @@ const AdminDashboard = () => {
         }
     };
 
+    // Document Upload (validates the session and sends file metadata for indexing)
     const handleFileUpload = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!selectedFile) {
@@ -217,6 +230,7 @@ const AdminDashboard = () => {
         }
     };
 
+    // Confirmed Deletion (removes a selected account or document and refreshes dashboard data)
     const deleteItem = async (type: 'users' | 'documents', id: string | number) => {
         if (!window.confirm('Delete this item?')) {
             return;
@@ -230,11 +244,13 @@ const AdminDashboard = () => {
         }
     };
 
+    // Admin Logout (clears the browser session and returns to the landing page)
     const handleLogout = () => {
         localStorage.clear();
         navigate('/');
     };
 
+    // Role Toggle Request (stages a privilege change for explicit confirmation)
     const handleRoleToggle = (checked: boolean) => {
         const nextRole: UserRole = checked ? 'admin' : 'staff';
         if (nextRole === editForm.role) {
@@ -244,6 +260,7 @@ const AdminDashboard = () => {
         setShowPromoteConfirm(true);
     };
 
+    // Role Change Confirmation (applies or discards the staged access level)
     const handlePromoteChoice = (confirmChange: boolean) => {
         if (confirmChange && pendingRole) {
             setEditForm((current) => ({ ...current, role: pendingRole }));
@@ -252,6 +269,7 @@ const AdminDashboard = () => {
         setPendingRole(null);
     };
 
+    // Account Directory Views (filters, sorts, and separates users by access role)
     const filteredUsers = data.users.filter((user) => (
         user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
         || user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -262,7 +280,9 @@ const AdminDashboard = () => {
 
     return (
         <div className="flex fixed inset-0 w-full h-[100dvh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden font-sans">
+            {/* Dashboard Background (adds restrained visual depth behind management panels) */}
             <EngineeringBackground />
+            {/* Responsive Navigation (switches panels and provides language, theme, and logout actions) */}
             <AdminNavigation
                 tab={tab}
                 lang={lang}
@@ -276,10 +296,12 @@ const AdminDashboard = () => {
                 onHoverChange={setIsHovered}
             />
 
+            {/* Active Dashboard Panel (renders the heading and currently selected management view) */}
             <div className="flex-1 p-4 pt-24 pb-24 md:p-10 overflow-y-auto w-full transition-colors duration-300 relative z-10 custom-scrollbar">
                 <div className="max-w-6xl mx-auto">
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat')} onOpenProfile={() => navigate('/profile')} />
 
+                    {/* Tab Content (animates between analytics, account, and document panels) */}
                     <AnimatePresence mode="wait" initial={false}>
                         <m.div
                             key={tab}
@@ -331,6 +353,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
+            {/* Account Edit Dialog (updates the selected user's identity and permissions) */}
             <AnimatePresence>
                 {editingUser && (
                     <EditUserModal
@@ -344,11 +367,13 @@ const AdminDashboard = () => {
                     />
                 )}
             </AnimatePresence>
+            {/* Generated Credentials Dialog (reveals the temporary login for a new account) */}
             <AnimatePresence>
                 {showPasswordModal && (
                     <CredentialsModal credentials={generatedPassword} t={t} onClose={() => setShowPasswordModal(false)} />
                 )}
             </AnimatePresence>
+            {/* Role Confirmation Dialog (guards administrator privilege changes) */}
             <AnimatePresence>
                 {showPromoteConfirm && (
                     <RoleConfirmModal pendingRole={pendingRole} t={t} onChoice={handlePromoteChoice} />

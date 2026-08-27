@@ -4,11 +4,13 @@ import { API_URL } from '../../api/client';
 import type { DocumentSource } from '../../types';
 import SmartPdfViewer from '../SmartPdfViewer';
 
+// Document Drawer Props (provides the selected source and close action)
 interface DocumentDrawerProps {
     source: DocumentSource | null;
     onClose: () => void;
 }
 
+// Document Drawer (shows retrieved evidence beside an inline document preview)
 export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
     return (
         <AnimatePresence>
@@ -20,12 +22,14 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.22 }}
                 >
+                    {/* Drawer Backdrop (closes the preview when the shaded page area is selected) */}
                     <m.button
                         className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm cursor-default"
                         onClick={onClose}
                         aria-label="Close document preview"
                         type="button"
                     />
+                    {/* Preview Panel (contains source identity, matched text, and file rendering) */}
                     <m.aside
                         className="relative w-full max-w-md md:max-w-xl h-full bg-white dark:bg-[#0a0a0a] shadow-2xl flex flex-col border-l border-slate-200 dark:border-white/10"
                         initial={{ x: '100%' }}
@@ -48,6 +52,7 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
                             </button>
                         </div>
 
+                        {/* Retrieved Excerpt (shows the exact text used to ground the AI response) */}
                         <div className="p-5 border-b border-amber-200 dark:border-amber-900/30 bg-amber-50/80 dark:bg-amber-900/10 shrink-0">
                             <div className="flex items-center gap-2 mb-3 text-amber-600 dark:text-amber-500">
                                 <Search size={14} />
@@ -58,6 +63,7 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
                             </p>
                         </div>
 
+                        {/* File Preview (renders PDFs inline and explains unsupported preview formats) */}
                         <div className="flex-1 bg-slate-200 dark:bg-slate-950 relative w-full h-full overflow-hidden">
                             {source.file_path.endsWith('.pdf') ? (
                                 <SmartPdfViewer fileUrl={`${API_URL}/api/files/${source.file_path}`} searchText={source.content} />

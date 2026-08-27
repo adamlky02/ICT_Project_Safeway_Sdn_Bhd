@@ -4,6 +4,7 @@ import type { Translation } from '../../translations';
 import type { AccountForm, AdminUser } from '../../types';
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';
 
+// Accounts Panel Props (provides account data, form state, filters, and CRUD actions)
 interface AccountsPanelProps {
     form: AccountForm;
     searchTerm: string;
@@ -17,6 +18,7 @@ interface AccountsPanelProps {
     onDeleteUser: (id: string) => void;
 }
 
+// User Row Props (provides one account and its edit or delete actions)
 interface UserRowProps {
     user: AdminUser;
     isStaffTable: boolean;
@@ -24,6 +26,7 @@ interface UserRowProps {
     onDelete: (id: string) => void;
 }
 
+// User Row (renders a compact account record with role styling and management controls)
 function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
     return (
         <div className="p-3 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
@@ -44,6 +47,7 @@ function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
     );
 }
 
+// Accounts Panel (creates, filters, separates, edits, and deletes managed accounts)
 export function AccountsPanel({
     form,
     searchTerm,
@@ -56,6 +60,7 @@ export function AccountsPanel({
     onEditUser,
     onDeleteUser,
 }: AccountsPanelProps) {
+    // User List Renderer (shows matching account rows or the localized empty state)
     const renderUserList = (users: AdminUser[], isStaffTable: boolean) => (
         users.length === 0
             ? <div className="p-10 text-center text-slate-400 italic text-sm">{t.no_matches}</div>
@@ -66,6 +71,7 @@ export function AccountsPanel({
 
     return (
         <div className="space-y-6">
+            {/* Account Search (filters both role lists by employee name or email) */}
             <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
                 <div className="space-y-1.5 w-full sm:w-72">
                     <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.search_dir || 'Search Directory'}</label>
@@ -77,6 +83,7 @@ export function AccountsPanel({
                 <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] hidden sm:block pb-2">{t.id_manager}</div>
             </div>
 
+            {/* Account Creation (collects a name and username for a new staff account) */}
             <section className={`${cardStyle} p-5`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <form onSubmit={onAddUser} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end relative z-10">
@@ -105,6 +112,7 @@ export function AccountsPanel({
                 </form>
             </section>
 
+            {/* Role Directories (separates administrator and internal staff account lists) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className={`${cardStyle} flex flex-col h-[380px]`}>
                     <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />

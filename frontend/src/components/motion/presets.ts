@@ -1,5 +1,6 @@
 import type { Variants } from 'motion/react';
 
+// Fade-up Motion (reveals content with a short upward transition)
 export const fadeUp: Variants = {
     hidden: { opacity: 0, y: 18 },
     visible: {
@@ -9,6 +10,7 @@ export const fadeUp: Variants = {
     },
 };
 
+// Fade-scale Motion (animates panels and dialogs entering or leaving)
 export const fadeScale: Variants = {
     hidden: { opacity: 0, scale: 0.97, y: 10 },
     visible: {
@@ -25,6 +27,7 @@ export const fadeScale: Variants = {
     },
 };
 
+// Staggered Motion (delays child reveals to create a readable sequence)
 export const staggerContainer: Variants = {
     hidden: {},
     visible: {
@@ -35,6 +38,7 @@ export const staggerContainer: Variants = {
     },
 };
 
+// Modal Backdrop Motion (fades the page overlay behind dialogs)
 export const modalBackdrop: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.2 } },

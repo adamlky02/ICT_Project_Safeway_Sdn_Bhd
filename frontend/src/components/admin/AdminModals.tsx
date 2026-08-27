@@ -6,6 +6,7 @@ import type { AdminUser, EditAccountForm, GeneratedCredentials, UserRole } from 
 import { fadeScale, modalBackdrop } from '../motion/presets';
 import { inputStyle, primaryButtonStyle } from './styles';
 
+// Edit User Modal Props (provides account form state, role changes, and dialog actions)
 interface EditUserModalProps {
     user: AdminUser;
     form: EditAccountForm;
@@ -16,6 +17,7 @@ interface EditUserModalProps {
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
 
+// Edit User Modal (edits account identity, password, and administrator privileges)
 export function EditUserModal({ user: _user, form, t, onFormChange, onRoleToggle, onClose, onSubmit }: EditUserModalProps) {
     return (
         <m.div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" variants={modalBackdrop} initial="hidden" animate="visible" exit="exit">
@@ -52,13 +54,16 @@ export function EditUserModal({ user: _user, form, t, onFormChange, onRoleToggle
     );
 }
 
+// Credentials Modal Props (provides a new account's temporary login and close action)
 interface CredentialsModalProps {
     credentials: GeneratedCredentials;
     t: Translation;
     onClose: () => void;
 }
 
+// Credentials Modal (displays and copies newly generated account credentials)
 export function CredentialsModal({ credentials, t, onClose }: CredentialsModalProps) {
+    // Credential Copy (writes the temporary login details to the system clipboard)
     const copyCredentials = async () => {
         await navigator.clipboard.writeText(`Safeway Access\nEmail: ${credentials.email}\nPass: ${credentials.password}`);
         alert(`${t.copy}!`);
@@ -83,12 +88,14 @@ export function CredentialsModal({ credentials, t, onClose }: CredentialsModalPr
     );
 }
 
+// Role Confirmation Props (provides the pending access level and confirmation action)
 interface RoleConfirmModalProps {
     pendingRole: UserRole | null;
     t: Translation;
     onChoice: (confirmed: boolean) => void;
 }
 
+// Role Confirmation Modal (requires explicit approval before changing account privileges)
 export function RoleConfirmModal({ pendingRole, t, onChoice }: RoleConfirmModalProps) {
     return (
         <m.div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50" variants={modalBackdrop} initial="hidden" animate="visible" exit="exit">

@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+// Tailwind Theme Scan (registers source files and enables class-based dark mode)
 export default {
     content: [
         "./index.html",

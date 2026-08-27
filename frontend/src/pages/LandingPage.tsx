@@ -10,21 +10,26 @@ import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 import type { UserRole } from '../types';
 
+// Landing Page (introduces the assistant and routes users to the selected portal)
 const LandingPage = () => {
+    // Page Controls (connect navigation, localization, and theme state)
     const navigate = useNavigate();
     const { lang, t, toggleLanguage } = useLanguage();
     const { isDarkMode, toggleTheme } = useTheme({ storage: 'session', syncLocalStorage: true });
 
+    // Role Selection (opens the login page with the chosen portal role)
     const handleSelectRole = (role: UserRole) => {
         navigate('/login', { state: { role } });
     };
 
+    // Localized Title Split (separates the brand title for gradient emphasis)
     const titleParts = t.landing_title.split(' ');
     const titleStart = lang === 'zh' ? t.landing_title.slice(0, 7) : titleParts[0];
     const titleEnd = lang === 'zh' ? t.landing_title.slice(7) : titleParts.slice(1).join(' ');
 
     return (
         <div className="h-[100dvh] flex items-center justify-center bg-[#f0f2f5] dark:bg-[#050505] relative overflow-hidden font-sans p-4 md:p-8 transition-colors duration-700">
+            {/* Page Background and Controls (provide ambient visuals plus language and theme actions) */}
             <EngineeringBackground variant="landing" />
             <PageControls
                 lang={lang}
@@ -33,12 +38,14 @@ const LandingPage = () => {
                 onThemeToggle={toggleTheme}
             />
 
+            {/* Landing Content (reveals the brand introduction and portal choices in sequence) */}
             <m.div
                 className="relative z-10 flex flex-col items-center w-full max-w-5xl mt-8 md:mt-16"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
             >
+                {/* Brand Introduction (shows the animated logo, company name, and product subtitle) */}
                 <m.div className="text-center mb-10 md:mb-16 flex flex-col items-center" variants={staggerContainer}>
                     <BrandLogo />
 
@@ -53,6 +60,7 @@ const LandingPage = () => {
                     </m.p>
                 </m.div>
 
+                {/* Portal Choices (offers administrator and staff authentication paths) */}
                 <m.div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 w-full max-w-4xl px-4 md:px-0" variants={staggerContainer}>
                     <RoleCard
                         role="admin"

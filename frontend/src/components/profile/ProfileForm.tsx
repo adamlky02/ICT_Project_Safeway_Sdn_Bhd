@@ -4,6 +4,7 @@ import { AnimatePresence, m } from 'motion/react';
 import type { ProfileFormData, UserProfile } from '../../types';
 import { fadeUp } from '../motion/presets';
 
+// Profile Form Props (provides account data, edit state, validation, and form actions)
 interface ProfileFormProps {
     profile: UserProfile;
     form: ProfileFormData;
@@ -19,6 +20,7 @@ interface ProfileFormProps {
     onClearPasswordError: () => void;
 }
 
+// Profile Form (switches account details between read-only and editable modes)
 export function ProfileForm({
     profile,
     form,
@@ -41,12 +43,14 @@ export function ProfileForm({
             animate="visible"
             layout
         >
+            {/* Form Header (explains which account details can be changed) */}
             <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-300">
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Account Details</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Email is read-only. Name and password can be changed.</p>
             </div>
 
             <form onSubmit={onSubmit} className="p-6 space-y-6">
+                {/* Submission Feedback (shows animated success or API error messages) */}
                 <AnimatePresence initial={false}>
                     {message && (
                         <m.div
@@ -70,6 +74,7 @@ export function ProfileForm({
                     )}
                 </AnimatePresence>
 
+                {/* Read-only Email (displays the account identifier without editing controls) */}
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Email</label>
                     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-300 transition-colors">
@@ -77,6 +82,7 @@ export function ProfileForm({
                     </div>
                 </div>
 
+                {/* Editable Name (switches between a text input and the saved display value) */}
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Name</label>
                     <AnimatePresence mode="wait" initial={false}>
@@ -98,6 +104,7 @@ export function ProfileForm({
                     </AnimatePresence>
                 </div>
 
+                {/* Editable Password (collects and validates an optional new password twice) */}
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Password</label>
                     <AnimatePresence mode="wait" initial={false}>
@@ -144,6 +151,7 @@ export function ProfileForm({
                     </AnimatePresence>
                 </div>
 
+                {/* Form Actions (switches between edit, save, and cancel controls) */}
                 <AnimatePresence mode="wait" initial={false}>
                     {editing ? (
                         <m.div key="edit-actions" className="flex flex-col sm:flex-row gap-3 pt-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>

@@ -4,6 +4,7 @@ import type { Translation } from '../../translations';
 import type { AccountForm, AdminDocument } from '../../types';
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';
 
+// Documents Panel Props (provides repository data, upload state, and document actions)
 interface DocumentsPanelProps {
     documents: AdminDocument[];
     form: AccountForm;
@@ -15,6 +16,7 @@ interface DocumentsPanelProps {
     onDeleteDocument: (id: number) => void;
 }
 
+// Documents Panel (uploads new source files and manages indexed repository records)
 export function DocumentsPanel({
     documents,
     form,
@@ -27,6 +29,7 @@ export function DocumentsPanel({
 }: DocumentsPanelProps) {
     return (
         <div className="space-y-6">
+            {/* Document Upload Form (collects metadata and a source file for AI indexing) */}
             <form onSubmit={onUpload} className={`${cardStyle} p-6 md:p-8 space-y-6`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
@@ -45,6 +48,7 @@ export function DocumentsPanel({
                     </div>
                 </div>
 
+                {/* File Picker (accepts supported documents and displays the selected filename) */}
                 <div className="border border-dashed border-slate-300 dark:border-white/20 p-10 rounded-3xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-white/5 hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer relative text-center shadow-inner z-10">
                     <input
                         id="file-upload"
@@ -62,6 +66,7 @@ export function DocumentsPanel({
                 </div>
             </form>
 
+            {/* Stored Documents (lists indexed files with their category and deletion action) */}
             <div className={`${cardStyle} overflow-hidden`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <div className="relative z-10">

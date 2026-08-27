@@ -4,6 +4,7 @@ import { AnimatePresence, m } from 'motion/react';
 import type { Translation } from '../../translations';
 import type { Language, UserProfile, UserRole } from '../../types';
 
+// Chat Header Props (provides identity, display settings, and account-menu actions)
 interface ChatHeaderProps {
     lang: Language;
     t: Translation;
@@ -20,6 +21,7 @@ interface ChatHeaderProps {
     onLogout: () => void;
 }
 
+// Chat Header (renders assistant branding, display controls, and the account menu)
 export function ChatHeader({
     lang,
     t,
@@ -37,6 +39,7 @@ export function ChatHeader({
 }: ChatHeaderProps) {
     return (
         <header className="h-14 md:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
+            {/* Assistant Branding (shows the adaptive logo and workspace title) */}
             <div className="flex items-center gap-2 md:gap-3">
                 <img
                     src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'}
@@ -46,6 +49,7 @@ export function ChatHeader({
                 <h1 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 tracking-tight">Safeway Assistant</h1>
             </div>
 
+            {/* Header Controls (changes language or theme and opens account actions) */}
             <div className="flex items-center gap-1 md:gap-2">
                 <button
                     onClick={onLanguageToggle}
@@ -66,6 +70,7 @@ export function ChatHeader({
                     {isDarkMode ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} />}
                 </button>
 
+                {/* Account Menu (shows profile, admin access, and logout actions) */}
                 <div className="relative" ref={profileButtonRef}>
                     <button
                         className="flex items-center gap-2 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 px-3 py-2 md:py-2.5 rounded-xl focus:outline-none transition-all duration-300 hover:shadow-md"

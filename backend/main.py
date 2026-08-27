@@ -6,7 +6,7 @@ import string
 import boto3
 import fitz
 import google.generativeai as genai
-from sqlalchemy import text, func # NEW: Added func for calculating storage
+from sqlalchemy import text, func
 from urllib.parse import urlparse
 from uuid import uuid4
 from typing import List, Literal
@@ -29,11 +29,11 @@ from ai_conversation import (
 )
 from email_utils import send_staff_credentials_email
 
+# API Application (creates the FastAPI service and shared account-domain setting)
 app = FastAPI()
-
 STAFF_EMAIL_DOMAIN = "gmail.com"
 
-# --- SETUP CLOUDFLARE R2 CLIENT ---
+# Cloud Storage Client (connects document upload and download operations to Cloudflare R2)
 s3_client = boto3.client(
     's3',
     endpoint_url=os.getenv("R2_ENDPOINT_URL"),
@@ -42,10 +42,12 @@ s3_client = boto3.client(
 )
 R2_BUCKET = os.getenv("R2_BUCKET_NAME")
 
-# --- SETUP GOOGLE GEMINI AI ---
+# AI Models (configures Gemini generation and embedding services)
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 llm = genai.GenerativeModel('gemini-3.1-flash-lite')
 
+
+# Text Embedding (converts document or query text into a vector for semantic search)
 def get_embedding(text_string: str, task_type: str | None = "retrieval_document"):
     """Converts text into a 3072-dimension vector."""
     embedding_options = dict(
@@ -58,11 +60,12 @@ def get_embedding(text_string: str, task_type: str | None = "retrieval_document"
     return result['embedding']
 
 
+# Startup Tables (ensures database tables exist when the API starts)
 @app.on_event("startup")
 def create_tables() -> None:
     database.Base.metadata.create_all(bind=database.engine)
 
-# Enable CORS for React
+# Browser Access Policy (allows the React frontend to call the API)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -70,10 +73,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Local Upload Fallback (keeps a directory for files unavailable from cloud storage)
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --- Request Schemas ---
+# Request Schemas (validate authentication, account, profile, and chat payloads)
 class LoginReq(BaseModel):
     email: str
     password: str
@@ -101,6 +105,8 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: List[ChatTurn] = Field(default_factory=list, max_length=12)
 
+
+# Username Normalization (removes supported email suffixes before account creation)
 def _normalize_username(username: str) -> str:
     clean = username.strip().lower()
     for domain in (STAFF_EMAIL_DOMAIN, "safeway.com"):
@@ -110,24 +116,25 @@ def _normalize_username(username: str) -> str:
             break
     return clean
 
+
+# Temporary Password Generation (creates a random mixed-character staff password)
 def _generate_random_password(length: int = 12) -> str:
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*_-=+"
     password = ''.join(secrets.choice(alphabet) for _ in range(length))
     return password
 
-# --- Authentication ---
+
+# Login Route (validates credentials and enforces the requested portal role)
 @app.post("/api/login")
 def login(req: LoginReq, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()
     if not user or not bcrypt.checkpw(req.password.encode('utf-8'), user.password_hash.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    # Allow admin users to access staff portal: if an admin logs in requesting the
-    # 'staff' portal, treat them as permitted. Otherwise enforce exact role match.
+    # Portal Authorization (allows administrators into the staff portal while enforcing other roles)
     if user.role != req.role and not (user.role == "admin" and req.role == "staff"):
         raise HTTPException(status_code=403, detail=f"This portal is for {req.role}s only")
 
-    # If an admin is accessing the staff portal, return the requested role
-    # (so frontend routing/guards expecting 'staff' continue to work).
+    # Response Role (keeps frontend staff guards valid when an administrator uses that portal)
     response_role = req.role if (user.role == "admin" and req.role == "staff") else user.role
 
     return {
@@ -137,7 +144,7 @@ def login(req: LoginReq, db: Session = Depends(database.get_db)):
         "name": user.full_name
     }
 
-# --- Profile Management ---
+# Profile Read Route (returns the requested user's account details)
 @app.get("/api/profile/{uid}")
 def get_profile(uid: str, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.id == uid).first()
@@ -151,6 +158,7 @@ def get_profile(uid: str, db: Session = Depends(database.get_db)):
         "full_name": user.full_name
     }
 
+# Profile Update Route (updates the user's name and optional password)
 @app.put("/api/profile/{uid}")
 def update_profile(uid: str, req: ProfileUpdate, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.id == uid).first()
@@ -173,13 +181,13 @@ def update_profile(uid: str, req: ProfileUpdate, db: Session = Depends(database.
     }
 
 
-# --- Admin: Analytics & System Health (NEW) ---
+# Admin Analytics Route (reports account, document, storage, and service health totals)
 @app.get("/api/admin/analytics")
 def get_analytics(db: Session = Depends(database.get_db)):
     user_count = db.query(models.User).count()
     doc_count = db.query(models.KnowledgeBase).count()
 
-    # Calculate storage size securely on the server
+    # Storage Total (sums uploaded file sizes and converts the result to megabytes)
     total_size_result = db.query(func.sum(models.KnowledgeBase.file_size)).scalar()
     total_size_bytes = total_size_result if total_size_result else 0
     total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
@@ -196,11 +204,12 @@ def get_analytics(db: Session = Depends(database.get_db)):
     }
 
 
-# --- Admin: Staff Management ---
+# Staff List Route (returns all staff and administrator accounts)
 @app.get("/api/admin/users")
 def get_users(db: Session = Depends(database.get_db)):
     return db.query(models.User).all()
 
+# Staff Creation Route (creates an account and emails its generated credentials)
 @app.post("/api/admin/users")
 def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
     email = f"{_normalize_username(req.username)}@{STAFF_EMAIL_DOMAIN}"
@@ -223,6 +232,7 @@ def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
         "email": email
     }
 
+# Staff Update Route (changes account identity, password, and permitted role)
 @app.put("/api/admin/users/{uid}")
 def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.id == uid).first()
@@ -247,18 +257,19 @@ def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_
 
     return {"message": "Updated"}
 
+# Staff Deletion Route (removes an account from the database)
 @app.delete("/api/admin/users/{uid}")
 def delete_user(uid: str, db: Session = Depends(database.get_db)):
     db.query(models.User).filter(models.User.id == uid).delete()
     db.commit()
     return {"message": "Deleted"}
 
-# --- Admin: Knowledge Base Management (CLOUDFLARE R2) ---
-
+# Document List Route (returns metadata for every indexed knowledge-base document)
 @app.get("/api/admin/documents")
 def get_docs(db: Session = Depends(database.get_db)):
     return db.query(models.KnowledgeBase).all()
 
+# Document Upload Route (stores, extracts, chunks, embeds, and indexes a document)
 @app.post("/api/admin/upload")
 async def upload_document(
         title: str = Form(...),
@@ -274,6 +285,7 @@ async def upload_document(
     unique_filename = f"{uuid4()}.{extension}"
     file_bytes = await file.read()
 
+    # Cloud Upload (stores the original file in the configured R2 bucket)
     try:
         s3_client.put_object(
             Bucket=R2_BUCKET,
@@ -285,6 +297,7 @@ async def upload_document(
         print("R2 Upload Error:", str(e))
         raise HTTPException(status_code=500, detail="Internal server error saving file to Cloud Storage.")
 
+    # Text Extraction (reads searchable content from supported PDF and text files)
     extracted_text = ""
     try:
         if extension == "pdf":
@@ -297,6 +310,7 @@ async def upload_document(
         print("Text Extraction Error:", str(e))
         raise HTTPException(status_code=500, detail="Could not read the text from the file.")
 
+    # Document Indexing (saves metadata and semantic vectors for retrieval)
     try:
         new_doc = models.KnowledgeBase(
             title=title,
@@ -326,6 +340,7 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Document Deletion Route (removes both the cloud object and its database record)
 @app.delete("/api/admin/documents/{did}")
 def delete_doc(did: int, db: Session = Depends(database.get_db)):
     doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
@@ -343,7 +358,7 @@ def delete_doc(did: int, db: Session = Depends(database.get_db)):
     db.commit()
     return {"message": "Document and physical file deleted"}
 
-# --- PDF VIEWER ROUTE ---
+# File Preview Route (streams an R2 document or falls back to the local upload directory)
 @app.get("/api/files/{filename}")
 async def get_file(filename: str):
     try:
@@ -355,17 +370,17 @@ async def get_file(filename: str):
             return FileResponse(file_path)
         raise HTTPException(status_code=404, detail="PDF File not found")
 
-# --- AI Chatbot Brain ---
+# AI Chat Route (retrieves relevant documents and generates a grounded conversational answer)
 @app.post("/api/chat")
 async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db)):
     try:
         history = [turn.model_dump() for turn in req.history[-10:]]
         today = datetime.now(ZoneInfo("Asia/Kuching")).date()
         retrieval_query = build_retrieval_query(history, req.message)
-        # Embeddings 2 uses the explicit query prefix produced above. Omitting
-        # task_type here also avoids relying on legacy-SDK-only task handling.
+        # Query Embedding (uses the explicit retrieval prefix without legacy task handling)
         query_vector = get_embedding(retrieval_query, task_type=None)
 
+        # Vector Retrieval (loads the four document chunks closest to the user's query)
         search_query = text('''
                             SELECT c.content, k.title, k.category, k.file_path
                             FROM "AI chatbot"."document_chunks" c
@@ -377,6 +392,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
         if not results:
             return {"sender": "bot", "message": "I don't have any manuals covering this topic yet.", "sources": []}
 
+        # Grounding Context (collects retrieved text and user-facing source metadata)
         context_parts = []
         sources_list = []
 
@@ -389,12 +405,13 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
                 "file_path": file_path
             })
 
+        # Conversation Reasoning (prepares history and trusted birthday-leave calculations)
         context_text = "\n\n---\n\n".join(context_parts)
         conversation_text = build_conversation_transcript(history)
         birthday_reasoning = analyze_birthday_leave(history, req.message, today)
         birthday_reasoning_text = serialize_reasoning_context(birthday_reasoning)
 
-        # 4. ADVANCED CONVERSATIONAL & REASONING PROMPT
+        # Grounded AI Prompt (defines language, policy, safety, and response requirements)
         prompt = f"""
         You are the Safeway Sdn Bhd Internal Assistant, a highly intelligent, professional, and friendly AI HR colleague.
 
@@ -438,6 +455,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
         {req.message}
         """
 
+        # AI Generation (creates the final answer from the prompt and retrieved context)
         ai_response = llm.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(temperature=0.4)

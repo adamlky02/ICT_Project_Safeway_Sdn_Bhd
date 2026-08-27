@@ -11,11 +11,14 @@ import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 import type { ApiErrorBody, StoredUser, UserRole } from '../types';
 
+// Login Navigation State (carries the portal role selected on the landing page)
 interface LoginLocationState {
     role?: UserRole;
 }
 
+// Login Page (authenticates a user for the selected staff or administrator portal)
 const LoginPage = () => {
+    // Login State (connects navigation, display controls, credentials, errors, and progress)
     const location = useLocation();
     const navigate = useNavigate();
     const role = (location.state as LoginLocationState | null)?.role ?? 'staff';
@@ -26,6 +29,7 @@ const LoginPage = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Login Submission (validates credentials through the API and routes the accepted role)
     const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError('');
@@ -56,6 +60,7 @@ const LoginPage = () => {
 
     return (
         <div className="min-h-[100dvh] flex items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-hidden font-sans p-4 transition-colors duration-700">
+            {/* Page Background and Controls (provide ambient visuals plus language and theme actions) */}
             <EngineeringBackground variant="login" />
             <PageControls
                 lang={lang}
@@ -65,6 +70,7 @@ const LoginPage = () => {
                 variant="login"
             />
 
+            {/* Authentication Overlay (blocks duplicate submissions while login is pending) */}
             <AnimatePresence>
                 {isLoading && (
                     <LoginLoadingOverlay
@@ -75,12 +81,14 @@ const LoginPage = () => {
                 )}
             </AnimatePresence>
 
+            {/* Login Card (contains portal identity, validation feedback, and credential fields) */}
             <m.div
                 className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500"
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
             >
+                {/* Back Navigation (returns to portal selection without submitting credentials) */}
                 <button
                     onClick={() => navigate('/')}
                     disabled={isLoading}
@@ -90,6 +98,7 @@ const LoginPage = () => {
                     <ArrowLeft size={16} className="mr-2" /> {t.login_back}
                 </button>
 
+                {/* Portal Identity (shows whether staff or administrator access is requested) */}
                 <div className="flex items-center gap-3 mb-2">
                     <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-amber-500/20">
                         <LockKeyhole size={24} className="text-white dark:text-slate-900" />
@@ -102,6 +111,7 @@ const LoginPage = () => {
 
                 <p className="text-slate-600 dark:text-slate-400 mb-8 text-sm font-medium">{t.login_desc}</p>
 
+                {/* Login Error (shows a failed credential or network response) */}
                 <AnimatePresence initial={false}>
                     {error && (
                         <m.div
@@ -118,6 +128,7 @@ const LoginPage = () => {
                     )}
                 </AnimatePresence>
 
+                {/* Credential Form (collects the account email and secure password) */}
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-1.5">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
@@ -157,6 +168,7 @@ const LoginPage = () => {
                     </button>
                 </form>
 
+                {/* Development Credentials (shows the role-specific test account hint) */}
                 <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
                     <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase tracking-widest">
                         {t.test_hint}<br />

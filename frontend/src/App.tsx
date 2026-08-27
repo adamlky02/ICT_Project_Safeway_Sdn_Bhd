@@ -6,11 +6,10 @@ import ChatPage from './pages/ChatPage';
 import AdminDashboard from './pages/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
 
+// Application Shell (synchronizes the global theme and maps URLs to pages)
 function App() {
-
-    // --- GLOBAL THEME CONTROLLER ---
+    // Global Theme Sync (applies stored theme changes from this tab or another browser context)
     useEffect(() => {
-        // 1. Set up a "listener" that watches for changes to sessionStorage
         const handleStorageChange = () => {
             const currentTheme = sessionStorage.getItem('theme');
             if (currentTheme === 'dark') {
@@ -20,13 +19,11 @@ function App() {
             }
         };
 
-        // 2. Run it once when the app first loads
         handleStorageChange();
 
-        // 3. Listen for clicks on the Sun/Moon buttons from ANY page
         window.addEventListener('storage', handleStorageChange);
 
-        // We create a custom event listener because sessionStorage changes in the same tab don't trigger normal 'storage' events
+        // Same-tab Theme Event (covers session storage changes that do not emit a native storage event)
         window.addEventListener('themeChanged', handleStorageChange);
 
         return () => {
@@ -37,7 +34,7 @@ function App() {
 
     return (
         <Router>
-            {/* The main wrapper of the app */}
+            {/* Application Routes (renders the requested page inside the global color shell) */}
             <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-100 transition-colors duration-500">
                 <Routes>
                     <Route path="/" element={<LandingPage />} />

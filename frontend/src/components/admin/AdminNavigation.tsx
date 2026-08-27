@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { Translation } from '../../translations';
 import type { AdminTab, Language } from '../../types';
 
+// Admin Navigation Props (provides active state, display settings, and navigation actions)
 interface AdminNavigationProps {
     tab: AdminTab;
     lang: Language;
@@ -16,12 +17,14 @@ interface AdminNavigationProps {
     onHoverChange: (isHovered: boolean) => void;
 }
 
+// Navigation Item (pairs each dashboard tab with its icon and localized label)
 interface NavigationItem {
     id: AdminTab;
     icon: LucideIcon;
     label: string;
 }
 
+// Admin Navigation (renders responsive dashboard headers, sidebars, and tab bars)
 export function AdminNavigation({
     tab,
     lang,
@@ -34,6 +37,7 @@ export function AdminNavigation({
     onLogout,
     onHoverChange,
 }: AdminNavigationProps) {
+    // Dashboard Tabs (defines the ordered analytics, account, and document destinations)
     const items: NavigationItem[] = [
         { id: 'analytics', icon: Activity, label: t.tab_analytics || 'Health' },
         { id: 'staff', icon: Users, label: t.tab_accounts || 'Accounts' },
@@ -42,6 +46,7 @@ export function AdminNavigation({
 
     return (
         <>
+            {/* Mobile Header (shows dashboard branding and display controls on small screens) */}
             <div className="md:hidden bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-20 transition-colors">
                 <div className="flex items-center gap-3">
                     <img src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'} alt="Logo" className="w-10 h-10 object-contain shrink-0 drop-shadow-sm" />
@@ -57,6 +62,7 @@ export function AdminNavigation({
                 </div>
             </div>
 
+            {/* Desktop Sidebar (expands on hover to reveal tab and utility labels) */}
             <div
                 onMouseEnter={() => onHoverChange(true)}
                 onMouseLeave={() => onHoverChange(false)}
@@ -69,6 +75,7 @@ export function AdminNavigation({
                     </div>
                 </div>
 
+                {/* Desktop Tabs (switches the central dashboard panel) */}
                 <div className="space-y-1.5 flex-1 px-3 overflow-hidden">
                     {items.map(({ id, icon: Icon, label }) => (
                         <button key={id} onClick={() => onTabChange(id)} className={`w-full flex items-center py-3 rounded-2xl transition-all overflow-hidden ${tab === id ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-900 shadow-lg shadow-amber-500/20 font-bold' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium'} ${isHovered ? 'px-4' : 'justify-center'}`} type="button">
@@ -78,6 +85,7 @@ export function AdminNavigation({
                     ))}
                 </div>
 
+                {/* Desktop Utilities (changes language or theme and ends the session) */}
                 <div className="mt-auto mb-6 px-3 space-y-1.5 pt-4 border-t border-slate-300/50 dark:border-white/10">
                     <button onClick={onLanguageToggle} className={`w-full flex items-center py-3 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-all font-medium text-slate-600 dark:text-slate-400 ${isHovered ? 'px-4' : 'justify-center'}`} type="button">
                         <Globe size={22} className="text-blue-500 shrink-0" />
@@ -94,6 +102,7 @@ export function AdminNavigation({
                 </div>
             </div>
 
+            {/* Mobile Tab Bar (keeps primary dashboard sections reachable on small screens) */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-2xl saturate-150 border-t border-slate-200 dark:border-white/5 flex justify-around items-center z-40 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.1)] transition-colors h-16">
                 {items.map(({ id, icon: Icon, label }) => (
                     <button key={id} onClick={() => onTabChange(id)} className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${tab === id ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} type="button">

@@ -11,7 +11,9 @@ import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 import type { ChatHistoryItem, ChatMessage, ChatResponse, DocumentSource, UserProfile, UserRole } from '../types';
 
+// Chat Page (manages the authenticated conversation and its retrieved document evidence)
 const ChatPage = () => {
+    // Chat State (tracks display settings, conversation, account menu, requests, and source preview)
     const navigate = useNavigate();
     const { lang, t, toggleLanguage } = useLanguage();
     const { isDarkMode, toggleTheme } = useTheme({ broadcastChanges: true });
@@ -33,6 +35,7 @@ const ChatPage = () => {
     const abortControllerRef = useRef<AbortController | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // Welcome Translation (updates only the untouched default message when language changes)
     useEffect(() => {
         setMessages((currentMessages) => currentMessages.map((message, index) => (
             index === 0 && message.isDefault
@@ -41,6 +44,7 @@ const ChatPage = () => {
         )));
     }, [t.chat_initial_msg]);
 
+    // Profile Loading (restores the session, role, and account details for the header)
     useEffect(() => {
         const loadProfile = async () => {
             try {
@@ -64,10 +68,12 @@ const ChatPage = () => {
         void loadProfile();
     }, [navigate]);
 
+    // Conversation Scrolling (keeps the newest message or loading indicator visible)
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isLoading]);
 
+    // Account Menu Dismissal (closes the dropdown when the user clicks elsewhere)
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (profileButtonRef.current && !profileButtonRef.current.contains(event.target as Node)) {
@@ -81,6 +87,7 @@ const ChatPage = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [dropdownOpen]);
 
+    // Chat Submission (sends recent history, appends the grounded reply, and supports cancellation)
     const handleSend = async () => {
         const trimmedInput = input.trim();
         if (!trimmedInput || isLoading) {
@@ -127,11 +134,13 @@ const ChatPage = () => {
         }
     };
 
+    // Menu Navigation (closes account actions before changing pages)
     const closeDropdownAndNavigate = (path: string) => {
         setDropdownOpen(false);
         navigate(path);
     };
 
+    // Chat Logout (clears the browser session and returns to the landing page)
     const handleLogout = () => {
         localStorage.clear();
         setDropdownOpen(false);
@@ -145,7 +154,9 @@ const ChatPage = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
         >
+            {/* Workspace Background (adds restrained visual depth behind the conversation) */}
             <EngineeringBackground />
+            {/* Chat Header (provides branding, display controls, and account actions) */}
             <ChatHeader
                 lang={lang}
                 t={t}
@@ -161,6 +172,7 @@ const ChatPage = () => {
                 onAdminDashboard={() => closeDropdownAndNavigate('/admin')}
                 onLogout={handleLogout}
             />
+            {/* Conversation Feed (shows messages, sources, and request progress) */}
             <ChatMessages
                 messages={messages}
                 isLoading={isLoading}
@@ -168,6 +180,7 @@ const ChatPage = () => {
                 messagesEndRef={messagesEndRef}
                 onOpenSource={setDrawerSource}
             />
+            {/* Message Composer (collects, sends, or cancels the current question) */}
             <ChatComposer
                 input={input}
                 isLoading={isLoading}
@@ -176,6 +189,7 @@ const ChatPage = () => {
                 onSend={() => void handleSend()}
                 onStop={() => abortControllerRef.current?.abort()}
             />
+            {/* Source Drawer (previews the document excerpt grounding a selected response) */}
             <DocumentDrawer source={drawerSource} onClose={() => setDrawerSource(null)} />
         </m.div>
     );

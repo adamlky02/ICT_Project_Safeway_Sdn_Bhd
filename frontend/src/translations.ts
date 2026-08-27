@@ -1,6 +1,7 @@
+// Translation Dictionary (provides matching interface copy for every supported language)
 export const translations = {
     en: {
-        // Landing Page
+        // English Landing Copy (labels the role-selection page)
         landing_title: "Safeway Solutions Sdn Bhd.",
         landing_subtitle: "Internal Document AI Assistant",
         admin_role: "Administrator",
@@ -8,7 +9,7 @@ export const translations = {
         staff_role: "Staff",
         staff_desc: "Access the AI Assistant to securely query HR policies, safety manuals, and standard operating procedures.",
 
-        // Login Page
+        // English Login Copy (labels authentication controls and status messages)
         login_back: "Back to Menu",
         portal: "",
         login_desc: "Enter your authorized Safeway credentials to access the internal network.",
@@ -21,7 +22,7 @@ export const translations = {
         auth_desc: "Establishing secure connection to Safeway databases.",
         auth_warning: "Server starts takes up to 50s.",
 
-        // Chat Page
+        // English Chat Copy (labels the assistant workspace and errors)
         chat_title: "Safeway Assistant",
         chat_initial_msg: "Hi. I am the Safeway Internal Assistant. You can query HR policies, safety protocols, and standard operating procedures.",
         chat_input_placeholder: "Enter search query...",
@@ -34,7 +35,7 @@ export const translations = {
         chat_error_network: "Network error. Please verify terminal connection.",
         admin_dash_btn: "Admin Dashboard",
 
-        // Admin Dashboard
+        // English Admin Copy (labels dashboard navigation, forms, and dialogs)
         admin_dashboard: "Dashboard ",
         tab_accounts: "Accounts",
         tab_docs: "Documents",
@@ -77,7 +78,7 @@ export const translations = {
         switch_access: "Switch access level to",
         confirm: "Confirm",
 
-        // NEW ANALYTICS WORDS
+        // English Analytics Copy (labels dashboard totals and service health)
         total_staff: "Total Accounts",
         docs_indexed: "Documents Indexed",
         storage_used: "Cloud Storage Used",
@@ -88,7 +89,7 @@ export const translations = {
         switch_to_staff: "Staff Chat"
     },
     ms: {
-        // Landing Page
+        // Malay Landing Copy (labels the role-selection page)
         landing_title: "Safeway Solutions Sdn Bhd.",
         landing_subtitle: "Pembantu AI Dokumen Dalaman",
         admin_role: "Pentadbir",
@@ -96,7 +97,7 @@ export const translations = {
         staff_role: "Kakitangan",
         staff_desc: "Akses Pembantu AI untuk bertanya tentang polisi HR, manual keselamatan, dan prosedur dengan selamat.",
 
-        // Login Page
+        // Malay Login Copy (labels authentication controls and status messages)
         login_back: "Kembali ke Menu",
         portal: "",
         login_desc: "Masukkan kelayakan Safeway anda yang sah untuk mengakses rangkaian dalaman.",
@@ -109,7 +110,7 @@ export const translations = {
         auth_desc: "Mewujudkan sambungan selamat ke pangkalan data Safeway.",
         auth_warning: "Pelayan mengambil sehingga 50s.",
 
-        // Chat Page
+        // Malay Chat Copy (labels the assistant workspace and errors)
         chat_title: "Pembantu Safeway",
         chat_initial_msg: "Hi! Saya Pembantu Dalaman Safeway. Anda boleh bertanya tentang polisi HR, protokol keselamatan, dan prosedur operasi standard.",
         chat_input_placeholder: "Masukkan pertanyaan carian...",
@@ -122,7 +123,7 @@ export const translations = {
         chat_error_network: "Ralat rangkaian. Sila sahkan sambungan terminal.",
         admin_dash_btn: "Papan Pemuka",
 
-        // Admin Dashboard
+        // Malay Admin Copy (labels dashboard navigation, forms, dialogs, and analytics)
         admin_dashboard: "Menu ",
         tab_accounts: "Akaun",
         tab_docs: "Dokumen",
@@ -176,7 +177,7 @@ export const translations = {
 
     },
     zh: {
-        // Landing Page
+        // Chinese Landing Copy (labels the role-selection page)
         landing_title: "Safeway Solutions Sdn Bhd.",
         landing_subtitle: "内部文档 AI 助手",
         admin_role: "管理员",
@@ -184,7 +185,7 @@ export const translations = {
         staff_role: "员工",
         staff_desc: "访问 AI 助手，安全地查询人力资源政策、安全手册和标准操作程序。",
 
-        // Login Page
+        // Chinese Login Copy (labels authentication controls and status messages)
         login_back: "返回主页",
         portal: "",
         login_desc: "请输入您的 Safeway 授权凭证以访问内部网络。",
@@ -197,7 +198,7 @@ export const translations = {
         auth_desc: "正在建立与 Safeway 数据库的安全连接。",
         auth_warning: "服务器启动可能需要 50 秒。",
 
-        // Chat Page
+        // Chinese Chat Copy (labels the assistant workspace and errors)
         chat_title: "Safeway 助手",
         chat_initial_msg: "您好。我是 Safeway 内部助手。您可以查询人力资源政策、安全协议和标准操作程序。",
         chat_input_placeholder: "输入查询内容...",
@@ -210,7 +211,7 @@ export const translations = {
         chat_error_network: "网络错误。请验证终端连接。",
         admin_dash_btn: "后台管理",
 
-        // Admin Dashboard
+        // Chinese Admin Copy (labels dashboard navigation, forms, dialogs, and analytics)
         admin_dashboard: "后台管理",
         tab_accounts: "账户",
         tab_docs: "文档",
@@ -263,4 +264,5 @@ export const translations = {
     }
 };
 
+// Translation Shape (uses the English dictionary as the required key contract)
 export type Translation = (typeof translations)['en'];

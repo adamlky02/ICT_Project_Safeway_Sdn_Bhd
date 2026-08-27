@@ -2,6 +2,7 @@ import { MessageSquare, UserCircle2 } from 'lucide-react';
 import type { Translation } from '../../translations';
 import type { AdminTab } from '../../types';
 
+// Admin Header Props (provides the active tab and cross-workspace navigation actions)
 interface AdminPageHeaderProps {
     tab: AdminTab;
     t: Translation;
@@ -9,7 +10,9 @@ interface AdminPageHeaderProps {
     onOpenProfile: () => void;
 }
 
+// Admin Page Header (labels the active panel and links to chat and profile pages)
 export function AdminPageHeader({ tab, t, onOpenChat, onOpenProfile }: AdminPageHeaderProps) {
+    // Active Panel Title (maps the selected dashboard tab to localized copy)
     const title = tab === 'staff'
         ? (t.accounts_mgmt || 'Accounts Management')
         : tab === 'docs'

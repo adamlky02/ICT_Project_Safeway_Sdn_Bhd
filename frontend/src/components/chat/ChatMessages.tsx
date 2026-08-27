@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import type { Translation } from '../../translations';
 import type { ChatMessage, DocumentSource } from '../../types';
 
+// Chat Messages Props (provides conversation content, loading state, and source actions)
 interface ChatMessagesProps {
     messages: ChatMessage[];
     isLoading: boolean;
@@ -13,9 +14,11 @@ interface ChatMessagesProps {
     onOpenSource: (source: DocumentSource) => void;
 }
 
+// Chat Messages (renders animated conversation bubbles, evidence links, and request status)
 export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSource }: ChatMessagesProps) {
     return (
         <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6 z-10 relative custom-scrollbar">
+            {/* Conversation List (renders each user or assistant message with role-specific styling) */}
             <AnimatePresence initial={false}>
                 {messages.map((message, index) => (
                     <m.div
@@ -47,6 +50,7 @@ export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSou
                                 ) : message.text}
                             </div>
 
+                            {/* Evidence Links (opens the source drawer for retrieved document excerpts) */}
                             {message.sources && message.sources.length > 0 && (
                                 <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/10 w-full flex flex-wrap items-center gap-2">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center mr-1">Sources:</span>
@@ -71,6 +75,7 @@ export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSou
                 ))}
             </AnimatePresence>
 
+            {/* Thinking Indicator (shows retrieval progress while the API request is active) */}
             <AnimatePresence>
                 {isLoading && (
                     <m.div
@@ -86,6 +91,7 @@ export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSou
                     </m.div>
                 )}
             </AnimatePresence>
+            {/* Scroll Anchor (provides the target used to keep the newest message visible) */}
             <div ref={messagesEndRef} className="h-4" />
         </div>
     );

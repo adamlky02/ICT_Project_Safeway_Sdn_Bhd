@@ -6,9 +6,12 @@ import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';
 import type { ApiErrorBody, ProfileFormData, UserProfile } from '../types';
 
+// Empty Profile Form (provides safe initial values for editable account fields)
 const emptyProfileForm: ProfileFormData = { full_name: '', password: '', confirmPassword: '' };
 
+// Profile Page (loads and updates the signed-in user's account details)
 const ProfilePage = () => {
+    // Profile State (tracks account data, form mode, validation, and request progress)
     const navigate = useNavigate();
     const { isDarkMode, toggleTheme } = useTheme();
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -20,6 +23,7 @@ const ProfilePage = () => {
     const [form, setForm] = useState<ProfileFormData>(emptyProfileForm);
     const [passwordError, setPasswordError] = useState('');
 
+    // Profile Loading (restores the session and fetches the current account details)
     useEffect(() => {
         const loadProfile = async () => {
             try {
@@ -47,11 +51,13 @@ const ProfilePage = () => {
         void loadProfile();
     }, [navigate]);
 
+    // Profile Logout (clears the browser session and returns to the landing page)
     const handleLogout = () => {
         localStorage.clear();
         navigate('/');
     };
 
+    // Profile Save (validates passwords, updates the API, and synchronizes stored identity)
     const handleSave = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setPasswordError('');
@@ -93,10 +99,12 @@ const ProfilePage = () => {
         }
     };
 
+    // Loading View (holds the page while profile data is being requested)
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 transition-colors duration-300">Loading profile...</div>;
     }
 
+    // Fatal Error View (offers recovery when no profile could be loaded)
     if (error && !profile) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
@@ -108,18 +116,21 @@ const ProfilePage = () => {
         );
     }
 
+    // Missing Profile Guard (prevents the form from rendering without account data)
     if (!profile) {
         return null;
     }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-300 font-sans">
+            {/* Profile Navigation (provides back, theme, and logout controls) */}
             <ProfileHeader
                 isDarkMode={isDarkMode}
                 onBack={() => navigate(-1)}
                 onThemeToggle={toggleTheme}
                 onLogout={handleLogout}
             />
+            {/* Profile Editor (displays and updates the current account fields) */}
             <main className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-10">
                 <ProfileForm
                     profile={profile}

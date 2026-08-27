@@ -1,28 +1,28 @@
 import sys
 import os
-import bcrypt # Using direct bcrypt instead of passlib
+import bcrypt
 
-# Ensure the script can find the other local files
+# Local Module Path (allows this standalone script to import backend modules)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import database
 from database import SessionLocal, Base, configure_database, get_current_database_url
 import models
 
+# Password Hashing (creates a bcrypt hash suitable for database storage)
 def hash_password(password: str) -> str:
-    # Bcrypt requires bytes, so we encode the string
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(pwd_bytes, salt)
-    # Return as string to store in DB
     return hashed_password.decode('utf-8')
 
+# Database Seeding (creates tables and inserts the default accounts when absent)
 def seed_data():
     configure_database(get_current_database_url())
     print("🚀 Connecting to database...")
 
     try:
-        # ensure the database engine is configured and use the engine from the database module
+        # Table Preparation (ensures all model tables exist before inserting records)
         Base.metadata.create_all(bind=database.engine)
         print("✅ Database tables verified/created.")
     except Exception as e:
@@ -31,6 +31,7 @@ def seed_data():
 
     db = SessionLocal()
 
+    # Default Accounts (defines development users inserted by this seed script)
     mock_users = [
         {"email": "admin@safeway.com", "password": "admin123", "role": "admin"},
         {"email": "staff@safeway.com", "password": "staff123", "role": "staff"},
@@ -46,7 +47,6 @@ def seed_data():
             if not exists:
                 new_user = models.User(
                     email=user_data["email"],
-                    # Using our new hash function
                     password_hash=hash_password(user_data["password"]),
                     role=user_data["role"]
                 )
@@ -64,5 +64,6 @@ def seed_data():
     finally:
         db.close()
 
+# Script Entry Point (runs the seed operation only when executed directly)
 if __name__ == "__main__":
     seed_data()

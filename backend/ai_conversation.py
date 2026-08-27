@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from typing import Mapping, Sequence
 
 
+# Birthday Vocabulary (lists multilingual terms used to detect birthday-leave questions)
 _BIRTHDAY_TERMS = (
     "birthday",
     "birthday leave",
@@ -14,6 +15,7 @@ _BIRTHDAY_TERMS = (
     "生日假",
 )
 
+# Month Vocabulary (maps English and Malay month names to calendar numbers)
 _MONTHS = {
     "january": 1, "jan": 1, "januari": 1,
     "february": 2, "feb": 2, "februari": 2,
@@ -29,18 +31,22 @@ _MONTHS = {
     "december": 12, "dec": 12, "disember": 12,
 }
 
+# Month Pattern (builds the longest-first regular-expression alternatives for date parsing)
 _MONTH_PATTERN = "|".join(sorted((re.escape(month) for month in _MONTHS), key=len, reverse=True))
 
 
+# Text Normalization (case-folds and collapses whitespace for reliable matching)
 def _clean_text(value: str) -> str:
     return " ".join(value.strip().casefold().split())
 
 
+# Birthday Intent Check (detects whether text discusses birthdays or birthday leave)
 def _contains_birthday_topic(value: str) -> bool:
     lowered = _clean_text(value)
     return any(term in lowered for term in _BIRTHDAY_TERMS)
 
 
+# Birthday Follow-up Check (detects whether the assistant recently requested a birth date)
 def _assistant_requested_birthday(assistant_messages: Sequence[str]) -> bool:
     recent = " ".join(_clean_text(message) for message in assistant_messages[-2:])
     prompts = (
@@ -59,6 +65,7 @@ def _assistant_requested_birthday(assistant_messages: Sequence[str]) -> bool:
     return any(prompt in recent for prompt in prompts)
 
 
+# Employment Follow-up Check (detects whether permanent status was recently requested)
 def _assistant_requested_employment_type(assistant_messages: Sequence[str]) -> bool:
     recent = " ".join(_clean_text(message) for message in assistant_messages[-2:])
     prompts = (
@@ -72,6 +79,7 @@ def _assistant_requested_employment_type(assistant_messages: Sequence[str]) -> b
     return any(prompt in recent for prompt in prompts)
 
 
+# Birthday Validation (rejects impossible day and month combinations)
 def _valid_birthday(day: int, month: int) -> bool:
     try:
         date(2000, month, day)
@@ -80,6 +88,7 @@ def _valid_birthday(day: int, month: int) -> bool:
         return False
 
 
+# Birthday Text Parsing (extracts multilingual and optionally numeric day-month values)
 def _extract_birthday_from_text(value: str, allow_numeric: bool) -> dict | None:
     lowered = _clean_text(value).replace(",", " ")
 
@@ -115,6 +124,7 @@ def _extract_birthday_from_text(value: str, allow_numeric: bool) -> dict | None:
     return {"day": day, "month": month} if _valid_birthday(day, month) else {"error": "invalid_date"}
 
 
+# Conversation Birthday Extraction (finds a disclosed birthday in the current or earlier turns)
 def _extract_birthday(
     user_messages: Sequence[str],
     assistant_messages: Sequence[str],
@@ -142,6 +152,7 @@ def _extract_birthday(
     return None
 
 
+# Employment Status Extraction (infers permanent or non-permanent status from the conversation)
 def _extract_permanent_status(
     user_messages: Sequence[str],
     assistant_messages: Sequence[str],
@@ -165,10 +176,10 @@ def _extract_permanent_status(
         for status, pattern in disclosure_patterns:
             if re.search(pattern, normalized):
                 return status
-
     return None
 
 
+# Previous Working Day (moves backward past weekends to the nearest weekday)
 def _previous_working_day(value: date) -> date:
     candidate = value - timedelta(days=1)
     while candidate.weekday() >= 5:
@@ -176,6 +187,7 @@ def _previous_working_day(value: date) -> date:
     return candidate
 
 
+# Next Working Day (moves forward past weekends to the nearest weekday)
 def _next_working_day(value: date) -> date:
     candidate = value + timedelta(days=1)
     while candidate.weekday() >= 5:
@@ -183,6 +195,7 @@ def _next_working_day(value: date) -> date:
     return candidate
 
 
+# Leave Option Details (describes a candidate date, notice deadline, and policy limits)
 def _leave_option(value: date, today: date, label: str) -> dict:
     deadline = value - timedelta(days=3)
     return {
@@ -196,6 +209,7 @@ def _leave_option(value: date, today: date, label: str) -> dict:
     }
 
 
+# Birthday Leave Calculation (applies eligibility, leap-year, weekend, and notice rules)
 def _calculate_birthday_leave(day: int, month: int, permanent: bool, today: date) -> dict:
     if not permanent:
         return {
@@ -243,6 +257,7 @@ def _calculate_birthday_leave(day: int, month: int, permanent: bool, today: date
     }
 
 
+# Birthday Leave Analysis (collects conversation facts and returns trusted reasoning context)
 def analyze_birthday_leave(
     history: Sequence[Mapping[str, str]],
     current_message: str,
@@ -288,6 +303,7 @@ def analyze_birthday_leave(
     return result
 
 
+# Retrieval Query Builder (combines recent context into a focused vector-search query)
 def build_retrieval_query(
     history: Sequence[Mapping[str, str]],
     current_message: str,
@@ -309,6 +325,7 @@ def build_retrieval_query(
     return f"task: search result | query: {query}"
 
 
+# Conversation Transcript (formats recent turns for the language model prompt)
 def build_conversation_transcript(history: Sequence[Mapping[str, str]]) -> str:
     transcript_lines = []
     for turn in history[-10:]:
@@ -319,5 +336,6 @@ def build_conversation_transcript(history: Sequence[Mapping[str, str]]) -> str:
     return "\n".join(transcript_lines) or "No earlier conversation."
 
 
+# Reasoning Serialization (formats trusted server calculations as readable JSON)
 def serialize_reasoning_context(value: dict) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2)

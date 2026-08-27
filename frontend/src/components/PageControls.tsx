@@ -1,6 +1,7 @@
 import { Globe, Moon, Sun } from 'lucide-react';
 import type { Language } from '../types';
 
+// Page Controls Props (provides language and theme state for public pages)
 interface PageControlsProps {
     lang: Language;
     isDarkMode: boolean;
@@ -9,6 +10,7 @@ interface PageControlsProps {
     variant?: 'landing' | 'login';
 }
 
+// Page Controls (renders reusable language and theme toggle buttons)
 export function PageControls({
     lang,
     isDarkMode,
@@ -16,6 +18,7 @@ export function PageControls({
     onThemeToggle,
     variant = 'landing',
 }: PageControlsProps) {
+    // Control Styling (adapts shared buttons to landing or login backgrounds)
     const isLogin = variant === 'login';
     const buttonClass = isLogin
         ? 'p-2 md:p-3 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-slate-200 dark:border-white/10 shadow-sm text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500'

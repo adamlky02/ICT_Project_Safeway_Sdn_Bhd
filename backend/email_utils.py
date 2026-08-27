@@ -4,19 +4,19 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Email Environment (loads SMTP settings from the backend environment file)
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 
+# Environment Value Cleanup (removes inline comments and optional spaces from settings)
 def _clean_env(value: str, remove_all_spaces: bool = False) -> str:
     if not value:
         return ""
-    # Support accidental inline comments in .env values.
     value = value.split("#", 1)[0].strip()
     return value.replace(" ", "") if remove_all_spaces else value
 
+# Email Configuration (reloads and returns the latest SMTP connection settings)
 def _get_email_config():
-    # Reload .env on each send so recent changes are picked up immediately.
     load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=True)
     smtp_server = _clean_env(os.getenv("SMTP_SERVER", "smtp.gmail.com"))
     smtp_port = int(_clean_env(os.getenv("SMTP_PORT", "587")) or "587")
@@ -24,6 +24,7 @@ def _get_email_config():
     sender_password = _clean_env(os.getenv("SENDER_PASSWORD", ""), remove_all_spaces=True)
     return smtp_server, smtp_port, sender_email, sender_password
 
+# Staff Credentials Email (builds and sends a new account's temporary login details)
 def send_staff_credentials_email(recipient_email: str, password: str) -> bool:
     """
     Send staff account credentials via email.
@@ -38,13 +39,13 @@ def send_staff_credentials_email(recipient_email: str, password: str) -> bool:
     try:
         smtp_server, smtp_port, sender_email, sender_password = _get_email_config()
 
-        # Create the email message
+        # Message Headers (identifies the credential email sender, recipient, and subject)
         msg = MIMEMultipart("alternative")
         msg["Subject"] = "Your Safeway AI Assistant Staff Account Created"
         msg["From"] = sender_email
         msg["To"] = recipient_email
 
-        # Create plain text and HTML versions of the email
+        # Message Content (provides equivalent plain-text and HTML email bodies)
         text = f"""\
 Dear Staff Member,
 
@@ -88,15 +89,15 @@ Safeway AI Assistant Team
 </html>
 """
 
-        # Attach both plain text and HTML versions
+        # MIME Assembly (attaches both formats for broad email-client support)
         part1 = MIMEText(text, "plain")
         part2 = MIMEText(html, "html")
         msg.attach(part1)
         msg.attach(part2)
 
-        # Connect to the SMTP server and send the email
+        # SMTP Delivery (secures the connection, authenticates, and sends the message)
         with smtplib.SMTP(smtp_server, smtp_port, timeout=20) as server:
-            server.starttls()  # Secure the connection
+            server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)
 

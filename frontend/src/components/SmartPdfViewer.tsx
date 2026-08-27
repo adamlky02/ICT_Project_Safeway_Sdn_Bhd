@@ -5,12 +5,13 @@ import { Loader2 } from 'lucide-react';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// Set up the worker for Vite
+// PDF Worker (loads PDF.js parsing in a separate Vite-compatible worker)
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.mjs',
     import.meta.url,
 ).toString();
 
+// PDF Viewer Types (describe component inputs and the text-layer items being rendered)
 interface SmartPdfViewerProps {
     fileUrl: string;
     searchText: string;
@@ -20,6 +21,7 @@ interface PdfTextItem {
     str: string;
 }
 
+// Highlight Escaping (prevents PDF text from injecting markup into highlighted output)
 function escapeHtml(value: string): string {
     return value
         .replace(/&/g, '&amp;')
@@ -29,33 +31,35 @@ function escapeHtml(value: string): string {
         .replace(/'/g, '&#039;');
 }
 
+// Smart PDF Viewer (renders every PDF page and highlights lines matching retrieved text)
 const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Document Load Handler (records page count and dismisses the loading state)
     function onDocumentLoadSuccess(document: PDFDocumentProxy) {
         setNumPages(document.numPages);
         setLoading(false);
     }
 
-    // --- THE CLASSIC HIGHLIGHTER (Word-Scoring Match) ---
+    // Keyword Highlighter (scores significant shared words and marks strong line matches)
     const customTextRenderer = useCallback(
         (textItem: PdfTextItem) => {
             if (!searchText) return textItem.str;
 
-            // 1. Break the AI's search text into an array of important, long words
+            // Significant Query Words (normalizes the retrieved excerpt and removes short terms)
             const aiWords = searchText
                 .toLowerCase()
-                .replace(/[^a-z0-9 ]/g, '') // remove punctuation
+                .replace(/[^a-z0-9 ]/g, '')
                 .split(' ')
-                .filter(word => word.length > 4); // Only look for significant words
+                .filter(word => word.length > 4);
 
             if (aiWords.length === 0) return textItem.str;
 
-            // 2. Break the current PDF line into an array of words
+            // PDF Line Normalization (prepares the current text item for comparison)
             const pdfLine = textItem.str.toLowerCase();
 
-            // 3. Count how many of the AI's important words appear in this specific PDF line
+            // Match Score (counts significant query words found in the current PDF line)
             let matchCount = 0;
             for (const word of aiWords) {
                 if (pdfLine.includes(word)) {
@@ -63,7 +67,7 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
                 }
             }
 
-            // 4. THE THRESHOLD: If this line contains enough keywords, apply the classic yellow highlight!
+            // Highlight Threshold (marks lines containing at least five significant query words)
             if (matchCount >= 5) {
                 return `<mark style="background-color: rgba(255, 165, 0, 0.4); color: inherit; padding: 0 2px">${escapeHtml(textItem.str)}</mark>`;
             }
@@ -74,13 +78,13 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
     );
 
     return (
-        // FIX 1: Changed "overflow-y-auto" to "overflow-auto" to allow horizontal scrolling
-        // FIX 2: Removed "flex flex-col items-center" from here to prevent the flexbox clipping bug
+        // Viewer Canvas (allows two-axis scrolling so wide PDF pages are never clipped)
         <div className="w-full h-full bg-slate-200 dark:bg-[#050505] overflow-auto p-4 custom-scrollbar">
 
-            {/* FIX 3: Added a wrapper that handles safe centering without breaking mobile scroll */}
+            {/* Safe Page Centering (centers documents without preventing horizontal mobile scrolling) */}
             <div className="min-w-fit min-h-full flex flex-col items-center mx-auto">
 
+                {/* Loading State (reports PDF parsing progress until page metadata is available) */}
                 {loading && (
                     <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
                         <Loader2 className="animate-spin mb-3 text-amber-500" size={32} />
@@ -88,6 +92,7 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
                     </div>
                 )}
 
+                {/* PDF Document (renders every page with the custom searchable text layer) */}
                 <Document
                     file={fileUrl}
                     onLoadSuccess={onDocumentLoadSuccess}
@@ -95,15 +100,15 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
                     loading={null}
                 >
                     {Array.from({ length: numPages ?? 0 }, (_, index) => (
-                        // FIX 4: Removed "max-w-[600px] overflow-hidden". Changed to "w-fit".
+                        /* PDF Page (keeps each full-width rendered page visible and sharply scaled) */
                         <div key={`page_${index + 1}`} className="mb-6 shadow-xl w-fit bg-white rounded-lg border border-slate-200 dark:border-slate-800 relative z-10">
                             <Page
                                 pageNumber={index + 1}
-                                width={700} // Increased slightly for crisp text quality
+                                width={700}
                                 renderTextLayer={true}
                                 renderAnnotationLayer={false}
                                 customTextRenderer={customTextRenderer}
-                                className="dark:opacity-90" // Dims the bright white PDF slightly in dark mode so it isn't blinding
+                                className="dark:opacity-90"
                             />
                         </div>
                     ))}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, getStoredUser, readJson } from '../api/client';
@@ -17,6 +17,7 @@ import type {
     AdminData,
     AdminDocument,
     AdminTab,
+    AdminUploadItem,
     AdminUser,
     ApiErrorBody,
     EditAccountForm,
@@ -69,7 +70,9 @@ const AdminDashboard = () => {
     const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [generatedPassword, setGeneratedPassword] = useState<GeneratedCredentials>({ email: '', password: '' });
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [uploadItems, setUploadItems] = useState<AdminUploadItem[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const uploadAbortController = useRef<AbortController | null>(null);
     const [form, setForm] = useState<AccountForm>(emptyAccountForm);
 
     // Dashboard Data Loading (refreshes users, documents, and analytics with safe fallbacks)
@@ -189,11 +192,55 @@ const AdminDashboard = () => {
         }
     };
 
-    // Document Upload (validates the session and sends file metadata for indexing)
+    // Batch File Selection (adds supported files with editable filename-based titles)
+    const handleFilesSelected = (files: File[]) => {
+        const supportedFiles = files.filter((file) => /\.(pdf|txt)$/i.test(file.name));
+        const unsupportedFiles = files.filter((file) => !/\.(pdf|txt)$/i.test(file.name));
+
+        if (unsupportedFiles.length > 0) {
+            alert(`${t.unsupported_files}: ${unsupportedFiles.map((file) => file.name).join(', ')}`);
+        }
+
+        setUploadItems((current) => {
+            const retryableItems = current.filter((item) => item.status !== 'success');
+            const existingFiles = new Set(retryableItems.map((item) => `${item.file.name}:${item.file.size}:${item.file.lastModified}`));
+            const newItems = supportedFiles
+                .filter((file) => !existingFiles.has(`${file.name}:${file.size}:${file.lastModified}`))
+                .map((file, index): AdminUploadItem => ({
+                    id: `${file.name}-${file.size}-${file.lastModified}-${index}`,
+                    file,
+                    title: file.name.replace(/\.[^.]+$/, '') || file.name,
+                    status: 'ready',
+                }));
+
+            return [...retryableItems, ...newItems];
+        });
+    };
+
+    // Upload Item Title (updates the stored document title for one queued file)
+    const handleUploadTitleChange = (id: string, title: string) => {
+        setUploadItems((current) => current.map((item) => (item.id === id ? { ...item, title } : item)));
+    };
+
+    // Upload Queue Removal (removes one file before or after a batch run)
+    const handleUploadItemRemove = (id: string) => {
+        setUploadItems((current) => current.filter((item) => item.id !== id));
+    };
+
+    // Document Batch Upload (uploads every queued file concurrently and records individual results)
     const handleFileUpload = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!selectedFile) {
-            alert('Select a file!');
+        if (isUploading) {
+            return;
+        }
+
+        const queuedItems = uploadItems.filter((item) => item.status !== 'success');
+        if (queuedItems.length === 0) {
+            alert(t.select_files_first);
+            return;
+        }
+        if (queuedItems.some((item) => !item.title.trim())) {
+            alert(t.title_required);
             return;
         }
 
@@ -204,30 +251,67 @@ const AdminDashboard = () => {
             return;
         }
 
-        const uploadData = new FormData();
-        uploadData.append('file', selectedFile);
-        uploadData.append('title', form.title);
-        uploadData.append('category', form.category);
-        uploadData.append('admin_id', user.id);
+        const abortController = new AbortController();
+        uploadAbortController.current = abortController;
+        setIsUploading(true);
+        const queuedIds = new Set(queuedItems.map((item) => item.id));
+        setUploadItems((current) => current.map((item) => (
+            queuedIds.has(item.id) ? { ...item, status: 'uploading', error: undefined } : item
+        )));
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/upload`, { method: 'POST', body: uploadData });
-            if (response.ok) {
-                setForm((current) => ({ ...current, title: '' }));
-                setSelectedFile(null);
-                const fileInput = document.getElementById('file-upload') as HTMLInputElement | null;
-                if (fileInput) {
-                    fileInput.value = '';
+            const uploadResults = await Promise.all(queuedItems.map(async (item) => {
+                try {
+                    const uploadData = new FormData();
+                    uploadData.append('file', item.file);
+                    uploadData.append('title', item.title.trim());
+                    uploadData.append('category', form.category);
+                    uploadData.append('admin_id', user.id);
+
+                    const response = await fetch(`${API_URL}/api/admin/upload`, {
+                        method: 'POST',
+                        body: uploadData,
+                        signal: abortController.signal,
+                    });
+                    if (!response.ok) {
+                        const responseError = await readJson<ApiErrorBody>(response).catch((): ApiErrorBody => ({}));
+                        throw new Error(responseError.detail || response.statusText || t.upload_failed);
+                    }
+
+                    setUploadItems((current) => current.map((currentItem) => (
+                        currentItem.id === item.id ? { ...currentItem, status: 'success', error: undefined } : currentItem
+                    )));
+                    return true;
+                } catch (error) {
+                    const wasCancelled = abortController.signal.aborted
+                        || (error instanceof DOMException && error.name === 'AbortError');
+                    const message = error instanceof Error ? error.message : t.upload_failed;
+                    setUploadItems((current) => current.map((currentItem) => (
+                        currentItem.id === item.id
+                            ? { ...currentItem, status: wasCancelled ? 'cancelled' : 'error', error: wasCancelled ? undefined : message }
+                            : currentItem
+                    )));
+                    return false;
                 }
+            }));
+
+            if (uploadResults.some(Boolean)) {
                 void loadData();
-                alert('Uploaded!');
-            } else {
-                const responseError = await readJson<ApiErrorBody>(response);
-                alert(`Upload failed: ${responseError.detail}`);
             }
-        } catch {
-            alert('Server error.');
+        } finally {
+            if (uploadAbortController.current === abortController) {
+                uploadAbortController.current = null;
+            }
+            setIsUploading(false);
         }
+    };
+
+    // Force Stop Uploads (aborts every active request and keeps interrupted files available for retry)
+    const handleForceStopUpload = () => {
+        uploadAbortController.current?.abort();
+        setUploadItems((current) => current.map((item) => (
+            item.status === 'uploading' ? { ...item, status: 'cancelled', error: undefined } : item
+        )));
     };
 
     // Confirmed Deletion (removes a selected account or document and refreshes dashboard data)
@@ -278,6 +362,19 @@ const AdminDashboard = () => {
     const adminUsers = sortedUsers.filter((user) => user.role === 'admin');
     const staffUsers = sortedUsers.filter((user) => user.role === 'staff');
 
+    // Dashboard Tab Change (clears a settled upload queue only when returning to Documents)
+    const handleTabChange = (nextTab: AdminTab) => {
+        const isReturningToDocuments = tab !== 'docs' && nextTab === 'docs';
+        const isUploadQueueSettled = uploadItems.length > 0 && uploadItems.every((item) => (
+            item.status === 'success' || item.status === 'error' || item.status === 'cancelled'
+        ));
+
+        if (isReturningToDocuments && isUploadQueueSettled) {
+            setUploadItems([]);
+        }
+        setTab(nextTab);
+    };
+
     return (
         <div className="flex fixed inset-0 w-full h-[100dvh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden font-sans">
             {/* Dashboard Background (adds restrained visual depth behind management panels) */}
@@ -289,7 +386,7 @@ const AdminDashboard = () => {
                 t={t}
                 isDarkMode={isDarkMode}
                 isHovered={isHovered}
-                onTabChange={setTab}
+                onTabChange={handleTabChange}
                 onLanguageToggle={toggleLanguage}
                 onThemeToggle={toggleTheme}
                 onLogout={handleLogout}
@@ -340,11 +437,15 @@ const AdminDashboard = () => {
                                 <DocumentsPanel
                                     documents={data.docs}
                                     form={form}
-                                    selectedFile={selectedFile}
+                                    uploadItems={uploadItems}
+                                    isUploading={isUploading}
                                     t={t}
                                     onFormChange={setForm}
-                                    onFileChange={setSelectedFile}
+                                    onFilesSelected={handleFilesSelected}
+                                    onUploadTitleChange={handleUploadTitleChange}
+                                    onUploadItemRemove={handleUploadItemRemove}
                                     onUpload={(event) => void handleFileUpload(event)}
+                                    onForceStopUpload={handleForceStopUpload}
                                     onDeleteDocument={(id) => void deleteItem('documents', id)}
                                 />
                             )}

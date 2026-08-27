@@ -70,6 +70,15 @@ export interface AdminDocument {
     created_at?: string;
 }
 
+// Admin Upload Item (tracks one file and its progress through a batch upload)
+export interface AdminUploadItem {
+    id: string;
+    file: File;
+    title: string;
+    status: 'ready' | 'uploading' | 'success' | 'error' | 'cancelled';
+    error?: string;
+}
+
 // Admin Analytics (describes service totals and health information)
 export interface AdminAnalytics {
     total_users: number;

@@ -184,6 +184,7 @@ const ChatPage = () => {
             <ChatComposer
                 input={input}
                 isLoading={isLoading}
+                language={lang}
                 t={t}
                 onInputChange={setInput}
                 onSend={() => void handleSend()}

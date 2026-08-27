@@ -47,16 +47,16 @@ export function AdminNavigation({
     return (
         <>
             {/* Mobile Header (shows dashboard branding and display controls on small screens) */}
-            <div className="md:hidden bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-20 transition-colors">
-                <div className="flex items-center gap-3">
+            <div className="lg:hidden bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-3 sm:px-5 py-2.5 flex justify-between items-center fixed top-0 left-0 right-0 z-20 transition-colors min-h-16">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                     <img src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'} alt="Logo" className="w-10 h-10 object-contain shrink-0 drop-shadow-sm" />
-                    <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight text-lg">Dashboard</span>
+                    <span className="truncate font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight text-base sm:text-lg">Dashboard</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={onLanguageToggle} className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-blue-600 dark:text-blue-400 transition-colors uppercase text-[10px] font-bold" type="button">
+                    <button onClick={onLanguageToggle} className="min-h-11 min-w-11 p-2 rounded-full bg-slate-100 dark:bg-white/5 text-blue-600 dark:text-blue-400 transition-colors uppercase text-[10px] font-bold" type="button">
                         <Globe size={16} />
                     </button>
-                    <button onClick={onThemeToggle} className="p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 transition-colors" type="button">
+                    <button onClick={onThemeToggle} className="min-h-11 min-w-11 p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 transition-colors" type="button">
                         {isDarkMode ? <Sun size={16} className="text-amber-500" /> : <Moon size={16} />}
                     </button>
                 </div>
@@ -66,7 +66,7 @@ export function AdminNavigation({
             <div
                 onMouseEnter={() => onHoverChange(true)}
                 onMouseLeave={() => onHoverChange(false)}
-                className={`hidden md:flex bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl text-slate-700 dark:text-slate-300 flex-col z-40 transition-all duration-300 ease-out border-r border-slate-200 dark:border-slate-800 shrink-0 ${isHovered ? 'w-64' : 'w-20'}`}
+                className={`hidden lg:flex bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl text-slate-700 dark:text-slate-300 flex-col z-40 transition-all duration-300 ease-out border-r border-slate-200 dark:border-slate-800 shrink-0 ${isHovered ? 'w-64' : 'w-20'}`}
             >
                 <div className={`flex items-center mb-8 h-20 mt-2 transition-all duration-300 overflow-hidden ${isHovered ? 'px-6' : 'justify-center px-0'}`}>
                     <img src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'} alt="Logo" className="w-17 h-17 object-contain shrink-0 drop-shadow-md transition-transform duration-500 hover:scale-105" />
@@ -103,11 +103,11 @@ export function AdminNavigation({
             </div>
 
             {/* Mobile Tab Bar (keeps primary dashboard sections reachable on small screens) */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-2xl saturate-150 border-t border-slate-200 dark:border-white/5 flex justify-around items-center z-40 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.1)] transition-colors h-16">
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-2xl saturate-150 border-t border-slate-200 dark:border-white/5 flex justify-around items-stretch z-40 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.1)] transition-colors min-h-16">
                 {items.map(({ id, icon: Icon, label }) => (
-                    <button key={id} onClick={() => onTabChange(id)} className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${tab === id ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} type="button">
+                    <button key={id} onClick={() => onTabChange(id)} className={`flex min-h-16 flex-col items-center justify-center w-full px-1 py-2 transition-colors ${tab === id ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} type="button">
                         <Icon size={20} className={tab === id ? 'drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]' : ''} />
-                        <span className="text-[9px] font-bold mt-1 tracking-wide uppercase">{label}</span>
+                        <span className="max-w-full truncate text-[9px] font-bold mt-1 tracking-wide uppercase">{label}</span>
                     </button>
                 ))}
             </div>

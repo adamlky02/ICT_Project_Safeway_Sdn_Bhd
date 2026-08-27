@@ -38,22 +38,22 @@ export function ChatHeader({
     onLogout,
 }: ChatHeaderProps) {
     return (
-        <header className="h-14 md:h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
+        <header className="min-h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 px-3 py-2 sm:px-4 md:min-h-[4.5rem] md:px-6 lg:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
             {/* Assistant Branding (shows the adaptive logo and workspace title) */}
-            <div className="flex items-center gap-2 md:gap-3">
+            <div className="flex min-w-0 items-center gap-2 md:gap-3">
                 <img
                     src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'}
                     alt="Logo"
-                    className="w-18 h-18 md:w-20 md:h-20 object-contain dark:mix-blend-screen mix-blend-multiply shrink-0 hidden sm:block drop-shadow-sm transition-transform duration-500 hover:scale-105"
+                    className="hidden h-11 w-11 shrink-0 object-contain mix-blend-multiply drop-shadow-sm transition-transform duration-500 hover:scale-105 dark:mix-blend-screen sm:block md:h-12 md:w-12"
                 />
-                <h1 className="font-black text-xl text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 tracking-tight">Safeway Assistant</h1>
+                <h1 className="truncate bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-base font-black tracking-tight text-transparent sm:text-lg md:text-xl">Safeway Assistant</h1>
             </div>
 
             {/* Header Controls (changes language or theme and opens account actions) */}
-            <div className="flex items-center gap-1 md:gap-2">
+            <div className="flex shrink-0 items-center gap-1 md:gap-2">
                 <button
                     onClick={onLanguageToggle}
-                    className="p-2 md:p-2.5 rounded-full bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:scale-105 transition-all duration-300 flex items-center justify-center font-bold text-xs uppercase"
+                    className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-slate-200 bg-white/40 p-2.5 text-xs font-bold uppercase text-slate-600 backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:text-blue-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-blue-400"
                     title="Change Language"
                     type="button"
                 >
@@ -63,7 +63,7 @@ export function ChatHeader({
 
                 <button
                     onClick={onThemeToggle}
-                    className="p-2 md:p-2.5 rounded-full bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:scale-105 transition-all duration-300"
+                    className="min-h-11 min-w-11 rounded-full border border-slate-200 bg-white/40 p-2.5 text-slate-500 backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:text-amber-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:text-amber-400"
                     title="Toggle Theme"
                     type="button"
                 >
@@ -73,7 +73,7 @@ export function ChatHeader({
                 {/* Account Menu (shows profile, admin access, and logout actions) */}
                 <div className="relative" ref={profileButtonRef}>
                     <button
-                        className="flex items-center gap-2 bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-white/80 dark:hover:bg-white/10 px-3 py-2 md:py-2.5 rounded-xl focus:outline-none transition-all duration-300 hover:shadow-md"
+                        className="flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/40 px-2.5 py-2 text-slate-700 backdrop-blur-xl transition-all duration-300 hover:bg-white/80 hover:shadow-md focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 sm:gap-2 sm:px-3"
                         onClick={onDropdownToggle}
                         type="button"
                     >
@@ -85,7 +85,7 @@ export function ChatHeader({
                     <AnimatePresence>
                         {dropdownOpen && (
                             <m.div
-                                className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-3xl saturate-150 border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 p-6 flex flex-col items-center origin-top-right"
+                                className="absolute right-0 z-50 mt-3 flex w-[min(16rem,calc(100vw-1.5rem))] origin-top-right flex-col items-center rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-2xl backdrop-blur-3xl saturate-150 dark:border-white/10 dark:bg-[#0a0a0a]/95 sm:p-6"
                                 initial={{ opacity: 0, y: -8, scale: 0.96 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -6, scale: 0.97 }}

@@ -376,7 +376,7 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="flex fixed inset-0 w-full h-[100dvh] bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden font-sans">
+        <div className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 overflow-hidden bg-slate-50 font-sans transition-colors duration-500 dark:bg-[#0a0a0a]">
             {/* Dashboard Background (adds restrained visual depth behind management panels) */}
             <EngineeringBackground />
             {/* Responsive Navigation (switches panels and provides language, theme, and logout actions) */}
@@ -394,8 +394,8 @@ const AdminDashboard = () => {
             />
 
             {/* Active Dashboard Panel (renders the heading and currently selected management view) */}
-            <div className="flex-1 p-4 pt-24 pb-24 md:p-10 overflow-y-auto w-full transition-colors duration-300 relative z-10 custom-scrollbar">
-                <div className="max-w-6xl mx-auto">
+            <div className="relative z-10 w-full min-w-0 flex-1 overflow-y-auto px-3 pb-[max(5.5rem,env(safe-area-inset-bottom))] pt-20 transition-colors duration-300 custom-scrollbar sm:px-5 sm:pt-24 lg:p-8 xl:p-10">
+                <div className="max-w-6xl mx-auto min-w-0">
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat')} onOpenProfile={() => navigate('/profile')} />
 
                     {/* Tab Content (animates between analytics, account, and document panels) */}

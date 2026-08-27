@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Loader2 } from 'lucide-react';
@@ -35,6 +35,23 @@ function escapeHtml(value: string): string {
 const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
+    const [pageWidth, setPageWidth] = useState(700);
+    const viewerRef = useRef<HTMLDivElement>(null);
+
+    // Responsive Page Sizing (fits each PDF page to the drawer while preserving a sharp desktop cap)
+    useEffect(() => {
+        const viewer = viewerRef.current;
+        if (!viewer) return;
+
+        const updatePageWidth = () => {
+            setPageWidth(Math.min(700, Math.max(260, viewer.clientWidth - 16)));
+        };
+        updatePageWidth();
+
+        const resizeObserver = new ResizeObserver(updatePageWidth);
+        resizeObserver.observe(viewer);
+        return () => resizeObserver.disconnect();
+    }, []);
 
     // Document Load Handler (records page count and dismisses the loading state)
     function onDocumentLoadSuccess(document: PDFDocumentProxy) {
@@ -79,10 +96,10 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
 
     return (
         // Viewer Canvas (allows two-axis scrolling so wide PDF pages are never clipped)
-        <div className="w-full h-full bg-slate-200 dark:bg-[#050505] overflow-auto p-4 custom-scrollbar">
+        <div ref={viewerRef} className="h-full w-full overflow-auto bg-slate-200 p-2 custom-scrollbar dark:bg-[#050505] sm:p-4">
 
             {/* Safe Page Centering (centers documents without preventing horizontal mobile scrolling) */}
-            <div className="min-w-fit min-h-full flex flex-col items-center mx-auto">
+            <div className="mx-auto flex min-h-full w-full min-w-0 flex-col items-center">
 
                 {/* Loading State (reports PDF parsing progress until page metadata is available) */}
                 {loading && (
@@ -101,10 +118,10 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
                 >
                     {Array.from({ length: numPages ?? 0 }, (_, index) => (
                         /* PDF Page (keeps each full-width rendered page visible and sharply scaled) */
-                        <div key={`page_${index + 1}`} className="mb-6 shadow-xl w-fit bg-white rounded-lg border border-slate-200 dark:border-slate-800 relative z-10">
+                        <div key={`page_${index + 1}`} className="relative z-10 mb-4 w-fit max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 sm:mb-6">
                             <Page
                                 pageNumber={index + 1}
-                                width={700}
+                                width={pageWidth}
                                 renderTextLayer={true}
                                 renderAnnotationLayer={false}
                                 customTextRenderer={customTextRenderer}

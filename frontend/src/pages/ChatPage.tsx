@@ -149,7 +149,7 @@ const ChatPage = () => {
 
     return (
         <m.div
-            className="fixed inset-0 w-full h-[100dvh] flex flex-col bg-slate-50 dark:bg-[#0a0a0a] transition-colors duration-300 font-sans overflow-hidden"
+            className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 flex-col overflow-hidden bg-slate-50 font-sans transition-colors duration-300 dark:bg-[#0a0a0a]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}

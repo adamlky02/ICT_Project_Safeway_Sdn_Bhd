@@ -3,6 +3,50 @@
 /* Dark Variant (activates dark utilities beneath the root dark-mode class) */
 @custom-variant dark (&:is(.dark *));
 
+/* Responsive App Foundation (prevents horizontal drift and respects mobile browser chrome) */
+html {
+    min-width: 320px;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    min-width: 320px;
+    min-height: 100svh;
+    margin: 0;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+}
+
+#root {
+    min-height: 100svh;
+}
+
+button,
+[role="button"] {
+    touch-action: manipulation;
+}
+
+img,
+canvas {
+    max-width: 100%;
+}
+
+@media (max-width: 767px) {
+    /* Prevents iOS from zooming the page when a compact form control receives focus. */
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
 /* Light Aurora Field (layers warm gradients behind the landing page) */
 .aurora-field {
     background-image:

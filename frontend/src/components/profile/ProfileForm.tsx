@@ -37,19 +37,19 @@ export function ProfileForm({
 }: ProfileFormProps) {
     return (
         <m.div
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors duration-300"
+            className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors duration-300"
             variants={fadeUp}
             initial="hidden"
             animate="visible"
             layout
         >
             {/* Form Header (explains which account details can be changed) */}
-            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-300">
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Account Details</h1>
+            <div className="px-4 py-4 sm:px-6 sm:py-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-300">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">Account Details</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Email is read-only. Name and password can be changed.</p>
             </div>
 
-            <form onSubmit={onSubmit} className="p-6 space-y-6">
+            <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                 {/* Submission Feedback (shows animated success or API error messages) */}
                 <AnimatePresence initial={false}>
                     {message && (
@@ -77,7 +77,7 @@ export function ProfileForm({
                 {/* Read-only Email (displays the account identifier without editing controls) */}
                 <div>
                     <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">Email</label>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-300 transition-colors">
+                    <div className="break-all rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 px-4 py-3 text-slate-700 dark:text-slate-300 transition-colors">
                         {profile.email}
                     </div>
                 </div>

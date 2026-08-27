@@ -59,7 +59,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-[100dvh] flex items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-hidden font-sans p-4 transition-colors duration-700">
+        <div className="min-h-[100svh] min-h-[100dvh] flex items-start sm:items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-x-hidden overflow-y-auto font-sans px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,env(safe-area-inset-top))] sm:px-6 sm:py-16 transition-colors duration-700">
             {/* Page Background and Controls (provide ambient visuals plus language and theme actions) */}
             <EngineeringBackground variant="login" />
             <PageControls
@@ -83,7 +83,7 @@ const LoginPage = () => {
 
             {/* Login Card (contains portal identity, validation feedback, and credential fields) */}
             <m.div
-                className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500"
+                className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500"
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
@@ -92,24 +92,24 @@ const LoginPage = () => {
                 <button
                     onClick={() => navigate('/')}
                     disabled={isLoading}
-                    className="flex items-center text-slate-500 dark:text-slate-400 mb-8 hover:text-amber-600 dark:hover:text-amber-500 transition-colors disabled:opacity-50 text-xs font-bold uppercase tracking-widest"
+                    className="flex min-h-11 items-center text-slate-500 dark:text-slate-400 mb-5 sm:mb-8 hover:text-amber-600 dark:hover:text-amber-500 transition-colors disabled:opacity-50 text-xs font-bold uppercase tracking-widest"
                     type="button"
                 >
                     <ArrowLeft size={16} className="mr-2" /> {t.login_back}
                 </button>
 
                 {/* Portal Identity (shows whether staff or administrator access is requested) */}
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex min-w-0 items-center gap-3 mb-2">
                     <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-amber-500/20">
                         <LockKeyhole size={24} className="text-white dark:text-slate-900" />
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    <h2 className="min-w-0 text-[clamp(1.35rem,7vw,1.875rem)] font-black leading-tight text-slate-900 dark:text-white uppercase tracking-tight">
                         {role === 'admin' ? t.admin_role : t.staff_role}{' '}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">{t.portal}</span>
                     </h2>
                 </div>
 
-                <p className="text-slate-600 dark:text-slate-400 mb-8 text-sm font-medium">{t.login_desc}</p>
+                <p className="text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 text-sm font-medium leading-relaxed">{t.login_desc}</p>
 
                 {/* Login Error (shows a failed credential or network response) */}
                 <AnimatePresence initial={false}>
@@ -129,7 +129,7 @@ const LoginPage = () => {
                 </AnimatePresence>
 
                 {/* Credential Form (collects the account email and secure password) */}
-                <form onSubmit={handleLogin} className="space-y-5">
+                <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     <div className="space-y-1.5">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
                         <input
@@ -169,7 +169,7 @@ const LoginPage = () => {
                 </form>
 
                 {/* Development Credentials (shows the role-specific test account hint) */}
-                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+                <div className="mt-6 pt-5 sm:mt-8 sm:pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
                     <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase tracking-widest">
                         {t.test_hint}<br />
                         <span className="font-mono text-amber-600 dark:text-amber-500 mt-1.5 block text-xs">

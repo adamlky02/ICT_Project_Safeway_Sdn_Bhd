@@ -41,7 +41,7 @@ export function DocumentsPanel({
     return (
         <div className="space-y-6">
             {/* Document Upload Form (collects shared metadata and a batch of source files for AI indexing) */}
-            <form onSubmit={onUpload} className={`${cardStyle} p-6 md:p-8 space-y-6`}>
+            <form onSubmit={onUpload} className={`${cardStyle} p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <div className="relative z-10">
                     <div className="space-y-1.5 max-w-md">
@@ -58,7 +58,7 @@ export function DocumentsPanel({
                 </div>
 
                 {/* Batch File Picker (accepts multiple supported documents in one selection) */}
-                <div className="border border-dashed border-slate-300 dark:border-white/20 p-10 rounded-3xl flex flex-col items-center justify-center bg-slate-50/50 dark:bg-white/5 hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer relative text-center shadow-inner z-10">
+                <div className="border border-dashed border-slate-300 dark:border-white/20 p-6 sm:p-10 rounded-2xl sm:rounded-3xl flex min-h-40 flex-col items-center justify-center bg-slate-50/50 dark:bg-white/5 hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer relative text-center shadow-inner z-10">
                     <input
                         id="file-upload"
                         type="file"
@@ -86,7 +86,7 @@ export function DocumentsPanel({
                             <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{uploadItems.length} {t.files}</p>
                         </div>
                         {uploadItems.map((item) => (
-                            <div key={item.id} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-black/20 p-3 md:p-4">
+                            <div key={item.id} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-black/20 p-3 sm:p-4">
                                 <div className="flex items-start gap-3">
                                     <div className="mt-2 shrink-0">
                                         {item.status === 'success' && <CheckCircle2 className="text-emerald-500" size={20} />}
@@ -116,7 +116,7 @@ export function DocumentsPanel({
                                     <button
                                         type="button"
                                         onClick={() => onUploadItemRemove(item.id)}
-                                        className="mt-1 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                                        className="mt-0 flex min-h-10 min-w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-500 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                                         aria-label={`${t.remove_file}: ${item.file.name}`}
                                         disabled={isUploading}
                                     >
@@ -155,15 +155,15 @@ export function DocumentsPanel({
                 <div className="relative z-10">
                     <div className="bg-slate-50 dark:bg-white/5 p-4 border-b border-slate-200 dark:border-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t.stored_docs}</div>
                     {documents.map((document) => (
-                        <div key={document.id} className="p-4 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-3 overflow-hidden">
+                        <div key={document.id} className="p-3 sm:p-4 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
+                            <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                                 <div className="bg-orange-50 dark:bg-orange-500/10 p-2.5 rounded-xl text-orange-600 dark:text-orange-500 border border-orange-200/50 dark:border-orange-500/20 shrink-0"><File size={18} /></div>
                                 <div className="overflow-hidden">
                                     <p className="font-bold truncate text-slate-800 dark:text-white tracking-tight">{document.title}</p>
                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{document.category} • {document.file_type}</p>
                                 </div>
                             </div>
-                            <button onClick={() => onDeleteDocument(document.id)} className="p-2 text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-xl transition-colors" type="button"><Trash2 size={18} /></button>
+                            <button onClick={() => onDeleteDocument(document.id)} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-xl transition-colors" type="button" aria-label={`Delete ${document.title}`}><Trash2 size={18} /></button>
                         </div>
                     ))}
                     {documents.length === 0 && <p className="p-8 text-center text-slate-500 italic text-sm">{t.no_matches}</p>}

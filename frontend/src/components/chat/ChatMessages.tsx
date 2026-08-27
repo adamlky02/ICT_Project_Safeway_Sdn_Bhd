@@ -17,7 +17,7 @@ interface ChatMessagesProps {
 // Chat Messages (renders animated conversation bubbles, evidence links, and request status)
 export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSource }: ChatMessagesProps) {
     return (
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6 z-10 relative custom-scrollbar">
+        <div className="relative z-10 flex-1 space-y-4 overflow-y-auto px-3 py-4 custom-scrollbar sm:px-5 md:space-y-6 md:px-8 md:py-6 lg:px-[max(2rem,calc((100vw-64rem)/2))]">
             {/* Conversation List (renders each user or assistant message with role-specific styling) */}
             <AnimatePresence initial={false}>
                 {messages.map((message, index) => (
@@ -29,7 +29,7 @@ export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSou
                         exit={{ opacity: 0, y: -6, scale: 0.985 }}
                         transition={{ duration: 0.28 }}
                     >
-                        <div className={`max-w-[85%] md:max-w-2xl px-5 md:px-6 py-4 rounded-3xl shadow-md text-sm md:text-[15px] leading-relaxed transition-colors duration-500 whitespace-pre-wrap flex flex-col ${
+                        <div className={`max-w-[92%] sm:max-w-[85%] md:max-w-2xl break-words px-4 sm:px-5 md:px-6 py-3.5 md:py-4 rounded-2xl sm:rounded-3xl shadow-md text-sm md:text-[15px] leading-relaxed transition-colors duration-500 whitespace-pre-wrap flex flex-col ${
                         message.sender === 'user'
                             ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-slate-200 font-medium rounded-tr-sm shadow-amber-500/20'
                             : 'bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]'
@@ -84,7 +84,7 @@ export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSou
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                     >
-                        <div className="bg-white/90 dark:bg-slate-900/80 backdrop-blur-md text-amber-600 dark:text-amber-500 border border-slate-200 dark:border-white/5 px-6 py-4 rounded-3xl rounded-tl-sm flex items-center gap-3 shadow-md text-sm font-bold tracking-wide">
+                        <div className="flex items-center gap-3 rounded-2xl rounded-tl-sm border border-slate-200 bg-white/90 px-4 py-3.5 text-sm font-bold tracking-wide text-amber-600 shadow-md backdrop-blur-md dark:border-white/5 dark:bg-slate-900/80 dark:text-amber-500 sm:rounded-3xl sm:px-6 sm:py-4">
                             <Loader2 className="animate-spin" size={18} />
                             <span>{t.chat_thinking || 'Querying database...'}</span>
                         </div>

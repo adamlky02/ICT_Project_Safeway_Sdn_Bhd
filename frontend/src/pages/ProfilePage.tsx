@@ -101,13 +101,13 @@ const ProfilePage = () => {
 
     // Loading View (holds the page while profile data is being requested)
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 transition-colors duration-300">Loading profile...</div>;
+        return <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 text-center text-slate-600 dark:text-slate-400 transition-colors duration-300">Loading profile...</div>;
     }
 
     // Fatal Error View (offers recovery when no profile could be loaded)
     if (error && !profile) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
+            <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 max-w-md w-full text-center transition-colors duration-300">
                     <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
                     <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition" type="button">Back to home</button>
@@ -122,7 +122,7 @@ const ProfilePage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-300 font-sans">
+        <div className="min-h-[100svh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-300 font-sans">
             {/* Profile Navigation (provides back, theme, and logout controls) */}
             <ProfileHeader
                 isDarkMode={isDarkMode}
@@ -131,7 +131,7 @@ const ProfilePage = () => {
                 onLogout={handleLogout}
             />
             {/* Profile Editor (displays and updates the current account fields) */}
-            <main className="max-w-3xl mx-auto px-4 md:px-6 py-8 md:py-10">
+            <main className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 py-5 sm:py-8 md:py-10 pb-[max(2rem,env(safe-area-inset-bottom))]">
                 <ProfileForm
                     profile={profile}
                     form={form}

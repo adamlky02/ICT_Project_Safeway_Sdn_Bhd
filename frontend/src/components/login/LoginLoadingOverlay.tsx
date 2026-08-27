@@ -13,14 +13,14 @@ interface LoginLoadingOverlayProps {
 export function LoginLoadingOverlay({ title, description, warning }: LoginLoadingOverlayProps) {
     return (
         <m.div
-            className="absolute inset-0 z-50 bg-slate-100/60 dark:bg-[#0a0a0a]/80 backdrop-blur-md flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-slate-100/60 dark:bg-[#0a0a0a]/80 backdrop-blur-md flex items-center justify-center p-4"
             variants={modalBackdrop}
             initial="hidden"
             animate="visible"
             exit="exit"
         >
             <m.div
-                className="bg-white/90 dark:bg-slate-900 border border-slate-200 dark:border-amber-500/30 p-8 rounded-3xl shadow-2xl dark:shadow-[0_0_50px_rgba(245,158,11,0.1)] flex flex-col items-center max-w-sm w-full mx-4 text-center"
+                className="bg-white/90 dark:bg-slate-900 border border-slate-200 dark:border-amber-500/30 p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl dark:shadow-[0_0_50px_rgba(245,158,11,0.1)] flex flex-col items-center max-w-sm w-full text-center"
                 variants={fadeScale}
             >
                 <Loader2 className="animate-spin text-amber-500 mb-4" size={48} />

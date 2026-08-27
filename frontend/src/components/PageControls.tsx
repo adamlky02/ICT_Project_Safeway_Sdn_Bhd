@@ -21,11 +21,11 @@ export function PageControls({
     // Control Styling (adapts shared buttons to landing or login backgrounds)
     const isLogin = variant === 'login';
     const buttonClass = isLogin
-        ? 'p-2 md:p-3 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-slate-200 dark:border-white/10 shadow-sm text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500'
-        : 'p-2 md:p-3 rounded-full bg-white/40 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-white/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500';
+        ? 'min-h-11 min-w-11 p-2.5 md:p-3 rounded-full bg-white/60 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-slate-200 dark:border-white/10 shadow-sm text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500'
+        : 'min-h-11 min-w-11 p-2.5 md:p-3 rounded-full bg-white/40 dark:bg-white/10 backdrop-blur-2xl saturate-150 border border-white/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] text-slate-700 dark:text-slate-200 hover:scale-105 transition-all duration-500';
 
     return (
-        <div className="absolute top-4 right-4 md:top-8 md:right-10 z-50 flex gap-3">
+        <div className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-50 flex gap-2 sm:right-6 md:right-10 md:top-8 md:gap-3">
             <button
                 onClick={onLanguageToggle}
                 className={`${buttonClass} flex items-center justify-center font-bold text-xs uppercase`}

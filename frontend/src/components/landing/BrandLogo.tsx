@@ -6,7 +6,7 @@ export function BrandLogo() {
     const shouldReduceMotion = useReducedMotion();
 
     return (
-        <m.div className="relative mb-4 md:mb-7" variants={fadeUp}>
+        <m.div className="relative mb-3 sm:mb-5 lg:mb-7" variants={fadeUp}>
             {/* Logo Motion (adds gentle floating and hover feedback when motion is allowed) */}
             <m.div
                 className="will-change-transform"
@@ -17,7 +17,7 @@ export function BrandLogo() {
                 <img
                     src="/safewaylogo.png"
                     alt="Safeway Logo"
-                    className="brand-logo-aurora h-60 w-60 object-contain md:h-68 md:w-68"
+                    className="brand-logo-aurora aspect-square w-[clamp(8.5rem,26vw,16rem)] object-contain"
                 />
             </m.div>
         </m.div>

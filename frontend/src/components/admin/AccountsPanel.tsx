@@ -30,7 +30,7 @@ interface UserRowProps {
 function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
     return (
         <div className="p-3 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
-            <div className="flex items-center gap-3 overflow-hidden">
+            <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                 <div className={`p-1.5 rounded-lg shrink-0 ${isStaffTable ? 'bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400' : 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-500/20'}`}>
                     {isStaffTable ? <User size={16} /> : <ShieldCheck size={16} />}
                 </div>
@@ -39,9 +39,9 @@ function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
                     <p className="text-[11px] font-medium text-slate-500 dark:text-slate-500 truncate">{user.email}</p>
                 </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0 ml-2 opacity-60 hover:opacity-100 transition-opacity">
-                <button onClick={() => onEdit(user)} className="p-1.5 text-slate-400 hover:text-amber-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button"><Pencil size={15} /></button>
-                <button onClick={() => onDelete(user.id)} className="p-1.5 text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button"><Trash2 size={15} /></button>
+            <div className="flex items-center gap-0.5 shrink-0 ml-2 sm:opacity-60 sm:hover:opacity-100 transition-opacity">
+                <button onClick={() => onEdit(user)} className="flex min-h-10 min-w-10 items-center justify-center text-slate-400 hover:text-amber-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button" aria-label={`Edit ${user.full_name}`}><Pencil size={16} /></button>
+                <button onClick={() => onDelete(user.id)} className="flex min-h-10 min-w-10 items-center justify-center text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button" aria-label={`Delete ${user.full_name}`}><Trash2 size={16} /></button>
             </div>
         </div>
     );
@@ -84,12 +84,12 @@ export function AccountsPanel({
             </div>
 
             {/* Account Creation (collects a name and username for a new staff account) */}
-            <section className={`${cardStyle} p-5`}>
+            <section className={`${cardStyle} p-4 sm:p-5`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <form onSubmit={onAddUser} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end relative z-10">
                     <div className="sm:col-span-5 flex flex-col gap-1.5">
                         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1">{t.emp_name}</label>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-2">
                             <input className={inputStyle} value={form.first_name} onChange={(event) => onFormChange({ ...form, first_name: event.target.value })} required placeholder={t.first_name || 'First'} />
                             <input className={inputStyle} value={form.last_name} onChange={(event) => onFormChange({ ...form, last_name: event.target.value })} required placeholder={t.last_name || 'Last'} />
                         </div>
@@ -99,9 +99,9 @@ export function AccountsPanel({
                         <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1">
                             {t.email} <span className="text-[9px] lowercase opacity-70">{t.email_prefix}</span>
                         </label>
-                        <div className="flex border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:border-amber-500 transition-all shadow-inner backdrop-blur-sm">
-                            <input className="flex-1 bg-transparent p-2.5 text-sm dark:text-white outline-none placeholder-slate-400 dark:placeholder-slate-500" value={form.username} onChange={(event) => onFormChange({ ...form, username: event.target.value })} required placeholder="john.d" />
-                            <span className="bg-slate-200/50 dark:bg-white/5 px-3 flex items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 border-l border-slate-200 dark:border-white/10">@safeway.com</span>
+                        <div className="flex min-h-11 border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-black/20 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-amber-500/50 focus-within:border-amber-500 transition-all shadow-inner backdrop-blur-sm">
+                            <input className="min-w-0 flex-1 bg-transparent p-2.5 text-base md:text-sm dark:text-white outline-none placeholder-slate-400 dark:placeholder-slate-500" value={form.username} onChange={(event) => onFormChange({ ...form, username: event.target.value })} required placeholder="john.d" />
+                            <span className="shrink-0 bg-slate-200/50 dark:bg-white/5 px-2 sm:px-3 flex items-center text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 border-l border-slate-200 dark:border-white/10">@safeway.com</span>
                         </div>
                     </div>
 
@@ -113,8 +113,8 @@ export function AccountsPanel({
             </section>
 
             {/* Role Directories (separates administrator and internal staff account lists) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className={`${cardStyle} flex flex-col h-[380px]`}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+                <div className={`${cardStyle} flex flex-col h-[min(380px,48vh)] min-h-72`}>
                     <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                     <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3.5 flex justify-between items-center text-slate-900 shrink-0 font-black text-xs uppercase tracking-widest relative z-10 border-b border-white/20">
                         <div className="flex items-center gap-2"><ShieldCheck size={14} /> {t.admins}</div>
@@ -123,7 +123,7 @@ export function AccountsPanel({
                     <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">{renderUserList(adminUsers, false)}</div>
                 </div>
 
-                <div className={`${cardStyle} flex flex-col h-[380px]`}>
+                <div className={`${cardStyle} flex flex-col h-[min(380px,48vh)] min-h-72`}>
                     <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                     <div className="bg-slate-200/50 dark:bg-slate-800/80 p-3.5 flex justify-between items-center text-slate-800 dark:text-white shrink-0 font-black text-xs uppercase tracking-widest border-b border-slate-300 dark:border-slate-700 relative z-10">
                         <div className="flex items-center gap-2"><User size={14} /> {t.internal_staff}</div>

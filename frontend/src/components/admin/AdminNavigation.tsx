@@ -43,6 +43,7 @@ export function AdminNavigation({
         { id: 'staff', icon: Users, label: t.tab_accounts || 'Accounts' },
         { id: 'docs', icon: FileText, label: t.tab_docs || 'Docs' },
     ];
+    const mobileUtilityClass = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-slate-100/90 p-0 shadow-sm transition-all active:scale-95 dark:border-white/10 dark:bg-white/5';
 
     return (
         <>
@@ -52,12 +53,35 @@ export function AdminNavigation({
                     <img src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'} alt="Logo" className="w-10 h-10 object-contain shrink-0 drop-shadow-sm" />
                     <span className="truncate font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight text-base sm:text-lg">Dashboard</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={onLanguageToggle} className="min-h-11 min-w-11 p-2 rounded-full bg-slate-100 dark:bg-white/5 text-blue-600 dark:text-blue-400 transition-colors uppercase text-[10px] font-bold" type="button">
-                        <Globe size={16} />
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                    <button
+                        onClick={onLanguageToggle}
+                        className={`${mobileUtilityClass} text-blue-600 hover:border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:hover:border-blue-500/30 dark:hover:bg-blue-500/10`}
+                        type="button"
+                        aria-label={`Change language. Current language: ${lang}`}
+                        title="Change language"
+                    >
+                        <Globe size={18} className="block shrink-0" />
                     </button>
-                    <button onClick={onThemeToggle} className="min-h-11 min-w-11 p-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 transition-colors" type="button">
-                        {isDarkMode ? <Sun size={16} className="text-amber-500" /> : <Moon size={16} />}
+                    <button
+                        onClick={onThemeToggle}
+                        className={`${mobileUtilityClass} text-slate-600 hover:border-amber-300 hover:bg-amber-50 dark:text-slate-300 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/10`}
+                        type="button"
+                        aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                        title={t.theme_mode || 'Change theme'}
+                    >
+                        {isDarkMode
+                            ? <Sun size={18} className="block shrink-0 text-amber-500" />
+                            : <Moon size={18} className="block shrink-0" />}
+                    </button>
+                    <button
+                        onClick={onLogout}
+                        className={`${mobileUtilityClass} text-red-500 hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10`}
+                        type="button"
+                        aria-label={t.logout || 'Logout'}
+                        title={t.logout || 'Logout'}
+                    >
+                        <LogOut size={18} className="block shrink-0" />
                     </button>
                 </div>
             </div>

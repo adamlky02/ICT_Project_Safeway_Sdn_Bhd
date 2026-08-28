@@ -18,8 +18,8 @@ interface ChatMessagesProps {
 export function ChatMessages({ messages, isLoading, t, messagesEndRef, onOpenSource }: ChatMessagesProps) {
     return (
         <div className="relative z-10 flex-1 overflow-y-auto px-3 py-4 custom-scrollbar sm:px-5 md:px-8 md:py-6">
-            {/* Conversation Column (shares the composer's centered width at every desktop size) */}
-            <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 md:gap-6">
+            {/* Conversation Column (anchors each role to the nearest outer edge of the workspace) */}
+            <div className="flex w-full flex-col gap-4 md:gap-6">
                 {/* Conversation List (renders each user or assistant message with role-specific styling) */}
                 <AnimatePresence initial={false}>
                     {messages.map((message, index) => (

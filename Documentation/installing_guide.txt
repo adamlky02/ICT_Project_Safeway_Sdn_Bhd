@@ -32,42 +32,17 @@ python -m venv venv
 # Mac/Linux:
 source venv/bin/activate
 
-# Install Dependencies
+# Install the exact tested dependency set
 python -m pip install --upgrade pip
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt"python-jose[cryptography]"
-python -m pip install bcrypt fastapi uvicorn python-dotenv "python-jose[cryptography]"
-## if =
-note: This error originates from a subprocess, and is likely not a problem with pip.
-ERROR: Failed building wheel for greenlet
-Failed to build greenlet
-error: failed-wheel-build-for-install
-× Failed to build installable wheels for some pyproject.toml based projects
-╰─> greenlet
-|
-
-## Can try =
-pip install --upgrade pip
-pip install --only-binary :all: greenlet
-pip install sqlalchemy psycopg2-binary
-
-OR
-
-# 1. Force upgrade pip to find latest wheels
-python -m pip install --upgrade pip
-# 2. Install greenlet specifically using the binary-only flag
-pip install --only-binary :all: greenlet==3.1.1
-# 3. Install the rest
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv bcrypt python-jose[cryptography]
+python -m pip install --requirement requirements.txt
 
 ### B. Frontend Setup
 Open a new terminal tab:c
 ```bash
 cd frontend
 
-# Install Node Packages
-npm install
-# Ensure Tailwind v4 & Router are installed
-npm install react-router-dom axios lucide-react tailwindcss @tailwindcss/postcss postcss autoprefixer
+# Install the exact versions recorded in package-lock.json
+npm ci
 ```
 
 ---
@@ -139,24 +114,9 @@ python run_app.py
 
 ---
 
-For file_uploader(pending)
-cd backend
-pip install python-multipart
+## Dependency Maintenance
 
-# Ensure you are using the python inside your venv
-python -m pip install python-multipart
-
-For object storage(pending)
-cd backend
-pip install boto3
-
-# Force the install into the virtual environment's python
-python -m pip install boto3
-
-python -m pip install boto3 python-multipart pymupdf
-./venv/bin/python -m pip install boto3 python-multipart
-
-
-AI installation
-
-./venv/bin/python -m pip install google-generativeai pymupdf pgvector
+* Do not commit `backend/venv`, `frontend/node_modules`, cache files, or build output.
+* Backend direct dependencies are declared in `backend/requirements.in`; the tested, pinned installation set is `backend/requirements.txt`.
+* Frontend dependencies are declared in `frontend/package.json` and locked by `frontend/package-lock.json`.
+* Review and test dependency updates before merging Dependabot pull requests.

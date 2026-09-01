@@ -1,0 +1,39 @@
+# Python environments, caches, and tooling
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+backend/venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node dependencies and generated output
+node_modules/
+frontend/node_modules/
+dist/
+build/
+frontend/dist/
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+
+# Runtime data and logs
+uploads/
+backend/uploads/
+*.log

@@ -94,7 +94,7 @@ python run_app.py
 ### 1. "NPM is not recognized"
 **Solution:** Restart your IDE (WebStorm/VS Code) after installing Node.js.
 
-### 2. "Blank White Screen" in Browser
+### 2. "Blank White Screen" in Browsers
 **Solution:** 
 1. Open Browser Console (**F12**).
 2. If it says `Module Not Found`, check `frontend/src/App.jsx` and ensure all imports match the filenames in `src/pages/` exactly (case-sensitive).

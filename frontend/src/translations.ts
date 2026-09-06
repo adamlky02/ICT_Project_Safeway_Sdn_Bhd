@@ -249,7 +249,7 @@ export const translations = {
         chat_initial_msg: "您好。我是 Safeway 内部助手。您可以查询人力资源政策、安全协议和标准操作程序。",
         chat_input_placeholder: "输入查询内容...",
         chat_btn_send: "提交",
-        chat_thinking: "正在查询数据库...",
+        chat_thinking: "正在查询数据库....",
         voice_start: "开始语音输入",
         voice_stop: "停止语音输入",
         voice_listening: "正在聆听……请开始说话，识别的文字会显示在上方。",

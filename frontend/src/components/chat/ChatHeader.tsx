@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { ChevronDown, Globe, LogOut, Moon, ShieldCheck, Sun, User, UserCircle2 } from 'lucide-react';
+import { ChevronDown, Globe, History, LogOut, Moon, Plus, ShieldCheck, Sun, User, UserCircle2 } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import type { Translation } from '../../translations';
 import type { Language, UserProfile, UserRole } from '../../types';
@@ -19,6 +19,8 @@ interface ChatHeaderProps {
     onProfile: () => void;
     onAdminDashboard: () => void;
     onLogout: () => void;
+    onToggleSidebar?: () => void;
+    onNewChat?: () => void;
 }
 
 // Chat Header (renders assistant branding, display controls, and the account menu)
@@ -36,11 +38,34 @@ export function ChatHeader({
     onProfile,
     onAdminDashboard,
     onLogout,
+    onToggleSidebar,
+    onNewChat,
 }: ChatHeaderProps) {
     return (
         <header className="min-h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 px-3 py-2 sm:px-4 md:min-h-[4.5rem] md:px-6 lg:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
-            {/* Assistant Branding (shows the adaptive logo and workspace title) */}
+            {/* Assistant Branding & History Controls */}
             <div className="flex min-w-0 items-center gap-2 md:gap-3">
+                {onToggleSidebar && (
+                    <button
+                        onClick={onToggleSidebar}
+                        className="flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/60 p-2 text-slate-700 backdrop-blur-xl transition-all hover:bg-white hover:text-amber-600 hover:shadow-xs dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-amber-400"
+                        title="Chat History"
+                        type="button"
+                    >
+                        <History size={18} />
+                    </button>
+                )}
+                {onNewChat && (
+                    <button
+                        onClick={onNewChat}
+                        className="hidden sm:flex min-h-10 items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 backdrop-blur-xl transition-all hover:bg-amber-500/20 active:scale-98 dark:bg-amber-500/15 dark:text-amber-400"
+                        title="New Chat"
+                        type="button"
+                    >
+                        <Plus size={15} />
+                        <span>New Chat</span>
+                    </button>
+                )}
                 <img
                     src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'}
                     alt="Logo"

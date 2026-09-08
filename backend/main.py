@@ -10,8 +10,12 @@ from sqlalchemy import text, func
 from urllib.parse import urlparse
 from uuid import uuid4
 from typing import List, Literal
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timezone, timedelta
+try:
+    from zoneinfo import ZoneInfo
+    KUCHING_TZ = ZoneInfo("Asia/Kuching")
+except Exception:
+    KUCHING_TZ = timezone(timedelta(hours=8))
 import io
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,9 +32,15 @@ from ai_conversation import (
     serialize_reasoning_context,
 )
 from email_utils import send_staff_credentials_email
+from chat_history import (
+    chat_history_router,
+    get_or_create_session,
+    save_chat_turn,
+)
 
 # API Application (creates the FastAPI service and shared account-domain setting)
 app = FastAPI()
+app.include_router(chat_history_router)
 STAFF_EMAIL_DOMAIN = "gmail.com"
 
 # Cloud Storage Client (connects document upload and download operations to Cloudflare R2)
@@ -104,6 +114,8 @@ class ChatTurn(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: List[ChatTurn] = Field(default_factory=list, max_length=12)
+    user_id: str | None = None
+    session_id: str | None = None
 
 
 # Username Normalization (removes supported email suffixes before account creation)
@@ -374,8 +386,16 @@ async def get_file(filename: str):
 @app.post("/api/chat")
 async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db)):
     try:
+        session_id = None
+        if req.user_id:
+            try:
+                session = get_or_create_session(db, req.user_id, req.session_id, initial_title=req.message)
+                session_id = str(session.id)
+            except Exception as e:
+                print("Error resolving chat session:", e)
+
         history = [turn.model_dump() for turn in req.history[-10:]]
-        today = datetime.now(ZoneInfo("Asia/Kuching")).date()
+        today = datetime.now(KUCHING_TZ).date()
         retrieval_query = build_retrieval_query(history, req.message)
         # Query Embedding (uses the explicit retrieval prefix without legacy task handling)
         query_vector = get_embedding(retrieval_query, task_type=None)
@@ -390,7 +410,13 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
         results = db.execute(search_query, {"v": str(query_vector)}).fetchall()
 
         if not results:
-            return {"sender": "bot", "message": "I don't have any manuals covering this topic yet.", "sources": []}
+            bot_reply = "I don't have any manuals covering this topic yet."
+            if session_id:
+                try:
+                    save_chat_turn(db, session_id, req.message, bot_reply, [])
+                except Exception as e:
+                    print("Error saving chat turn:", e)
+            return {"sender": "bot", "message": bot_reply, "sources": [], "session_id": session_id}
 
         # Grounding Context (collects retrieved text and user-facing source metadata)
         context_parts = []
@@ -461,10 +487,18 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
             generation_config=genai.types.GenerationConfig(temperature=0.4)
         )
 
+        bot_reply = ai_response.text
+        if session_id:
+            try:
+                save_chat_turn(db, session_id, req.message, bot_reply, sources_list)
+            except Exception as e:
+                print("Error saving chat turn:", e)
+
         return {
             "sender": "bot",
-            "message": ai_response.text,
-            "sources": sources_list
+            "message": bot_reply,
+            "sources": sources_list,
+            "session_id": session_id
         }
 
     except Exception as e:

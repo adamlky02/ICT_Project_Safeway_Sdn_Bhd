@@ -2,15 +2,29 @@ import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, getStoredUser, readJson } from '../api/client';
-import { fetchSessionDetail, fetchUserSessions } from '../api/chatHistory';
+import {
+    deleteSession,
+    fetchSessionDetail,
+    fetchUserSessions,
+    updateSessionTitle,
+} from '../api/chatHistory';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { ChatComposer } from '../components/chat/ChatComposer';
 import { ChatHeader } from '../components/chat/ChatHeader';
+import { ChatHistorySidebar } from '../components/chat/ChatHistorySidebar';
 import { ChatMessages } from '../components/chat/ChatMessages';
 import { DocumentDrawer } from '../components/chat/DocumentDrawer';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import type { ChatHistoryItem, ChatMessage, ChatResponse, DocumentSource, UserProfile, UserRole } from '../types';
+import type {
+    ChatHistoryItem,
+    ChatMessage,
+    ChatResponse,
+    ChatSessionSummary,
+    DocumentSource,
+    UserProfile,
+    UserRole,
+} from '../types';
 
 // Chat Page (manages the authenticated conversation and its retrieved document evidence)
 const ChatPage = () => {
@@ -32,37 +46,106 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [userRole, setUserRole] = useState<UserRole>('staff');
     const [drawerSource, setDrawerSource] = useState<DocumentSource | null>(null);
+
+    // Chat History & Session State
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+    const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
+    const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : false));
+
     const profileButtonRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Session History Restoration (restores recent conversation thread from NeonDB)
-    useEffect(() => {
-        const restoreLatestSession = async () => {
-            const user = getStoredUser();
-            if (!user?.id) return;
-            try {
-                const sessions = await fetchUserSessions(user.id);
-                if (sessions.length > 0) {
-                    const latest = sessions[0];
-                    const detail = await fetchSessionDetail(latest.id, user.id);
-                    if (detail.messages && detail.messages.length > 0) {
-                        setCurrentSessionId(latest.id);
-                        setMessages(detail.messages.map((m) => ({
-                            sender: m.sender,
-                            text: m.content,
-                            sources: m.sources || [],
-                        })));
-                    }
-                }
-            } catch (error) {
-                console.warn('Could not restore chat session:', error);
+    // Load Sessions from Database
+    const loadSessions = async (userId: string, autoSelectLatest: boolean = false) => {
+        setIsLoadingSessions(true);
+        try {
+            const list = await fetchUserSessions(userId);
+            setSessions(list);
+            if (autoSelectLatest && list.length > 0 && !currentSessionId) {
+                await handleSelectSession(list[0].id);
             }
-        };
+        } catch (error) {
+            console.warn('Failed to load chat sessions:', error);
+        } finally {
+            setIsLoadingSessions(false);
+        }
+    };
 
-        void restoreLatestSession();
-    }, []);
+    // Select and Switch to an Existing Session
+    const handleSelectSession = async (sessionId: string) => {
+        const user = getStoredUser();
+        if (!user?.id) return;
+        try {
+            const detail = await fetchSessionDetail(sessionId, user.id);
+            setCurrentSessionId(sessionId);
+            if (detail.messages && detail.messages.length > 0) {
+                setMessages(detail.messages.map((m) => ({
+                    sender: m.sender,
+                    text: m.content,
+                    sources: m.sources || [],
+                })));
+            } else {
+                setMessages([
+                    {
+                        sender: 'bot',
+                        text: t.chat_initial_msg || 'System Initialized. I am the Safeway Internal Assistant.',
+                        isDefault: true,
+                        sources: [],
+                    },
+                ]);
+            }
+            if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+            }
+        } catch (error) {
+            console.error('Failed to load session messages:', error);
+        }
+    };
+
+    // Start a Fresh New Chat
+    const handleNewChat = () => {
+        setCurrentSessionId(null);
+        setMessages([
+            {
+                sender: 'bot',
+                text: t.chat_initial_msg || 'System Initialized. I am the Safeway Internal Assistant.',
+                isDefault: true,
+                sources: [],
+            },
+        ]);
+        if (window.innerWidth < 768) {
+            setSidebarOpen(false);
+        }
+    };
+
+    // Delete a Chat Session
+    const handleDeleteSession = async (sessionId: string) => {
+        const user = getStoredUser();
+        if (!user?.id) return;
+        try {
+            await deleteSession(sessionId, user.id);
+            if (currentSessionId === sessionId) {
+                handleNewChat();
+            }
+            await loadSessions(user.id, false);
+        } catch (error) {
+            console.error('Failed to delete session:', error);
+        }
+    };
+
+    // Rename a Chat Session
+    const handleRenameSession = async (sessionId: string, newTitle: string) => {
+        const user = getStoredUser();
+        if (!user?.id) return;
+        try {
+            await updateSessionTitle(sessionId, user.id, newTitle);
+            await loadSessions(user.id, false);
+        } catch (error) {
+            console.error('Failed to rename session:', error);
+        }
+    };
 
     // Welcome Translation (updates only the untouched default message when language changes)
     useEffect(() => {
@@ -73,9 +156,9 @@ const ChatPage = () => {
         )));
     }, [t.chat_initial_msg]);
 
-    // Profile Loading (restores the session, role, and account details for the header)
+    // Profile & Sessions Loading
     useEffect(() => {
-        const loadProfile = async () => {
+        const loadProfileAndHistory = async () => {
             try {
                 const user = getStoredUser();
                 if (!user) {
@@ -89,12 +172,13 @@ const ChatPage = () => {
                     throw new Error('Failed to load profile');
                 }
                 setProfile(await readJson<UserProfile>(response));
+                void loadSessions(user.id, true);
             } catch (error) {
-                console.error('Failed to load profile:', error);
+                console.error('Failed to load profile or history:', error);
             }
         };
 
-        void loadProfile();
+        void loadProfileAndHistory();
     }, [navigate]);
 
     // Conversation Scrolling (keeps the newest message or loading indicator visible)
@@ -157,6 +241,10 @@ const ChatPage = () => {
                     text: data.message || 'No response generated.',
                     sources: data.sources || [],
                 }]);
+
+                if (user?.id) {
+                    void loadSessions(user.id, false);
+                }
             } else {
                 setMessages((current) => [...current, { sender: 'bot', text: t.chat_error_timeout || 'Error: Connection timed out.' }]);
             }
@@ -194,7 +282,8 @@ const ChatPage = () => {
         >
             {/* Workspace Background (adds restrained visual depth behind the conversation) */}
             <EngineeringBackground />
-            {/* Chat Header (provides branding, display controls, and account actions) */}
+
+            {/* Chat Header (provides branding, history toggle, controls, and account menu) */}
             <ChatHeader
                 lang={lang}
                 t={t}
@@ -209,25 +298,47 @@ const ChatPage = () => {
                 onProfile={() => closeDropdownAndNavigate('/profile')}
                 onAdminDashboard={() => closeDropdownAndNavigate('/admin')}
                 onLogout={handleLogout}
+                onToggleSidebar={() => setSidebarOpen((curr) => !curr)}
+                onNewChat={handleNewChat}
             />
-            {/* Conversation Feed (shows messages, sources, and request progress) */}
-            <ChatMessages
-                messages={messages}
-                isLoading={isLoading}
-                t={t}
-                messagesEndRef={messagesEndRef}
-                onOpenSource={setDrawerSource}
-            />
-            {/* Message Composer (collects, sends, or cancels the current question) */}
-            <ChatComposer
-                input={input}
-                isLoading={isLoading}
-                language={lang}
-                t={t}
-                onInputChange={setInput}
-                onSend={() => void handleSend()}
-                onStop={() => abortControllerRef.current?.abort()}
-            />
+
+            {/* Workspace Main (History Sidebar + Conversation Workspace) */}
+            <div className="relative flex flex-1 w-full min-h-0 overflow-hidden">
+                <ChatHistorySidebar
+                    isOpen={sidebarOpen}
+                    onClose={() => setSidebarOpen(false)}
+                    sessions={sessions}
+                    activeSessionId={currentSessionId}
+                    onSelectSession={handleSelectSession}
+                    onNewChat={handleNewChat}
+                    onDeleteSession={handleDeleteSession}
+                    onRenameSession={handleRenameSession}
+                    isLoading={isLoadingSessions}
+                />
+
+                <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
+                    {/* Conversation Feed (shows messages, sources, and request progress) */}
+                    <ChatMessages
+                        messages={messages}
+                        isLoading={isLoading}
+                        t={t}
+                        messagesEndRef={messagesEndRef}
+                        onOpenSource={setDrawerSource}
+                    />
+
+                    {/* Message Composer (collects, sends, or cancels the current question) */}
+                    <ChatComposer
+                        input={input}
+                        isLoading={isLoading}
+                        language={lang}
+                        t={t}
+                        onInputChange={setInput}
+                        onSend={() => void handleSend()}
+                        onStop={() => abortControllerRef.current?.abort()}
+                    />
+                </div>
+            </div>
+
             {/* Source Drawer (previews the document excerpt grounding a selected response) */}
             <DocumentDrawer source={drawerSource} onClose={() => setDrawerSource(null)} />
         </m.div>

@@ -10,8 +10,12 @@ from sqlalchemy import text, func
 from urllib.parse import urlparse
 from uuid import uuid4
 from typing import List, Literal
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timezone, timedelta
+try:
+    from zoneinfo import ZoneInfo
+    KUCHING_TZ = ZoneInfo("Asia/Kuching")
+except Exception:
+    KUCHING_TZ = timezone(timedelta(hours=8))
 import io
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -391,7 +395,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
                 print("Error resolving chat session:", e)
 
         history = [turn.model_dump() for turn in req.history[-10:]]
-        today = datetime.now(ZoneInfo("Asia/Kuching")).date()
+        today = datetime.now(KUCHING_TZ).date()
         retrieval_query = build_retrieval_query(history, req.message)
         # Query Embedding (uses the explicit retrieval prefix without legacy task handling)
         query_vector = get_embedding(retrieval_query, task_type=None)

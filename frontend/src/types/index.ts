@@ -46,6 +46,38 @@ export interface ChatResponse {
     sender: 'bot';
     message: string;
     sources: DocumentSource[];
+    session_id?: string;
+}
+
+// Chat Session Summary (for sidebar / session selector)
+export interface ChatSessionSummary {
+    id: string;
+    user_id: string;
+    title: string;
+    is_archived: boolean;
+    created_at?: string;
+    updated_at?: string;
+    last_message?: string;
+}
+
+// Persisted Message (saved message record retrieved from database)
+export interface PersistedChatMessage {
+    id: string;
+    session_id: string;
+    sender: 'user' | 'bot';
+    content: string;
+    sources: DocumentSource[];
+    created_at: string;
+}
+
+// Chat Session Detail (complete session with all messages)
+export interface ChatSessionDetail {
+    id: string;
+    user_id: string;
+    title: string;
+    created_at?: string;
+    updated_at?: string;
+    messages: PersistedChatMessage[];
 }
 
 // Admin User (describes an account managed from the dashboard)

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, getStoredUser, readJson } from '../api/client';
+import { fetchSessionDetail, fetchUserSessions } from '../api/chatHistory';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { ChatComposer } from '../components/chat/ChatComposer';
 import { ChatHeader } from '../components/chat/ChatHeader';
@@ -31,9 +32,37 @@ const ChatPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [userRole, setUserRole] = useState<UserRole>('staff');
     const [drawerSource, setDrawerSource] = useState<DocumentSource | null>(null);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const profileButtonRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Session History Restoration (restores recent conversation thread from NeonDB)
+    useEffect(() => {
+        const restoreLatestSession = async () => {
+            const user = getStoredUser();
+            if (!user?.id) return;
+            try {
+                const sessions = await fetchUserSessions(user.id);
+                if (sessions.length > 0) {
+                    const latest = sessions[0];
+                    const detail = await fetchSessionDetail(latest.id, user.id);
+                    if (detail.messages && detail.messages.length > 0) {
+                        setCurrentSessionId(latest.id);
+                        setMessages(detail.messages.map((m) => ({
+                            sender: m.sender,
+                            text: m.content,
+                            sources: m.sources || [],
+                        })));
+                    }
+                }
+            } catch (error) {
+                console.warn('Could not restore chat session:', error);
+            }
+        };
+
+        void restoreLatestSession();
+    }, []);
 
     // Welcome Translation (updates only the untouched default message when language changes)
     useEffect(() => {
@@ -105,15 +134,24 @@ const ChatPage = () => {
                 role: message.sender === 'user' ? 'user' : 'assistant',
                 content: message.text,
             }));
+            const user = getStoredUser();
             const response = await fetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage.text, history: conversationHistory }),
+                body: JSON.stringify({
+                    message: userMessage.text,
+                    history: conversationHistory,
+                    user_id: user?.id,
+                    session_id: currentSessionId,
+                }),
                 signal: abortControllerRef.current.signal,
             });
 
             if (response.ok) {
                 const data = await readJson<ChatResponse>(response);
+                if (data.session_id) {
+                    setCurrentSessionId(data.session_id);
+                }
                 setMessages((current) => [...current, {
                     sender: 'bot',
                     text: data.message || 'No response generated.',

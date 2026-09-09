@@ -9,11 +9,11 @@ import { LoginLoadingOverlay } from '../components/login/LoginLoadingOverlay';
 import { fadeUp } from '../components/motion/presets';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import type { ApiErrorBody, StoredUser, UserRole } from '../types';
+import type { ApiErrorBody, PortalRole, StoredUser } from '../types';
 
 // Login Navigation State (carries the portal role selected on the landing page)
 interface LoginLocationState {
-    role?: UserRole;
+    role?: PortalRole;
 }
 
 // Login Page (authenticates a user for the selected staff or administrator portal)
@@ -45,7 +45,7 @@ const LoginPage = () => {
             if (response.ok) {
                 const user = await readJson<StoredUser>(response);
                 storeUser(user);
-                navigate(user.role === 'admin' ? '/admin' : '/chat');
+                navigate(user.role === 'admin' || user.role === 'developer' ? '/admin' : '/chat');
                 return;
             }
 
@@ -168,15 +168,6 @@ const LoginPage = () => {
                     </button>
                 </form>
 
-                {/* Development Credentials (shows the role-specific test account hint) */}
-                <div className="mt-6 pt-5 sm:mt-8 sm:pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
-                    <p className="text-[10px] text-slate-500 dark:text-slate-500 font-bold uppercase tracking-widest">
-                        {t.test_hint}<br />
-                        <span className="font-mono text-amber-600 dark:text-amber-500 mt-1.5 block text-xs">
-                            {role}@{STAFF_EMAIL_DOMAIN} / {role === 'staff' ? 'staff123' : 'admin123'}
-                        </span>
-                    </p>
-                </div>
             </m.div>
         </div>
     );

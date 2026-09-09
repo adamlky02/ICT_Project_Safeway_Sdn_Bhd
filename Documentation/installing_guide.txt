@@ -53,9 +53,15 @@ You must create the secret files that are not included in Git.
 1.  **Backend Secret:** Create `backend/.env`
     ```env
     DATABASE_URL=postgresql://[USER]:[PASSWORD]@[HOST]/neondb?sslmode=require
-    SECRET_KEY=safeway_internal_secret_2024
+    SECRET_KEY=[LONG_RANDOM_SECRET_USED_FOR_LOGIN_AND_AI_KEY_ENCRYPTION]
+    AI_CONFIG_ENCRYPTION_KEY=[SEPARATE_LONG_RANDOM_SECRET_FOR_STORED_AI_KEYS]
+    GOOGLE_API_KEY=[GEMINI_EMBEDDING_AND_FALLBACK_KEY]
+    ALLOWED_ORIGINS=http://localhost:5173
+    BOOTSTRAP_DEVELOPER_EMAIL=[EXISTING_ADMIN_EMAIL]
     ```
     *(Ask the lead developer for the Neon DB connection string)*
+    Keep `SECRET_KEY` stable in production. Changing it invalidates login tokens and prevents previously saved AI provider keys from being decrypted.
+    `BOOTSTRAP_DEVELOPER_EMAIL` promotes the matching administrator only when no developer exists. If the email is new, also provide `BOOTSTRAP_DEVELOPER_PASSWORD` with at least 12 characters. Remove the bootstrap values after the first developer account is ready.
 
 2.  **Frontend Secret:** Create `frontend/.env`
     ```env
@@ -70,9 +76,7 @@ To log in, you need the mock users (Admin/Staff) in your database. Run this once
 cd backend
 python seed_db.py
 ```
-**Test Credentials Created:**
-*   **Admin:** `admin@safeway.com` / `admin123`
-*   **Staff:** `staff@safeway.com` / `staff123`
+The command prints a one-time random password for each account it creates. Save those passwords securely; rerunning the command does not reset existing accounts. Optional `SEED_ADMIN_PASSWORD`, `SEED_STAFF_PASSWORD`, and `SEED_MR_TEO_PASSWORD` environment variables may be used when each value contains at least 12 characters.
 ---
 
 ## 5. Running the Application

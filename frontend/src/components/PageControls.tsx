@@ -1,4 +1,4 @@
-import { Globe, Moon, Sun } from 'lucide-react';
+import { Globe, Moon, ShieldCheck, Sun } from 'lucide-react';
 import type { Language } from '../types';
 
 // Page Controls Props (provides language and theme state for public pages)
@@ -7,6 +7,8 @@ interface PageControlsProps {
     isDarkMode: boolean;
     onLanguageToggle: () => void;
     onThemeToggle: () => void;
+    onAdminSelect?: () => void;
+    adminLabel?: string;
     variant?: 'landing' | 'login';
 }
 
@@ -16,6 +18,8 @@ export function PageControls({
     isDarkMode,
     onLanguageToggle,
     onThemeToggle,
+    onAdminSelect,
+    adminLabel = 'Administrator login',
     variant = 'landing',
 }: PageControlsProps) {
     // Control Styling (adapts shared buttons to landing or login backgrounds)
@@ -26,6 +30,17 @@ export function PageControls({
 
     return (
         <div className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-50 flex gap-2 sm:right-6 md:right-10 md:top-8 md:gap-3">
+            {onAdminSelect && (
+                <button
+                    onClick={onAdminSelect}
+                    className={`${buttonClass} flex items-center justify-center text-amber-600 dark:text-amber-400`}
+                    title={adminLabel}
+                    aria-label={adminLabel}
+                    type="button"
+                >
+                    <ShieldCheck size={19} />
+                </button>
+            )}
             <button
                 onClick={onLanguageToggle}
                 className={`${buttonClass} flex items-center justify-center font-bold text-xs uppercase`}

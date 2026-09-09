@@ -1,6 +1,8 @@
 import sys
 import os
 import bcrypt
+import secrets
+import string
 
 # Local Module Path (allows this standalone script to import backend modules)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -15,6 +17,17 @@ def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(pwd_bytes, salt)
     return hashed_password.decode('utf-8')
+
+
+# Seed Password Generation (uses a private environment override or creates a one-time random password)
+def seed_password(environment_name: str) -> str:
+    configured_password = os.getenv(environment_name, "")
+    if configured_password:
+        if len(configured_password) < 12:
+            raise ValueError(f"{environment_name} must contain at least 12 characters")
+        return configured_password
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*_-=+"
+    return ''.join(secrets.choice(alphabet) for _ in range(16))
 
 # Database Seeding (creates tables and inserts the default accounts when absent)
 def seed_data():
@@ -31,11 +44,11 @@ def seed_data():
 
     db = SessionLocal()
 
-    # Default Accounts (defines development users inserted by this seed script)
+    # Default Accounts (defines local identities without committing reusable passwords)
     mock_users = [
-        {"email": "admin@safeway.com", "password": "admin123", "role": "admin"},
-        {"email": "staff@safeway.com", "password": "staff123", "role": "staff"},
-        {"email": "mr.teo@safeway.com", "password": "password123", "role": "staff"}
+        {"email": "admin@safeway.com", "password_env": "SEED_ADMIN_PASSWORD", "role": "admin"},
+        {"email": "staff@safeway.com", "password_env": "SEED_STAFF_PASSWORD", "role": "staff"},
+        {"email": "mr.teo@safeway.com", "password_env": "SEED_MR_TEO_PASSWORD", "role": "staff"}
     ]
 
     print("🌱 Seeding users into 'User_list'...")
@@ -45,13 +58,15 @@ def seed_data():
             exists = db.query(models.User).filter(models.User.email == user_data["email"]).first()
 
             if not exists:
+                generated_password = seed_password(user_data["password_env"])
                 new_user = models.User(
                     email=user_data["email"],
-                    password_hash=hash_password(user_data["password"]),
+                    password_hash=hash_password(generated_password),
                     role=user_data["role"]
                 )
                 db.add(new_user)
                 print(f"   ➕ Added: {user_data['email']}")
+                print(f"      One-time password: {generated_password}")
             else:
                 print(f"   ⏩ Skipped: {user_data['email']}")
 

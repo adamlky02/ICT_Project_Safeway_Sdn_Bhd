@@ -1,15 +1,19 @@
 import type { FormEvent } from 'react';
-import { Pencil, Search, ShieldCheck, Trash2, User, UserPlus } from 'lucide-react';
+import { Code2, LockKeyhole, Pencil, Search, ShieldCheck, Trash2, User, UserPlus } from 'lucide-react';
 import type { Translation } from '../../translations';
-import type { AccountForm, AdminUser } from '../../types';
+import type { AccountForm, AdminUser, UserRole } from '../../types';
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';
 
 // Accounts Panel Props (provides account data, form state, filters, and CRUD actions)
 interface AccountsPanelProps {
     form: AccountForm;
     searchTerm: string;
+    developerUsers: AdminUser[];
     adminUsers: AdminUser[];
     staffUsers: AdminUser[];
+    viewerRole: UserRole;
+    currentUserId: string;
+    developerModeUnlocked: boolean;
     t: Translation;
     onFormChange: (form: AccountForm) => void;
     onSearchChange: (searchTerm: string) => void;
@@ -21,18 +25,26 @@ interface AccountsPanelProps {
 // User Row Props (provides one account and its edit or delete actions)
 interface UserRowProps {
     user: AdminUser;
-    isStaffTable: boolean;
+    viewerRole: UserRole;
+    currentUserId: string;
+    developerModeUnlocked: boolean;
     onEdit: (user: AdminUser) => void;
     onDelete: (id: string) => void;
 }
 
 // User Row (renders a compact account record with role styling and management controls)
-function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
+function UserRow({ user, viewerRole, currentUserId, developerModeUnlocked, onEdit, onDelete }: UserRowProps) {
+    const isDeveloperAccount = user.role === 'developer';
+    const isStaffAccount = user.role === 'staff';
+    const isCurrentAccount = user.id === currentUserId;
+    const canEdit = !isDeveloperAccount || (viewerRole === 'developer' && developerModeUnlocked && !isCurrentAccount);
+    const canDelete = !isDeveloperAccount && !isCurrentAccount;
+
     return (
         <div className="p-3 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
             <div className="flex min-w-0 items-center gap-3 overflow-hidden">
-                <div className={`p-1.5 rounded-lg shrink-0 ${isStaffTable ? 'bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400' : 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-500/20'}`}>
-                    {isStaffTable ? <User size={16} /> : <ShieldCheck size={16} />}
+                <div className={`p-1.5 rounded-lg shrink-0 ${isDeveloperAccount ? 'border border-violet-200 bg-violet-100 text-violet-600 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300' : isStaffAccount ? 'bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400' : 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-500/20'}`}>
+                    {isDeveloperAccount ? <Code2 size={16} /> : isStaffAccount ? <User size={16} /> : <ShieldCheck size={16} />}
                 </div>
                 <div className="overflow-hidden">
                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate tracking-tight">{user.full_name}</p>
@@ -40,8 +52,9 @@ function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
                 </div>
             </div>
             <div className="flex items-center gap-0.5 shrink-0 ml-2 sm:opacity-60 sm:hover:opacity-100 transition-opacity">
-                <button onClick={() => onEdit(user)} className="flex min-h-10 min-w-10 items-center justify-center text-slate-400 hover:text-amber-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button" aria-label={`Edit ${user.full_name}`}><Pencil size={16} /></button>
-                <button onClick={() => onDelete(user.id)} className="flex min-h-10 min-w-10 items-center justify-center text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button" aria-label={`Delete ${user.full_name}`}><Trash2 size={16} /></button>
+                {canEdit && <button onClick={() => onEdit(user)} className="flex min-h-10 min-w-10 items-center justify-center text-slate-400 hover:text-amber-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button" aria-label={`Edit ${user.full_name}`}><Pencil size={16} /></button>}
+                {canDelete && <button onClick={() => onDelete(user.id)} className="flex min-h-10 min-w-10 items-center justify-center text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-lg transition-colors" type="button" aria-label={`Delete ${user.full_name}`}><Trash2 size={16} /></button>}
+                {!canEdit && !canDelete && <LockKeyhole size={15} className="mx-3 text-slate-400" aria-label="Protected account" />}
             </div>
         </div>
     );
@@ -51,8 +64,12 @@ function UserRow({ user, isStaffTable, onEdit, onDelete }: UserRowProps) {
 export function AccountsPanel({
     form,
     searchTerm,
+    developerUsers,
     adminUsers,
     staffUsers,
+    viewerRole,
+    currentUserId,
+    developerModeUnlocked,
     t,
     onFormChange,
     onSearchChange,
@@ -61,11 +78,11 @@ export function AccountsPanel({
     onDeleteUser,
 }: AccountsPanelProps) {
     // User List Renderer (shows matching account rows or the localized empty state)
-    const renderUserList = (users: AdminUser[], isStaffTable: boolean) => (
+    const renderUserList = (users: AdminUser[]) => (
         users.length === 0
             ? <div className="p-10 text-center text-slate-400 italic text-sm">{t.no_matches}</div>
             : users.map((user) => (
-                <UserRow key={user.id} user={user} isStaffTable={isStaffTable} onEdit={onEditUser} onDelete={onDeleteUser} />
+                <UserRow key={user.id} user={user} viewerRole={viewerRole} currentUserId={currentUserId} developerModeUnlocked={developerModeUnlocked} onEdit={onEditUser} onDelete={onDeleteUser} />
             ))
     );
 
@@ -112,15 +129,24 @@ export function AccountsPanel({
                 </form>
             </section>
 
-            {/* Role Directories (separates administrator and internal staff account lists) */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+            {/* Role Directories (keeps developer, administrator, and staff accounts visible) */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+                <div className={`${cardStyle} flex flex-col h-[min(380px,48vh)] min-h-72`}>
+                    <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
+                    <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-3.5 flex justify-between items-center text-white shrink-0 font-black text-xs uppercase tracking-widest relative z-10 border-b border-white/20">
+                        <div className="flex items-center gap-2"><Code2 size={14} /> {t.developers || 'Developers'}</div>
+                        <span className="bg-white/15 px-2.5 py-0.5 rounded-full">{developerUsers.length}</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">{renderUserList(developerUsers)}</div>
+                </div>
+
                 <div className={`${cardStyle} flex flex-col h-[min(380px,48vh)] min-h-72`}>
                     <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                     <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-3.5 flex justify-between items-center text-slate-900 shrink-0 font-black text-xs uppercase tracking-widest relative z-10 border-b border-white/20">
                         <div className="flex items-center gap-2"><ShieldCheck size={14} /> {t.admins}</div>
                         <span className="bg-slate-900/10 px-2.5 py-0.5 rounded-full">{adminUsers.length}</span>
                     </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">{renderUserList(adminUsers, false)}</div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">{renderUserList(adminUsers)}</div>
                 </div>
 
                 <div className={`${cardStyle} flex flex-col h-[min(380px,48vh)] min-h-72`}>
@@ -129,7 +155,7 @@ export function AccountsPanel({
                         <div className="flex items-center gap-2"><User size={14} /> {t.internal_staff}</div>
                         <span className="bg-white/40 dark:bg-white/10 px-2.5 py-0.5 rounded-full">{staffUsers.length}</span>
                     </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">{renderUserList(staffUsers, true)}</div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">{renderUserList(staffUsers)}</div>
                 </div>
             </div>
         </div>

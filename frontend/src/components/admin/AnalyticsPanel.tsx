@@ -24,13 +24,6 @@ interface StatusItem {
     iconClass: string;
 }
 
-// Service Status Catalog (defines the database, storage, and AI dependencies being monitored)
-const statusItems: StatusItem[] = [
-    { title: 'Neon PostgreSQL', description: 'Vector Database Connection', icon: Database, iconClass: 'text-blue-500' },
-    { title: 'Cloudflare R2', description: 'Binary Object Storage', icon: Cloud, iconClass: 'text-orange-500' },
-    { title: 'Google Gemini', description: 'Generative AI & Embeddings', icon: Cpu, iconClass: 'text-amber-500' },
-];
-
 // Analytics Panel (renders live time, system totals, and dependency health)
 export function AnalyticsPanel({
     analytics,
@@ -42,6 +35,13 @@ export function AnalyticsPanel({
     t,
     onRefresh,
 }: AnalyticsPanelProps) {
+    // Service Status Catalog (shows the currently active response provider separately from embeddings)
+    const statusItems: StatusItem[] = [
+        { title: 'Neon PostgreSQL', description: 'Vector Database Connection', icon: Database, iconClass: 'text-blue-500' },
+        { title: 'Cloudflare R2', description: 'Binary Object Storage', icon: Cloud, iconClass: 'text-orange-500' },
+        { title: analytics.status.ai_provider || 'Render Gemini fallback', description: 'Response Generation · Gemini Embeddings', icon: Cpu, iconClass: 'text-amber-500' },
+    ];
+
     return (
         <div className="space-y-4">
             {/* Diagnostics Header (shows the live server-style clock and manual refresh action) */}

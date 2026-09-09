@@ -1,4 +1,4 @@
-import { Activity, FileText, Globe, LogOut, Moon, Sun, Users } from 'lucide-react';
+import { Activity, Bot, Code2, FileText, Globe, LockKeyhole, LogOut, Moon, Sun, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Translation } from '../../translations';
 import type { AdminTab, Language } from '../../types';
@@ -10,10 +10,13 @@ interface AdminNavigationProps {
     t: Translation;
     isDarkMode: boolean;
     isHovered: boolean;
+    isDeveloper: boolean;
+    developerModeUnlocked: boolean;
     onTabChange: (tab: AdminTab) => void;
     onLanguageToggle: () => void;
     onThemeToggle: () => void;
     onLogout: () => void;
+    onDeveloperModeRequest: () => void;
     onHoverChange: (isHovered: boolean) => void;
 }
 
@@ -31,10 +34,13 @@ export function AdminNavigation({
     t,
     isDarkMode,
     isHovered,
+    isDeveloper,
+    developerModeUnlocked,
     onTabChange,
     onLanguageToggle,
     onThemeToggle,
     onLogout,
+    onDeveloperModeRequest,
     onHoverChange,
 }: AdminNavigationProps) {
     // Dashboard Tabs (defines the ordered analytics, account, and document destinations)
@@ -42,6 +48,9 @@ export function AdminNavigation({
         { id: 'analytics', icon: Activity, label: t.tab_analytics || 'Health' },
         { id: 'staff', icon: Users, label: t.tab_accounts || 'Accounts' },
         { id: 'docs', icon: FileText, label: t.tab_docs || 'Docs' },
+        ...(isDeveloper && developerModeUnlocked
+            ? [{ id: 'ai' as const, icon: Bot, label: t.tab_ai || 'AI Model' }]
+            : []),
     ];
     const mobileUtilityClass = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-slate-100/90 p-0 shadow-sm transition-all active:scale-95 dark:border-white/10 dark:bg-white/5';
 
@@ -54,6 +63,17 @@ export function AdminNavigation({
                     <span className="truncate font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600 uppercase tracking-tight text-base sm:text-lg">Dashboard</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                    {isDeveloper && (
+                        <button
+                            onClick={onDeveloperModeRequest}
+                            className={`${mobileUtilityClass} ${developerModeUnlocked ? 'border-violet-300 bg-violet-50 text-violet-600 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400'}`}
+                            type="button"
+                            aria-label={developerModeUnlocked ? (t.developer_mode_unlocked || 'Developer Mode unlocked') : (t.developer_mode_locked || 'Unlock Developer Mode')}
+                            title={developerModeUnlocked ? (t.developer_mode_unlocked || 'Developer Mode unlocked') : (t.developer_mode_locked || 'Unlock Developer Mode')}
+                        >
+                            {developerModeUnlocked ? <Code2 size={18} /> : <LockKeyhole size={18} />}
+                        </button>
+                    )}
                     <button
                         onClick={onLanguageToggle}
                         className={`${mobileUtilityClass} text-blue-600 hover:border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:hover:border-blue-500/30 dark:hover:bg-blue-500/10`}
@@ -111,6 +131,14 @@ export function AdminNavigation({
 
                 {/* Desktop Utilities (changes language or theme and ends the session) */}
                 <div className="mt-auto mb-6 px-3 space-y-1.5 pt-4 border-t border-slate-300/50 dark:border-white/10">
+                    {isDeveloper && (
+                        <button onClick={onDeveloperModeRequest} className={`w-full flex items-center py-3 rounded-2xl transition-all font-medium ${developerModeUnlocked ? 'bg-violet-50 text-violet-600 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/15' : 'text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800'} ${isHovered ? 'px-4' : 'justify-center'}`} type="button">
+                            {developerModeUnlocked ? <Code2 size={22} className="shrink-0" /> : <LockKeyhole size={22} className="shrink-0" />}
+                            <div className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${isHovered ? 'w-40 opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}`}>
+                                <span>{developerModeUnlocked ? (t.developer_mode_unlocked || 'Developer unlocked') : (t.developer_mode_locked || 'Developer Mode')}</span>
+                            </div>
+                        </button>
+                    )}
                     <button onClick={onLanguageToggle} className={`w-full flex items-center py-3 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-all font-medium text-slate-600 dark:text-slate-400 ${isHovered ? 'px-4' : 'justify-center'}`} type="button">
                         <Globe size={22} className="text-blue-500 shrink-0" />
                         <div className={`transition-all duration-300 overflow-hidden whitespace-nowrap ${isHovered ? 'w-40 opacity-100 ml-3' : 'w-0 opacity-0 ml-0'} uppercase`}><span>{lang}</span></div>

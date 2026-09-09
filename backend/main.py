@@ -3,6 +3,7 @@ import shutil
 import bcrypt
 import secrets
 import string
+import warnings
 import boto3
 import fitz
 import google.generativeai as genai
@@ -17,7 +18,7 @@ try:
 except Exception:
     KUCHING_TZ = timezone(timedelta(hours=8))
 import io
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -32,6 +33,24 @@ from ai_conversation import (
     serialize_reasoning_context,
 )
 from email_utils import send_staff_credentials_email
+from auth_utils import (
+    create_access_token,
+    create_developer_mode_token,
+    get_current_user,
+    require_admin,
+    require_developer,
+    require_developer_mode,
+    verify_developer_mode_token,
+)
+from ai_providers import (
+    activate_ai_draft,
+    generate_ai_response,
+    get_active_provider_name,
+    get_ai_settings,
+    rollback_ai_provider,
+    save_ai_draft,
+    test_ai_draft,
+)
 from chat_history import (
     chat_history_router,
     get_or_create_session,
@@ -52,9 +71,8 @@ s3_client = boto3.client(
 )
 R2_BUCKET = os.getenv("R2_BUCKET_NAME")
 
-# AI Models (configures Gemini generation and embedding services)
+# Embedding Model (keeps the existing vector index pinned to Gemini)
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-llm = genai.GenerativeModel('gemini-3.1-flash-lite')
 
 
 # Text Embedding (converts document or query text into a vector for semantic search)
@@ -70,15 +88,66 @@ def get_embedding(text_string: str, task_type: str | None = "retrieval_document"
     return result['embedding']
 
 
-# Startup Tables (ensures database tables exist when the API starts)
+# Bootstrap Developer (promotes an existing administrator or creates the first developer from Render secrets)
+def _ensure_bootstrap_developer() -> None:
+    bootstrap_email = os.getenv("BOOTSTRAP_DEVELOPER_EMAIL", "").strip().lower()
+    if not bootstrap_email:
+        return
+
+    db = database.SessionLocal()
+    try:
+        if db.query(models.User).filter(models.User.role == "developer").first():
+            return
+
+        account = db.query(models.User).filter(models.User.email == bootstrap_email).first()
+        if account:
+            if account.role != "admin":
+                warnings.warn(
+                    "BOOTSTRAP_DEVELOPER_EMAIL must identify an existing administrator.",
+                    RuntimeWarning,
+                )
+                return
+            account.role = "developer"
+            db.commit()
+            return
+
+        bootstrap_password = os.getenv("BOOTSTRAP_DEVELOPER_PASSWORD", "")
+        if len(bootstrap_password) < 12:
+            warnings.warn(
+                "BOOTSTRAP_DEVELOPER_PASSWORD must contain at least 12 characters when creating a new account.",
+                RuntimeWarning,
+            )
+            return
+
+        account = models.User(
+            email=bootstrap_email,
+            password_hash=bcrypt.hashpw(bootstrap_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
+            full_name=os.getenv("BOOTSTRAP_DEVELOPER_NAME", "System Developer").strip() or "System Developer",
+            role="developer",
+        )
+        db.add(account)
+        db.commit()
+    except Exception:
+        db.rollback()
+        warnings.warn("The bootstrap developer account could not be prepared.", RuntimeWarning)
+    finally:
+        db.close()
+
+
+# Startup Tables (ensures database tables and the first developer account exist)
 @app.on_event("startup")
 def create_tables() -> None:
     database.Base.metadata.create_all(bind=database.engine)
+    _ensure_bootstrap_developer()
 
 # Browser Access Policy (allows the React frontend to call the API)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
+        if origin.strip()
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -107,6 +176,9 @@ class ProfileUpdate(BaseModel):
     full_name: str
     password: str | None = None
 
+class DeveloperUnlockRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=500)
+
 class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=4000)
@@ -116,6 +188,17 @@ class ChatRequest(BaseModel):
     history: List[ChatTurn] = Field(default_factory=list, max_length=12)
     user_id: str | None = None
     session_id: str | None = None
+
+class AIProviderDraftRequest(BaseModel):
+    display_name: str = Field(min_length=1, max_length=100)
+    provider: Literal["gemini", "openai_compatible"]
+    base_url: str = Field(min_length=8, max_length=500)
+    model: str = Field(min_length=1, max_length=200)
+    api_key: str | None = Field(default=None, max_length=1000)
+    temperature: float = Field(default=0.4, ge=0, le=2)
+    max_tokens: int = Field(default=1024, ge=32, le=32768)
+    timeout_seconds: int = Field(default=45, ge=5, le=120)
+    thinking_mode: Literal["enabled", "disabled"] = "disabled"
 
 
 # Username Normalization (removes supported email suffixes before account creation)
@@ -140,26 +223,39 @@ def _generate_random_password(length: int = 12) -> str:
 @app.post("/api/login")
 def login(req: LoginReq, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()
-    if not user or not bcrypt.checkpw(req.password.encode('utf-8'), user.password_hash.encode('utf-8')):
+    if not user or not user.is_active or not bcrypt.checkpw(req.password.encode('utf-8'), user.password_hash.encode('utf-8')):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    # Portal Authorization (allows administrators into the staff portal while enforcing other roles)
-    if user.role != req.role and not (user.role == "admin" and req.role == "staff"):
+
+    # Portal Authorization (lets management accounts use either the administrator or staff entry point)
+    is_management_account = user.role in {"admin", "developer"}
+    if req.role == "admin" and not is_management_account:
+        raise HTTPException(status_code=403, detail="This portal is for administrators only")
+    if req.role == "staff" and user.role not in {"staff", "admin", "developer"}:
         raise HTTPException(status_code=403, detail=f"This portal is for {req.role}s only")
+    if req.role not in {"admin", "staff"}:
+        raise HTTPException(status_code=400, detail="Unknown login portal")
 
     # Response Role (keeps frontend staff guards valid when an administrator uses that portal)
-    response_role = req.role if (user.role == "admin" and req.role == "staff") else user.role
+    response_role = "staff" if (is_management_account and req.role == "staff") else user.role
 
     return {
         "id": str(user.id),
         "email": user.email,
         "role": response_role,
-        "name": user.full_name
+        "name": user.full_name,
+        "access_token": create_access_token(user),
     }
 
 # Profile Read Route (returns the requested user's account details)
 @app.get("/api/profile/{uid}")
-def get_profile(uid: str, db: Session = Depends(database.get_db)):
-    user = db.query(models.User).filter(models.User.id == uid).first()
+def get_profile(
+    uid: str,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if str(current_user.id) != uid:
+        raise HTTPException(status_code=403, detail="You can only view your own profile.")
+    user = current_user
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -172,8 +268,15 @@ def get_profile(uid: str, db: Session = Depends(database.get_db)):
 
 # Profile Update Route (updates the user's name and optional password)
 @app.put("/api/profile/{uid}")
-def update_profile(uid: str, req: ProfileUpdate, db: Session = Depends(database.get_db)):
-    user = db.query(models.User).filter(models.User.id == uid).first()
+def update_profile(
+    uid: str,
+    req: ProfileUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if str(current_user.id) != uid:
+        raise HTTPException(status_code=403, detail="You can only update your own profile.")
+    user = current_user
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -193,9 +296,24 @@ def update_profile(uid: str, req: ProfileUpdate, db: Session = Depends(database.
     }
 
 
+# Developer Mode Unlock Route (rechecks the developer password before sensitive controls are exposed)
+@app.post("/api/developer/unlock")
+def unlock_developer_mode(
+    req: DeveloperUnlockRequest,
+    developer: models.User = Depends(require_developer),
+):
+    if not bcrypt.checkpw(req.password.encode("utf-8"), developer.password_hash.encode("utf-8")):
+        raise HTTPException(status_code=401, detail="The password is incorrect.")
+    developer_token, expires_in = create_developer_mode_token(developer)
+    return {"developer_token": developer_token, "expires_in": expires_in}
+
+
 # Admin Analytics Route (reports account, document, storage, and service health totals)
 @app.get("/api/admin/analytics")
-def get_analytics(db: Session = Depends(database.get_db)):
+def get_analytics(
+    db: Session = Depends(database.get_db),
+    _admin: models.User = Depends(require_admin),
+):
     user_count = db.query(models.User).count()
     doc_count = db.query(models.KnowledgeBase).count()
 
@@ -211,19 +329,84 @@ def get_analytics(db: Session = Depends(database.get_db)):
         "status": {
             "database": "operational",
             "storage": "operational",
-            "ai": "operational"
+            "ai": "operational",
+            "ai_provider": get_active_provider_name(db),
         }
     }
 
 
+# AI Settings Read Route (returns masked provider metadata only in unlocked Developer Mode)
+@app.get("/api/admin/ai-settings")
+def read_ai_settings(
+    db: Session = Depends(database.get_db),
+    _developer: models.User = Depends(require_developer_mode),
+):
+    return get_ai_settings(db)
+
+
+# AI Draft Route (encrypts a new key and saves an inactive provider configuration)
+@app.put("/api/admin/ai-settings/draft")
+def update_ai_settings_draft(
+    req: AIProviderDraftRequest,
+    db: Session = Depends(database.get_db),
+    admin: models.User = Depends(require_developer_mode),
+):
+    return save_ai_draft(db, req.model_dump(), str(admin.id))
+
+
+# AI Connection Test Route (verifies the saved draft without affecting live chat traffic)
+@app.post("/api/admin/ai-settings/test")
+def test_ai_settings_connection(
+    db: Session = Depends(database.get_db),
+    _developer: models.User = Depends(require_developer_mode),
+):
+    return test_ai_draft(db)
+
+
+# AI Activation Route (hot-switches response generation after a successful test)
+@app.post("/api/admin/ai-settings/activate")
+def activate_ai_settings(
+    db: Session = Depends(database.get_db),
+    admin: models.User = Depends(require_developer_mode),
+):
+    return activate_ai_draft(db, str(admin.id))
+
+
+# AI Rollback Route (restores the provider that was active immediately before the switch)
+@app.post("/api/admin/ai-settings/rollback")
+def rollback_ai_settings(
+    db: Session = Depends(database.get_db),
+    admin: models.User = Depends(require_developer_mode),
+):
+    return rollback_ai_provider(db, str(admin.id))
+
+
 # Staff List Route (returns all staff and administrator accounts)
 @app.get("/api/admin/users")
-def get_users(db: Session = Depends(database.get_db)):
-    return db.query(models.User).all()
+def get_users(
+    db: Session = Depends(database.get_db),
+    _admin: models.User = Depends(require_admin),
+):
+    users = db.query(models.User).all()
+    return [
+        {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "is_active": user.is_active,
+            "created_at": user.created_at,
+        }
+        for user in users
+    ]
 
 # Staff Creation Route (creates an account and emails its generated credentials)
 @app.post("/api/admin/users")
-def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
+def create_staff(
+    req: StaffCreate,
+    db: Session = Depends(database.get_db),
+    _admin: models.User = Depends(require_admin),
+):
     email = f"{_normalize_username(req.username)}@{STAFF_EMAIL_DOMAIN}"
 
     if db.query(models.User).filter(models.User.email == email).first():
@@ -246,10 +429,32 @@ def create_staff(req: StaffCreate, db: Session = Depends(database.get_db)):
 
 # Staff Update Route (changes account identity, password, and permitted role)
 @app.put("/api/admin/users/{uid}")
-def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_db)):
+def update_staff(
+    uid: str,
+    req: StaffUpdate,
+    db: Session = Depends(database.get_db),
+    admin: models.User = Depends(require_admin),
+    developer_token: str | None = Header(default=None, alias="X-Developer-Token"),
+):
     user = db.query(models.User).filter(models.User.id == uid).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    requested_role = req.role or user.role
+    developer_role_change = user.role == "developer" or requested_role == "developer"
+    if developer_role_change:
+        if admin.role != "developer":
+            raise HTTPException(status_code=403, detail="Only a developer can manage developer accounts.")
+        verify_developer_mode_token(developer_token, admin)
+
+        if requested_role == "developer" and user.role not in {"admin", "developer"}:
+            raise HTTPException(status_code=400, detail="Promote this account to administrator before granting developer access.")
+        if str(user.id) == str(admin.id) and requested_role != user.role:
+            raise HTTPException(status_code=400, detail="You cannot change your own developer role.")
+        if user.role == "developer" and requested_role != "developer":
+            developer_count = db.query(models.User).filter(models.User.role == "developer").count()
+            if developer_count <= 1:
+                raise HTTPException(status_code=400, detail="The system must keep at least one developer account.")
 
     username = _normalize_username(req.username)
     user.email = f"{username}@{STAFF_EMAIL_DOMAIN}"
@@ -258,7 +463,7 @@ def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_
     if req.password and req.password.strip():
         user.password_hash = bcrypt.hashpw(req.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    if req.role in {"staff", "admin"}:
+    if req.role in {"staff", "admin", "developer"}:
         user.role = req.role
 
     try:
@@ -271,14 +476,28 @@ def update_staff(uid: str, req: StaffUpdate, db: Session = Depends(database.get_
 
 # Staff Deletion Route (removes an account from the database)
 @app.delete("/api/admin/users/{uid}")
-def delete_user(uid: str, db: Session = Depends(database.get_db)):
-    db.query(models.User).filter(models.User.id == uid).delete()
+def delete_user(
+    uid: str,
+    db: Session = Depends(database.get_db),
+    admin: models.User = Depends(require_admin),
+):
+    user = db.query(models.User).filter(models.User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if str(user.id) == str(admin.id):
+        raise HTTPException(status_code=400, detail="You cannot delete your own account.")
+    if user.role == "developer":
+        raise HTTPException(status_code=403, detail="Remove developer access before deleting this account.")
+    db.delete(user)
     db.commit()
     return {"message": "Deleted"}
 
 # Document List Route (returns metadata for every indexed knowledge-base document)
 @app.get("/api/admin/documents")
-def get_docs(db: Session = Depends(database.get_db)):
+def get_docs(
+    db: Session = Depends(database.get_db),
+    _admin: models.User = Depends(require_admin),
+):
     return db.query(models.KnowledgeBase).all()
 
 # Document Upload Route (stores, extracts, chunks, embeds, and indexes a document)
@@ -286,9 +505,9 @@ def get_docs(db: Session = Depends(database.get_db)):
 async def upload_document(
         title: str = Form(...),
         category: str = Form(...),
-        admin_id: str = Form(...),
         file: UploadFile = File(...),
-        db: Session = Depends(database.get_db)
+        db: Session = Depends(database.get_db),
+        admin: models.User = Depends(require_admin),
 ):
     extension = file.filename.split(".")[-1].lower()
     if extension not in ["pdf", "txt"]:
@@ -330,7 +549,7 @@ async def upload_document(
             file_path=unique_filename,
             file_type=extension,
             file_size=len(file_bytes),
-            uploaded_by=admin_id
+            uploaded_by=admin.id
         )
         db.add(new_doc)
         db.commit()
@@ -354,7 +573,11 @@ async def upload_document(
 
 # Document Deletion Route (removes both the cloud object and its database record)
 @app.delete("/api/admin/documents/{did}")
-def delete_doc(did: int, db: Session = Depends(database.get_db)):
+def delete_doc(
+    did: int,
+    db: Session = Depends(database.get_db),
+    _admin: models.User = Depends(require_admin),
+):
     doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
 
     if not doc:
@@ -481,13 +704,8 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db))
         {req.message}
         """
 
-        # AI Generation (creates the final answer from the prompt and retrieved context)
-        ai_response = llm.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(temperature=0.4)
-        )
-
-        bot_reply = ai_response.text
+        # AI Generation (uses the active website configuration with Render Gemini as fallback)
+        bot_reply = generate_ai_response(db, prompt)
         if session_id:
             try:
                 save_chat_turn(db, session_id, req.message, bot_reply, sources_list)

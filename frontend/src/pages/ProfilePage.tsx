@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, getStoredUser, readJson, storeUser } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, readJson, storeUser } from '../api/client';
 import { ProfileForm } from '../components/profile/ProfileForm';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';
@@ -33,7 +33,7 @@ const ProfilePage = () => {
                     return;
                 }
 
-                const response = await fetch(`${API_URL}/api/profile/${user.id}`);
+                const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`);
                 if (!response.ok) {
                     throw new Error('Failed to load profile');
                 }
@@ -77,7 +77,7 @@ const ProfilePage = () => {
                 throw new Error('Session expired');
             }
 
-            const response = await fetch(`${API_URL}/api/profile/${user.id}`, {
+            const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ full_name: form.full_name, password: form.password || null }),

@@ -19,3 +19,13 @@ export function getStoredUser(): StoredUser | null {
 export function storeUser(user: StoredUser): void {
     localStorage.setItem('userData', JSON.stringify(user));
 }
+
+// Authenticated Request (attaches the signed login token without disturbing FormData headers)
+export function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    const accessToken = getStoredUser()?.access_token;
+    if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+    return fetch(input, { ...init, headers });
+}

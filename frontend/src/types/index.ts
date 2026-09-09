@@ -1,7 +1,8 @@
 // Shared Enumerations (define supported languages, roles, and dashboard tabs)
 export type Language = 'en' | 'ms' | 'zh';
-export type UserRole = 'admin' | 'staff';
-export type AdminTab = 'analytics' | 'staff' | 'docs';
+export type UserRole = 'admin' | 'developer' | 'staff';
+export type PortalRole = 'admin' | 'staff';
+export type AdminTab = 'analytics' | 'staff' | 'docs' | 'ai';
 
 // Stored User (describes the authenticated account cached in the browser)
 export interface StoredUser {
@@ -9,6 +10,7 @@ export interface StoredUser {
     email: string;
     role: UserRole;
     name: string;
+    access_token: string;
 }
 
 // User Profile (describes account details returned by profile endpoints)
@@ -125,6 +127,51 @@ export interface AdminData {
     docs: AdminDocument[];
 }
 
+// AI Provider Profile (contains only masked administrative configuration metadata)
+export interface AIProviderProfile {
+    display_name: string;
+    provider: 'gemini' | 'openai_compatible';
+    base_url: string;
+    model: string;
+    temperature: number;
+    max_tokens: number;
+    timeout_seconds: number;
+    thinking_mode: 'enabled' | 'disabled';
+    secret_source: 'stored' | 'render_environment';
+    has_api_key: boolean;
+    test_status: 'environment' | 'untested' | 'passed' | 'failed';
+    tested_at?: string | null;
+    latency_ms?: number | null;
+    activated_at?: string | null;
+}
+
+// AI Settings State (groups active, draft, rollback, and fixed embedding configuration)
+export interface AISettingsState {
+    active: AIProviderProfile;
+    draft: AIProviderProfile | null;
+    previous: AIProviderProfile | null;
+    embedding: {
+        display_name: string;
+        provider: 'gemini';
+        model: string;
+        managed_by: string;
+        change_supported: false;
+    };
+}
+
+// AI Provider Form (adds a write-only API key to the editable profile fields)
+export interface AIProviderForm {
+    display_name: string;
+    provider: 'gemini' | 'openai_compatible';
+    base_url: string;
+    model: string;
+    api_key: string;
+    temperature: number;
+    max_tokens: number;
+    timeout_seconds: number;
+    thinking_mode: 'enabled' | 'disabled';
+}
+
 // Account Form (stores new-account fields and shared document form fields)
 export interface AccountForm {
     first_name: string;
@@ -147,6 +194,12 @@ export interface EditAccountForm {
 export interface GeneratedCredentials {
     email: string;
     password: string;
+}
+
+// Developer Unlock Response (returns a short-lived token after password confirmation)
+export interface DeveloperUnlockResponse {
+    developer_token: string;
+    expires_in: number;
 }
 
 // Profile Form Data (stores editable name and password confirmation fields)

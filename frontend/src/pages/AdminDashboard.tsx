@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, getStoredUser, readJson } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { AccountsPanel } from '../components/admin/AccountsPanel';
 import { AdminPageHeader } from '../components/admin/AdminPageHeader';
@@ -9,6 +9,8 @@ import { CredentialsModal, EditUserModal, RoleConfirmModal } from '../components
 import { AdminNavigation } from '../components/admin/AdminNavigation';
 import { AnalyticsPanel } from '../components/admin/AnalyticsPanel';
 import { DocumentsPanel } from '../components/admin/DocumentsPanel';
+import { AISettingsPanel } from '../components/admin/AISettingsPanel';
+import { DeveloperModeModal } from '../components/admin/DeveloperModeModal';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 import type {
@@ -57,6 +59,8 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     const { lang, t, toggleLanguage } = useLanguage();
     const { isDarkMode, toggleTheme } = useTheme({ storage: 'local' });
+    const currentUser = getStoredUser();
+    const isDeveloper = currentUser?.role === 'developer';
     const [tab, setTab] = useState<AdminTab>('analytics');
     const [data, setData] = useState<AdminData>({ users: [], docs: [] });
     const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
@@ -74,14 +78,22 @@ const AdminDashboard = () => {
     const [isUploading, setIsUploading] = useState(false);
     const uploadAbortController = useRef<AbortController | null>(null);
     const [form, setForm] = useState<AccountForm>(emptyAccountForm);
+    const [developerToken, setDeveloperToken] = useState<string | null>(null);
+    const [showDeveloperUnlock, setShowDeveloperUnlock] = useState(false);
 
     // Dashboard Data Loading (refreshes users, documents, and analytics with safe fallbacks)
     const loadData = async () => {
         setIsRefreshing(true);
         try {
-            const usersResponse = await fetch(`${API_URL}/api/admin/users`);
-            const documentsResponse = await fetch(`${API_URL}/api/admin/documents`);
-            const analyticsResponse = await fetch(`${API_URL}/api/admin/analytics`).catch(() => null);
+            const usersResponse = await authenticatedFetch(`${API_URL}/api/admin/users`);
+            const documentsResponse = await authenticatedFetch(`${API_URL}/api/admin/documents`);
+            const analyticsResponse = await authenticatedFetch(`${API_URL}/api/admin/analytics`).catch(() => null);
+
+            if ([usersResponse, documentsResponse, analyticsResponse].some((response) => response && [401, 403].includes(response.status))) {
+                localStorage.removeItem('userData');
+                navigate('/login', { state: { role: 'admin' } });
+                return;
+            }
 
             const users = usersResponse.ok ? await readJson<AdminUser[]>(usersResponse) : [];
             const documents = documentsResponse.ok ? await readJson<AdminDocument[]>(documentsResponse) : [];
@@ -108,8 +120,13 @@ const AdminDashboard = () => {
 
     // Initial Data Load (populates all dashboard panels when the page mounts)
     useEffect(() => {
+        const user = getStoredUser();
+        if (!user?.access_token || !['admin', 'developer'].includes(user.role)) {
+            navigate('/login', { state: { role: 'admin' } });
+            return;
+        }
         void loadData();
-    }, []);
+    }, [navigate]);
 
     // Diagnostics Timestamp (formats the live date and time displayed by analytics)
     const formattedDate = currentTime.toLocaleDateString('en-US', {
@@ -130,7 +147,7 @@ const AdminDashboard = () => {
         const fullName = `${form.first_name} ${form.last_name}`.trim();
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/users`, {
+            const response = await authenticatedFetch(`${API_URL}/api/admin/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: form.username, full_name: fullName }),
@@ -171,9 +188,11 @@ const AdminDashboard = () => {
 
         const fullName = `${editForm.first_name} ${editForm.last_name}`.trim();
         try {
-            const response = await fetch(`${API_URL}/api/admin/users/${editingUser.id}`, {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (developerToken) headers['X-Developer-Token'] = developerToken;
+            const response = await authenticatedFetch(`${API_URL}/api/admin/users/${editingUser.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     full_name: fullName,
                     username: editForm.username,
@@ -186,7 +205,14 @@ const AdminDashboard = () => {
                 setEditingUser(null);
                 void loadData();
                 alert(t.acc_ready || 'Account updated!');
+                return;
             }
+            const responseError = await readJson<ApiErrorBody>(response).catch((): ApiErrorBody => ({}));
+            if ([401, 403].includes(response.status) && (editingUser.role === 'developer' || editForm.role === 'developer')) {
+                setDeveloperToken(null);
+                setShowDeveloperUnlock(true);
+            }
+            alert(responseError.detail || 'Account update failed.');
         } catch {
             alert('Network error.');
         }
@@ -266,9 +292,7 @@ const AdminDashboard = () => {
                     uploadData.append('file', item.file);
                     uploadData.append('title', item.title.trim());
                     uploadData.append('category', form.category);
-                    uploadData.append('admin_id', user.id);
-
-                    const response = await fetch(`${API_URL}/api/admin/upload`, {
+                    const response = await authenticatedFetch(`${API_URL}/api/admin/upload`, {
                         method: 'POST',
                         body: uploadData,
                         signal: abortController.signal,
@@ -321,7 +345,7 @@ const AdminDashboard = () => {
         }
 
         try {
-            await fetch(`${API_URL}/api/admin/${type}/${id}`, { method: 'DELETE' });
+            await authenticatedFetch(`${API_URL}/api/admin/${type}/${id}`, { method: 'DELETE' });
             void loadData();
         } catch {
             alert('Delete failed.');
@@ -344,6 +368,18 @@ const AdminDashboard = () => {
         setShowPromoteConfirm(true);
     };
 
+    // Developer Role Toggle Request (allows an unlocked developer to grant or remove developer access)
+    const handleDeveloperRoleToggle = (checked: boolean) => {
+        if (!developerToken) {
+            setShowDeveloperUnlock(true);
+            return;
+        }
+        const nextRole: UserRole = checked ? 'developer' : 'admin';
+        if (nextRole === editForm.role) return;
+        setPendingRole(nextRole);
+        setShowPromoteConfirm(true);
+    };
+
     // Role Change Confirmation (applies or discards the staged access level)
     const handlePromoteChoice = (confirmChange: boolean) => {
         if (confirmChange && pendingRole) {
@@ -360,10 +396,15 @@ const AdminDashboard = () => {
     ));
     const sortedUsers = [...filteredUsers].sort((first, second) => (first.full_name || '').localeCompare(second.full_name || ''));
     const adminUsers = sortedUsers.filter((user) => user.role === 'admin');
+    const developerUsers = sortedUsers.filter((user) => user.role === 'developer');
     const staffUsers = sortedUsers.filter((user) => user.role === 'staff');
 
     // Dashboard Tab Change (clears a settled upload queue only when returning to Documents)
     const handleTabChange = (nextTab: AdminTab) => {
+        if (nextTab === 'ai' && (!isDeveloper || !developerToken)) {
+            if (isDeveloper) setShowDeveloperUnlock(true);
+            return;
+        }
         const isReturningToDocuments = tab !== 'docs' && nextTab === 'docs';
         const isUploadQueueSettled = uploadItems.length > 0 && uploadItems.every((item) => (
             item.status === 'success' || item.status === 'error' || item.status === 'cancelled'
@@ -373,6 +414,23 @@ const AdminDashboard = () => {
             setUploadItems([]);
         }
         setTab(nextTab);
+    };
+
+    // Developer Mode Entry (opens password verification or returns to the protected AI panel)
+    const handleDeveloperModeRequest = () => {
+        if (!isDeveloper) return;
+        if (developerToken) {
+            setTab('ai');
+            return;
+        }
+        setShowDeveloperUnlock(true);
+    };
+
+    // Developer Mode Expiration (removes the sensitive token and asks for a fresh password)
+    const handleDeveloperModeExpired = () => {
+        setDeveloperToken(null);
+        setTab('analytics');
+        setShowDeveloperUnlock(true);
     };
 
     return (
@@ -386,10 +444,13 @@ const AdminDashboard = () => {
                 t={t}
                 isDarkMode={isDarkMode}
                 isHovered={isHovered}
+                isDeveloper={isDeveloper}
+                developerModeUnlocked={Boolean(developerToken)}
                 onTabChange={handleTabChange}
                 onLanguageToggle={toggleLanguage}
                 onThemeToggle={toggleTheme}
                 onLogout={handleLogout}
+                onDeveloperModeRequest={handleDeveloperModeRequest}
                 onHoverChange={setIsHovered}
             />
 
@@ -423,8 +484,12 @@ const AdminDashboard = () => {
                                 <AccountsPanel
                                     form={form}
                                     searchTerm={searchTerm}
+                                    developerUsers={developerUsers}
                                     adminUsers={adminUsers}
                                     staffUsers={staffUsers}
+                                    viewerRole={currentUser?.role || 'admin'}
+                                    currentUserId={currentUser?.id || ''}
+                                    developerModeUnlocked={Boolean(developerToken)}
                                     t={t}
                                     onFormChange={setForm}
                                     onSearchChange={setSearchTerm}
@@ -449,6 +514,11 @@ const AdminDashboard = () => {
                                     onDeleteDocument={(id) => void deleteItem('documents', id)}
                                 />
                             )}
+                            {tab === 'ai' && (
+                                developerToken
+                                    ? <AISettingsPanel t={t} developerToken={developerToken} onProviderActivated={() => void loadData()} onDeveloperModeExpired={handleDeveloperModeExpired} />
+                                    : null
+                            )}
                         </m.div>
                     </AnimatePresence>
                 </div>
@@ -463,6 +533,9 @@ const AdminDashboard = () => {
                         t={t}
                         onFormChange={setEditForm}
                         onRoleToggle={handleRoleToggle}
+                        onDeveloperRoleToggle={handleDeveloperRoleToggle}
+                        viewerRole={currentUser?.role || 'admin'}
+                        developerModeUnlocked={Boolean(developerToken)}
                         onClose={() => setEditingUser(null)}
                         onSubmit={(event) => void handleEditUser(event)}
                     />
@@ -478,6 +551,20 @@ const AdminDashboard = () => {
             <AnimatePresence>
                 {showPromoteConfirm && (
                     <RoleConfirmModal pendingRole={pendingRole} t={t} onChoice={handlePromoteChoice} />
+                )}
+            </AnimatePresence>
+            {/* Developer Unlock Dialog (keeps sensitive controls behind recent password verification) */}
+            <AnimatePresence>
+                {showDeveloperUnlock && isDeveloper && (
+                    <DeveloperModeModal
+                        t={t}
+                        onClose={() => setShowDeveloperUnlock(false)}
+                        onUnlocked={(token) => {
+                            setDeveloperToken(token);
+                            setShowDeveloperUnlock(false);
+                            setTab('ai');
+                        }}
+                    />
                 )}
             </AnimatePresence>
         </div>

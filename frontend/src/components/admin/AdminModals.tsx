@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { Code2, ShieldCheck } from 'lucide-react';
 import { m } from 'motion/react';
 import type { Translation } from '../../translations';
 import type { AdminUser, EditAccountForm, GeneratedCredentials, UserRole } from '../../types';
@@ -13,12 +13,17 @@ interface EditUserModalProps {
     t: Translation;
     onFormChange: (form: EditAccountForm) => void;
     onRoleToggle: (checked: boolean) => void;
+    onDeveloperRoleToggle: (checked: boolean) => void;
+    viewerRole: UserRole;
+    developerModeUnlocked: boolean;
     onClose: () => void;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
 
 // Edit User Modal (edits account identity, password, and administrator privileges)
-export function EditUserModal({ user: _user, form, t, onFormChange, onRoleToggle, onClose, onSubmit }: EditUserModalProps) {
+export function EditUserModal({ user, form, t, onFormChange, onRoleToggle, onDeveloperRoleToggle, viewerRole, developerModeUnlocked, onClose, onSubmit }: EditUserModalProps) {
+    const canChooseDeveloper = viewerRole === 'developer' && developerModeUnlocked && ['admin', 'developer'].includes(user.role);
+
     return (
         <m.div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" variants={modalBackdrop} initial="hidden" animate="visible" exit="exit">
             <m.div className="bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl saturate-150 w-full max-w-xl rounded-2xl sm:rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-white/10 p-5 sm:p-8 max-h-[calc(100dvh-2rem)] overflow-y-auto relative" variants={fadeScale}>
@@ -40,10 +45,21 @@ export function EditUserModal({ user: _user, form, t, onFormChange, onRoleToggle
                         <h4 className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.security || 'Security'}</h4>
                         <input type="password" placeholder={t.new_pass_placeholder} className={inputStyle} value={form.password} onChange={(event) => onFormChange({ ...form, password: event.target.value })} />
                     </div>
-                    <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-black/20 p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner backdrop-blur-sm">
-                        <input id="promote" type="checkbox" checked={form.role === 'admin'} onChange={(event) => onRoleToggle(event.target.checked)} className="h-5 w-5 rounded border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500 bg-transparent" />
-                        <div><label htmlFor="promote" className="font-bold text-sm dark:text-white">{t.admin_privileges}</label></div>
-                    </div>
+                    {user.role !== 'developer' && (
+                        <div className="flex items-center gap-4 bg-slate-50/50 dark:bg-black/20 p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-inner backdrop-blur-sm">
+                            <input id="promote" type="checkbox" checked={form.role !== 'staff'} disabled={form.role === 'developer'} onChange={(event) => onRoleToggle(event.target.checked)} className="h-5 w-5 rounded border-slate-300 dark:border-slate-600 text-amber-500 focus:ring-amber-500 bg-transparent disabled:opacity-50" />
+                            <div><label htmlFor="promote" className="font-bold text-sm dark:text-white">{t.admin_privileges}</label></div>
+                        </div>
+                    )}
+                    {canChooseDeveloper && (
+                        <div className="flex items-center gap-4 rounded-xl border border-violet-200 bg-violet-50/70 p-4 shadow-inner backdrop-blur-sm dark:border-violet-500/20 dark:bg-violet-500/10">
+                            <input id="developer-role" type="checkbox" checked={form.role === 'developer'} onChange={(event) => onDeveloperRoleToggle(event.target.checked)} className="h-5 w-5 rounded border-violet-300 bg-transparent text-violet-600 focus:ring-violet-500 dark:border-violet-500/40" />
+                            <div className="flex items-center gap-2">
+                                <Code2 size={17} className="text-violet-600 dark:text-violet-300" />
+                                <label htmlFor="developer-role" className="font-bold text-sm text-violet-800 dark:text-violet-200">{t.developer_privileges || 'Developer access'}</label>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 pt-4 border-t border-slate-200/50 dark:border-white/5">
                         <button type="button" onClick={onClose} className="min-h-11 px-6 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">{t.cancel}</button>
                         <button type="submit" className={`${primaryButtonStyle} px-8 py-2.5`}>{t.save_changes}</button>

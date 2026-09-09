@@ -17,7 +17,9 @@ export function AdminPageHeader({ tab, t, onOpenChat, onOpenProfile }: AdminPage
         ? (t.accounts_mgmt || 'Accounts Management')
         : tab === 'docs'
             ? (t.docs_repo || 'Document Repository')
-            : 'System Analytics & Health';
+            : tab === 'ai'
+                ? (t.ai_settings || 'AI Model Settings')
+                : 'System Analytics & Health';
 
     return (
         <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-start sm:justify-between">

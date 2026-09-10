@@ -3,8 +3,8 @@ import { ChevronDown, Globe, History, LogOut, Moon, Plus, ShieldCheck, Sun, User
 import { AnimatePresence, m } from 'motion/react';
 import type { Translation } from '../../translations';
 import type { Language, UserProfile, UserRole } from '../../types';
+import { FloatingNavigationDock } from '../navigation/FloatingNavigationDock';
 
-// Chat Header Props (provides identity, display settings, and account-menu actions)
 interface ChatHeaderProps {
     lang: Language;
     t: Translation;
@@ -23,7 +23,7 @@ interface ChatHeaderProps {
     onNewChat?: () => void;
 }
 
-// Chat Header (renders assistant branding, display controls, and the account menu)
+// Chat Header (keeps conversation and account controls visible in the shared Safeway dock)
 export function ChatHeader({
     lang,
     t,
@@ -41,106 +41,118 @@ export function ChatHeader({
     onToggleSidebar,
     onNewChat,
 }: ChatHeaderProps) {
+    const iconButtonClass = 'flex min-h-10 min-w-10 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-amber-400';
+
     return (
-        <header className="min-h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 px-3 py-2 sm:px-4 md:min-h-[4.5rem] md:px-6 lg:px-8 shadow-sm z-20 shrink-0 transition-colors duration-300">
-            {/* Assistant Branding & History Controls */}
-            <div className="flex min-w-0 items-center gap-2 md:gap-3">
-                {onToggleSidebar && (
-                    <button
-                        onClick={onToggleSidebar}
-                        className="flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/60 p-2 text-slate-700 backdrop-blur-xl transition-all hover:bg-white hover:text-amber-600 hover:shadow-xs dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-amber-400"
-                        title="Chat History"
-                        type="button"
-                    >
-                        <History size={18} />
-                    </button>
-                )}
-                {onNewChat && (
-                    <button
-                        onClick={onNewChat}
-                        className="hidden sm:flex min-h-10 items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 backdrop-blur-xl transition-all hover:bg-amber-500/20 active:scale-98 dark:bg-amber-500/15 dark:text-amber-400"
-                        title="New Chat"
-                        type="button"
-                    >
-                        <Plus size={15} />
-                        <span>New Chat</span>
-                    </button>
-                )}
-                <img
-                    src={isDarkMode ? '/safewaylogo.png' : '/safewaylogoblack.png'}
-                    alt="Logo"
-                    className="hidden h-11 w-11 shrink-0 object-contain mix-blend-multiply drop-shadow-sm transition-transform duration-500 hover:scale-105 dark:mix-blend-screen sm:block md:h-12 md:w-12"
-                />
-                <h1 className="truncate bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-base font-black tracking-tight text-transparent sm:text-lg md:text-xl">Safeway Assistant</h1>
-            </div>
-
-            {/* Header Controls (changes language or theme and opens account actions) */}
-            <div className="flex shrink-0 items-center gap-1 md:gap-2">
-                <button
-                    onClick={onLanguageToggle}
-                    className="flex min-h-11 min-w-11 items-center justify-center rounded-full border border-slate-200 bg-white/40 p-2.5 text-xs font-bold uppercase text-slate-600 backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:text-blue-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:text-blue-400"
-                    title="Change Language"
-                    type="button"
-                >
-                    <Globe size={18} className="md:mr-1 text-blue-500" />
-                    <span className="hidden md:block">{lang}</span>
-                </button>
-
-                <button
-                    onClick={onThemeToggle}
-                    className="min-h-11 min-w-11 rounded-full border border-slate-200 bg-white/40 p-2.5 text-slate-500 backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:text-amber-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:text-amber-400"
-                    title="Toggle Theme"
-                    type="button"
-                >
-                    {isDarkMode ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} />}
-                </button>
-
-                {/* Account Menu (shows profile, admin access, and logout actions) */}
-                <div className="relative" ref={profileButtonRef}>
-                    <button
-                        className="flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/40 px-2.5 py-2 text-slate-700 backdrop-blur-xl transition-all duration-300 hover:bg-white/80 hover:shadow-md focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 sm:gap-2 sm:px-3"
-                        onClick={onDropdownToggle}
-                        type="button"
-                    >
-                        <User size={18} className="text-amber-600 dark:text-amber-500" />
-                        <span className="text-sm font-bold hidden md:block tracking-wide">{profile?.full_name || t.staff_account || 'Staff'}</span>
-                        <ChevronDown size={16} className={`transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    <AnimatePresence>
-                        {dropdownOpen && (
-                            <m.div
-                                className="absolute right-0 z-50 mt-3 flex w-[min(16rem,calc(100vw-1.5rem))] origin-top-right flex-col items-center rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-2xl backdrop-blur-3xl saturate-150 dark:border-white/10 dark:bg-[#0a0a0a]/95 sm:p-6"
-                                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                                transition={{ duration: 0.2 }}
+        <header className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-20 justify-center">
+            <FloatingNavigationDock
+                isDarkMode={isDarkMode}
+                ariaLabel="Chat navigation"
+                className="w-[calc(100vw-1rem)] lg:w-[min(60rem,calc(100vw-2rem))]"
+            >
+                <div className="grid h-full grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] items-center px-2 sm:px-3">
+                    {/* Conversation Controls (opens history, starts a chat, and changes language) */}
+                    <div className="flex min-w-0 items-center justify-end gap-0.5 pr-1 sm:gap-1 sm:pr-2">
+                        {onToggleSidebar && (
+                            <button
+                                onClick={onToggleSidebar}
+                                className={`${iconButtonClass} gap-2 px-2 lg:px-3`}
+                                title="Chat History"
+                                aria-label="Open chat history"
+                                type="button"
                             >
-                                <div className="text-lg font-black text-slate-800 dark:text-white mt-2 tracking-tight">
-                                    {profile?.full_name || t.staff_account || 'Safeway Staff'}
-                                </div>
-                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6 truncate w-full text-center">
-                                    {profile?.email || 'Loading...'}
-                                </div>
-                                <div className="w-full border-t border-slate-200/60 dark:border-white/5 mb-4" />
-                                <div className="w-full flex flex-col gap-2">
-                                    <button onClick={onProfile} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-amber-100 hover:text-amber-700 hover:border-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-400 dark:hover:border-amber-500/30 transition-all active:scale-[0.98]" type="button">
-                                        <UserCircle2 size={16} /> {t.profile || 'My Profile'}
-                                    </button>
-                                    {userRole === 'admin' && (
-                                        <button onClick={onAdminDashboard} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 dark:hover:bg-blue-500/20 dark:hover:text-blue-400 dark:hover:border-blue-500/30 transition-all active:scale-[0.98]" type="button">
-                                            <ShieldCheck size={16} /> {t.admin_dash_btn || 'Admin Dashboard'}
-                                        </button>
-                                    )}
-                                    <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-400 dark:hover:border-red-500/30 transition-all active:scale-[0.98]" type="button">
-                                        <LogOut size={16} /> {t.disconnect || 'Logout'}
-                                    </button>
-                                </div>
-                            </m.div>
+                                <History size={17} />
+                                <span className="hidden text-xs font-bold lg:inline">History</span>
+                            </button>
                         )}
-                    </AnimatePresence>
+                        {onNewChat && (
+                            <button
+                                onClick={onNewChat}
+                                className="hidden min-h-10 items-center justify-center gap-2 rounded-full px-3 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-400 dark:hover:bg-amber-500/10 sm:flex"
+                                title="New Chat"
+                                type="button"
+                            >
+                                <Plus size={16} />
+                                <span className="hidden lg:inline">New Chat</span>
+                            </button>
+                        )}
+                        <button
+                            onClick={onLanguageToggle}
+                            className={iconButtonClass}
+                            title="Change Language"
+                            aria-label={`Change language. Current language: ${lang}`}
+                            type="button"
+                        >
+                            <Globe size={17} className="text-blue-500" />
+                            <span className="sr-only">{lang}</span>
+                        </button>
+                    </div>
+
+                    <div aria-hidden="true" />
+
+                    {/* Display & Account Controls (changes theme and opens the account menu) */}
+                    <div className="flex min-w-0 items-center justify-start gap-0.5 pl-1 sm:gap-1 sm:pl-2">
+                        <button
+                            onClick={onThemeToggle}
+                            className={iconButtonClass}
+                            title="Toggle Theme"
+                            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                            type="button"
+                        >
+                            {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
+                        </button>
+
+                        <div className="relative" ref={profileButtonRef}>
+                            <button
+                                className="flex min-h-10 min-w-10 items-center justify-center gap-1 rounded-full px-2 text-slate-700 transition-colors hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-300 dark:hover:bg-white/10 sm:px-2.5 xl:gap-2 xl:px-3"
+                                onClick={onDropdownToggle}
+                                type="button"
+                                aria-expanded={dropdownOpen}
+                                aria-haspopup="menu"
+                                aria-label="Open account menu"
+                            >
+                                <User size={17} className="text-amber-600 dark:text-amber-400" />
+                                <span className="hidden max-w-32 truncate text-xs font-bold xl:block">{profile?.full_name || t.staff_account || 'Staff'}</span>
+                                <ChevronDown size={14} className={`hidden transition-transform duration-300 sm:block ${dropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {dropdownOpen && (
+                                    <m.div
+                                        className="absolute right-0 z-50 mt-3 flex w-[min(16rem,calc(100vw-1rem))] origin-top-right flex-col items-center rounded-3xl border-[0.5px] border-slate-300/55 bg-white/82 p-5 shadow-[0_22px_60px_rgba(15,23,42,0.16)] backdrop-blur-3xl dark:border-white/10 dark:bg-[#090a0d]/84 dark:shadow-[0_26px_70px_rgba(0,0,0,0.38)] sm:p-6"
+                                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                                        transition={{ duration: 0.2 }}
+                                        role="menu"
+                                    >
+                                        <div className="mt-2 text-lg font-black tracking-tight text-slate-800 dark:text-white">
+                                            {profile?.full_name || t.staff_account || 'Safeway Staff'}
+                                        </div>
+                                        <div className="mb-6 w-full truncate text-center text-xs font-medium text-slate-500 dark:text-slate-400">
+                                            {profile?.email || 'Loading...'}
+                                        </div>
+                                        <div className="mb-4 w-full border-t-[0.5px] border-slate-300/60 dark:border-white/10" />
+                                        <div className="flex w-full flex-col gap-2">
+                                            <button onClick={onProfile} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/55 py-3 text-sm font-bold text-slate-700 transition-all hover:border-amber-300 hover:bg-amber-100 hover:text-amber-700 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/20 dark:hover:text-amber-400" type="button" role="menuitem">
+                                                <UserCircle2 size={16} /> {t.profile || 'My Profile'}
+                                            </button>
+                                            {userRole === 'admin' && (
+                                                <button onClick={onAdminDashboard} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/55 py-3 text-sm font-bold text-slate-700 transition-all hover:border-blue-300 hover:bg-blue-100 hover:text-blue-700 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-blue-500/30 dark:hover:bg-blue-500/20 dark:hover:text-blue-400" type="button" role="menuitem">
+                                                    <ShieldCheck size={16} /> {t.admin_dash_btn || 'Admin Dashboard'}
+                                                </button>
+                                            )}
+                                            <button onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/55 py-3 text-sm font-bold text-slate-700 transition-all hover:border-red-300 hover:bg-red-100 hover:text-red-700 active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-red-500/30 dark:hover:bg-red-500/20 dark:hover:text-red-400" type="button" role="menuitem">
+                                                <LogOut size={16} /> {t.disconnect || 'Logout'}
+                                            </button>
+                                        </div>
+                                    </m.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </FloatingNavigationDock>
         </header>
     );
 }

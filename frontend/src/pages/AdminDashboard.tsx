@@ -66,7 +66,6 @@ const AdminDashboard = () => {
     const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [isHovered, setIsHovered] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [editForm, setEditForm] = useState<EditAccountForm>(emptyEditForm);
@@ -433,17 +432,37 @@ const AdminDashboard = () => {
         setShowDeveloperUnlock(true);
     };
 
+    // Ambient Motion (moves Safeway-colored light fields as the active workspace changes)
+    const ambientMotion: Record<AdminTab, { primary: { x: string; y: string; scale: number }; secondary: { x: string; y: string; scale: number } }> = {
+        analytics: { primary: { x: '-8%', y: '-6%', scale: 1 }, secondary: { x: '8%', y: '4%', scale: 1 } },
+        staff: { primary: { x: '18%', y: '8%', scale: 1.16 }, secondary: { x: '-18%', y: '-8%', scale: 0.9 } },
+        docs: { primary: { x: '4%', y: '28%', scale: 0.92 }, secondary: { x: '-6%', y: '-24%', scale: 1.18 } },
+        ai: { primary: { x: '24%', y: '-2%', scale: 1.22 }, secondary: { x: '-24%', y: '18%', scale: 1.1 } },
+    };
+
     return (
-        <div className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 overflow-hidden bg-slate-50 font-sans transition-colors duration-500 dark:bg-[#0a0a0a]">
+        <div className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 overflow-hidden bg-[#f4f2ed] font-sans transition-colors duration-500 dark:bg-[#07080a]">
             {/* Dashboard Background (adds restrained visual depth behind management panels) */}
             <EngineeringBackground />
+            <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                <m.div
+                    className="absolute -left-[18rem] -top-[20rem] h-[48rem] w-[48rem] rounded-full bg-amber-400/20 blur-[130px] dark:bg-amber-500/12"
+                    animate={ambientMotion[tab].primary}
+                    transition={{ duration: 1.35, ease: [0.22, 1, 0.36, 1] }}
+                />
+                <m.div
+                    className="absolute -bottom-[22rem] -right-[18rem] h-[52rem] w-[52rem] rounded-full bg-orange-500/18 blur-[150px] dark:bg-orange-600/10"
+                    animate={ambientMotion[tab].secondary}
+                    transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
+                />
+                <div className="admin-stage-vignette absolute inset-0" />
+            </div>
             {/* Responsive Navigation (switches panels and provides language, theme, and logout actions) */}
             <AdminNavigation
                 tab={tab}
                 lang={lang}
                 t={t}
                 isDarkMode={isDarkMode}
-                isHovered={isHovered}
                 isDeveloper={isDeveloper}
                 developerModeUnlocked={Boolean(developerToken)}
                 onTabChange={handleTabChange}
@@ -451,22 +470,27 @@ const AdminDashboard = () => {
                 onThemeToggle={toggleTheme}
                 onLogout={handleLogout}
                 onDeveloperModeRequest={handleDeveloperModeRequest}
-                onHoverChange={setIsHovered}
             />
 
             {/* Active Dashboard Panel (renders the heading and currently selected management view) */}
-            <div className="relative z-10 w-full min-w-0 flex-1 overflow-y-auto px-3 pb-[max(5.5rem,env(safe-area-inset-bottom))] pt-20 transition-colors duration-300 custom-scrollbar sm:px-5 sm:pt-24 lg:p-8 xl:p-10">
-                <div className="max-w-6xl mx-auto min-w-0">
+            <main className="relative z-10 w-full min-w-0 flex-1 overflow-y-auto px-3 pb-[max(6.5rem,env(safe-area-inset-bottom))] pt-24 transition-colors duration-300 custom-scrollbar sm:px-5 lg:px-8 lg:pb-12 lg:pt-28 xl:px-10">
+                <m.div
+                    className="mx-auto min-w-0 max-w-[86rem]"
+                    initial={{ opacity: 0, y: 28 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                >
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat')} onOpenProfile={() => navigate('/profile')} />
 
                     {/* Tab Content (animates between analytics, account, and document panels) */}
                     <AnimatePresence mode="wait" initial={false}>
                         <m.div
                             key={tab}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                            transition={{ duration: 0.24 }}
+                            className="admin-panel-enter"
+                            initial={{ opacity: 0, y: 34, scale: 0.985, filter: 'blur(12px)' }}
+                            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, y: -18, scale: 0.99, filter: 'blur(9px)' }}
+                            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
                         >
                             {tab === 'analytics' && (
                                 <AnalyticsPanel
@@ -521,8 +545,8 @@ const AdminDashboard = () => {
                             )}
                         </m.div>
                     </AnimatePresence>
-                </div>
-            </div>
+                </m.div>
+            </main>
 
             {/* Account Edit Dialog (updates the selected user's identity and permissions) */}
             <AnimatePresence>

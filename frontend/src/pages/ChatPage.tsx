@@ -26,6 +26,8 @@ import type {
     UserRole,
 } from '../types';
 
+const CHAT_HISTORY_AUTO_RETRACT_MS = 3200;
+
 // Chat Page (manages the authenticated conversation and its retrieved document evidence)
 const ChatPage = () => {
     // Chat State (tracks display settings, conversation, account menu, requests, and source preview)
@@ -51,11 +53,41 @@ const ChatPage = () => {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : false));
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const profileButtonRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const sidebarRetractTimerRef = useRef<number | null>(null);
+
+    // History Auto Retract (keeps the drawer temporary until the user engages with it)
+    const cancelSidebarAutoRetract = () => {
+        if (sidebarRetractTimerRef.current !== null) {
+            window.clearTimeout(sidebarRetractTimerRef.current);
+            sidebarRetractTimerRef.current = null;
+        }
+    };
+
+    const closeSidebar = () => {
+        cancelSidebarAutoRetract();
+        setSidebarOpen(false);
+    };
+
+    const handleSidebarToggle = () => {
+        cancelSidebarAutoRetract();
+        if (sidebarOpen) {
+            setSidebarOpen(false);
+            return;
+        }
+
+        setSidebarOpen(true);
+        sidebarRetractTimerRef.current = window.setTimeout(() => {
+            setSidebarOpen(false);
+            sidebarRetractTimerRef.current = null;
+        }, CHAT_HISTORY_AUTO_RETRACT_MS);
+    };
+
+    useEffect(() => () => cancelSidebarAutoRetract(), []);
 
     // Load Sessions from Database
     const loadSessions = async (userId: string, autoSelectLatest: boolean = false) => {
@@ -97,7 +129,7 @@ const ChatPage = () => {
                 ]);
             }
             if (window.innerWidth < 768) {
-                setSidebarOpen(false);
+                closeSidebar();
             }
         } catch (error) {
             console.error('Failed to load session messages:', error);
@@ -116,7 +148,7 @@ const ChatPage = () => {
             },
         ]);
         if (window.innerWidth < 768) {
-            setSidebarOpen(false);
+            closeSidebar();
         }
     };
 
@@ -298,7 +330,7 @@ const ChatPage = () => {
                 onProfile={() => closeDropdownAndNavigate('/profile')}
                 onAdminDashboard={() => closeDropdownAndNavigate('/admin')}
                 onLogout={handleLogout}
-                onToggleSidebar={() => setSidebarOpen((curr) => !curr)}
+                onToggleSidebar={handleSidebarToggle}
                 onNewChat={handleNewChat}
             />
 
@@ -306,7 +338,8 @@ const ChatPage = () => {
             <div className="relative flex flex-1 w-full min-h-0 overflow-hidden">
                 <ChatHistorySidebar
                     isOpen={sidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
+                    onClose={closeSidebar}
+                    onEngage={cancelSidebarAutoRetract}
                     sessions={sessions}
                     activeSessionId={currentSessionId}
                     onSelectSession={handleSelectSession}
@@ -316,7 +349,7 @@ const ChatPage = () => {
                     isLoading={isLoadingSessions}
                 />
 
-                <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
+                <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden pt-20">
                     {/* Conversation Feed (shows messages, sources, and request progress) */}
                     <ChatMessages
                         messages={messages}

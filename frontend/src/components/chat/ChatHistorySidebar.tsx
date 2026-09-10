@@ -17,6 +17,7 @@ import type { ChatSessionSummary } from '../../types';
 interface ChatHistorySidebarProps {
     isOpen: boolean;
     onClose: () => void;
+    onEngage: () => void;
     sessions: ChatSessionSummary[];
     activeSessionId: string | null;
     onSelectSession: (sessionId: string) => void;
@@ -29,6 +30,7 @@ interface ChatHistorySidebarProps {
 export function ChatHistorySidebar({
     isOpen,
     onClose,
+    onEngage,
     sessions,
     activeSessionId,
     onSelectSession,
@@ -108,6 +110,9 @@ export function ChatHistorySidebar({
 
             {/* Sidebar Panel */}
             <aside
+                onPointerEnter={onEngage}
+                onPointerDown={onEngage}
+                onFocusCapture={onEngage}
                 className={`
                     fixed inset-y-0 left-0 z-40 flex w-72 md:w-80 flex-col
                     border-r border-slate-200/80 bg-white/95 shadow-xl backdrop-blur-2xl

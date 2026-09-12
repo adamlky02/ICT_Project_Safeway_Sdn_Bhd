@@ -1,126 +1,44 @@
+SAFEWAY AI ASSISTANT — PUBLIC DEVELOPMENT GUIDE
+================================================
 
-# 📘 Safeway AI Chatbot - Team Setup Manual
+This guide intentionally excludes production credentials, infrastructure names,
+account-provisioning procedures, database administration commands, and internal
+deployment details.
 
-This project is a Full-Stack Web Application for **Safeway Sdn Bhd**. 
-- **Backend:** FastAPI (Python)
-- **Frontend:** React (Vite + Tailwind CSS v4)
-- **Database:** Neon DB (PostgreSQL)
+Requirements
+------------
+- Python 3.11 or 3.12
+- Node.js 20 LTS or later
+- Authorized access to the required development services
 
----
+Backend installation
+--------------------
+1. Change to the backend directory.
+2. Create and activate a Python virtual environment.
+3. Install the pinned dependencies from requirements.txt.
+4. Copy .env.example to .env.
+5. Request approved development values through the project maintainer or the
+   organization’s secret-management process.
 
-## 1. Prerequisites
-Ensure you have the following installed before starting:
-*   **Python 3.11 or 3.12** (Avoid 3.13 for library compatibility).
-*   **Node.js (LTS Version)**.
-*   **Git**.
+Frontend installation
+---------------------
+1. Change to the frontend directory.
+2. Install the locked dependencies with npm ci.
+3. Copy .env.example to .env.
+4. Use only an approved local backend address.
 
----
+Running locally
+---------------
+After both environment files have been configured, run `python run_app.py` from
+the repository root. The launcher prints the available local addresses.
 
-## 2. One-Time Environment Setup
-After pulling the source code, run these commands to set up your local environment.
-
-### A. Backend Setup
-Open your terminal in the root folder:
-```bash
-cd backend
-# Create Virtual Environment
-python -m venv venv
-
-# Activate Virtual Environment
-# Windows:
-.\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Install the exact tested dependency set
-python -m pip install --upgrade pip
-python -m pip install --requirement requirements.txt
-
-### B. Frontend Setup
-Open a new terminal tab:c
-```bash
-cd frontend
-
-# Install the exact versions recorded in package-lock.json
-npm ci
-```
-
----
-
-## 3. Configuration (Environment Variables)
-You must create the secret files that are not included in Git.
-
-1.  **Backend Secret:** Create `backend/.env`
-    ```env
-    DATABASE_URL=postgresql://[USER]:[PASSWORD]@[HOST]/neondb?sslmode=require
-    SECRET_KEY=[LONG_RANDOM_SECRET_USED_FOR_LOGIN_AND_AI_KEY_ENCRYPTION]
-    AI_CONFIG_ENCRYPTION_KEY=[SEPARATE_LONG_RANDOM_SECRET_FOR_STORED_AI_KEYS]
-    GOOGLE_API_KEY=[GEMINI_EMBEDDING_AND_FALLBACK_KEY]
-    ALLOWED_ORIGINS=http://localhost:5173
-    BOOTSTRAP_DEVELOPER_EMAIL=[EXISTING_ADMIN_EMAIL]
-    ```
-    *(Ask the lead developer for the Neon DB connection string)*
-    Keep `SECRET_KEY` stable in production. Changing it invalidates login tokens and prevents previously saved AI provider keys from being decrypted.
-    `BOOTSTRAP_DEVELOPER_EMAIL` promotes the matching administrator only when no developer exists. If the email is new, also provide `BOOTSTRAP_DEVELOPER_PASSWORD` with at least 12 characters. Remove the bootstrap values after the first developer account is ready.
-
-2.  **Frontend Secret:** Create `frontend/.env`
-    ```env
-    VITE_API_URL=http://localhost:8000
-    ```
-
----
-
-## 4. Database Initialization (Seeding)
-To log in, you need the mock users (Admin/Staff) in your database. Run this once:
-```bash
-cd backend
-python seed_db.py
-```
-The command prints a one-time random password for each account it creates. Save those passwords securely; rerunning the command does not reset existing accounts. Optional `SEED_ADMIN_PASSWORD`, `SEED_STAFF_PASSWORD`, and `SEED_MR_TEO_PASSWORD` environment variables may be used when each value contains at least 12 characters.
----
-
-## 5. Running the Application
-You do **not** need to open multiple terminals. Use the Master Runner script from the root directory:
-
-```bash
-# Make sure you are in the root directory (ICT_Project_Safeway_Sdn_Bhd)
-python run_app.py
-```
-
-### Access Points:
-*   **Web App:** [http://localhost:5173](http://localhost:5173)
-*   **API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-## 🛠 Troubleshooting Common Issues
-
-### 1. "NPM is not recognized"
-**Solution:** Restart your IDE (WebStorm/VS Code) after installing Node.js.
-
-### 2. "Blank White Screen" in Browsers
-**Solution:** 
-1. Open Browser Console (**F12**).
-2. If it says `Module Not Found`, check `frontend/src/App.jsx` and ensure all imports match the filenames in `src/pages/` exactly (case-sensitive).
-
-### 3. "Port 5173 is in use"
-**Solution:** The app will automatically move to `http://localhost:5174`. Check the terminal output for the correct URL.
-
-### 4. "Bcrypt / Passlib Error"
-**Solution:** Ensure you ran `pip uninstall passlib` and installed `bcrypt` directly as per the latest update.
-
----
-
-## 📝 Contribution Rules
-1. **Branching:** Create a new branch for every feature (`git checkout -b feature-chat-ui`).
-2. **Secrets:** Never commit your `.env` files to GitHub.
-3. **Frontend:** Use Tailwind utility classes for all styling to maintain consistency with the Safeway brand.
-
----
-
-## Dependency Maintenance
-
-* Do not commit `backend/venv`, `frontend/node_modules`, cache files, or build output.
-* Backend direct dependencies are declared in `backend/requirements.in`; the tested, pinned installation set is `backend/requirements.txt`.
-* Frontend dependencies are declared in `frontend/package.json` and locked by `frontend/package-lock.json`.
-* Review and test dependency updates before merging Dependabot pull requests.
+Security rules
+--------------
+- Never commit .env files or real credentials.
+- Revoke and replace any credential that was ever committed; removing the latest
+  copy does not remove it from Git history.
+- Never place secrets in screenshots, issues, pull requests, or documentation.
+- Use synthetic information for demonstrations and tests.
+- Keep account initialization, recovery, and production deployment instructions
+  in access-controlled internal documentation.
+- Report suspected security problems privately to the project maintainer.

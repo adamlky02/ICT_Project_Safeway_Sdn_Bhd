@@ -7,9 +7,8 @@ import string
 # Local Module Path (allows this standalone script to import backend modules)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-import database
-from database import SessionLocal, Base, configure_database, get_current_database_url
-import models
+from general import database, models
+from general.database import SessionLocal, Base, configure_database, get_current_database_url
 
 # Password Hashing (creates a bcrypt hash suitable for database storage)
 def hash_password(password: str) -> str:

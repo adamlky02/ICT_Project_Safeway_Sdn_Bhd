@@ -24,39 +24,66 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 
-from backend.general import database, models
-from backend.ai.conversation import (
-    analyze_birthday_leave,
-    build_conversation_transcript,
-    build_retrieval_query,
-    serialize_reasoning_context,
-)
-from backend.ai.prompt import build_grounded_chat_prompt
-from backend.ai.embeddings import get_embedding
-from backend.general.email import send_staff_credentials_email
-from backend.general.auth import (
-    create_access_token,
-    create_developer_mode_token,
-    get_current_user,
-    require_admin,
-    require_developer,
-    require_developer_mode,
-    verify_developer_mode_token,
-)
-from backend.ai.providers import (
-    activate_ai_draft,
-    generate_ai_response,
-    get_active_provider_name,
-    get_ai_settings,
-    rollback_ai_provider,
-    save_ai_draft,
-    test_ai_draft,
-)
-from backend.general.chat_history import (
-    chat_history_router,
-    get_or_create_session,
-    save_chat_turn,
-)
+if __package__:
+    from .general import database, models
+    from .ai.conversation import (
+        analyze_birthday_leave,
+        build_conversation_transcript,
+        build_retrieval_query,
+        serialize_reasoning_context,
+    )
+    from .ai.prompt import build_grounded_chat_prompt
+    from .ai.embeddings import get_embedding
+    from .general.email import send_staff_credentials_email
+    from .general.auth import (
+        create_access_token,
+        create_developer_mode_token,
+        get_current_user,
+        require_admin,
+        require_developer,
+        require_developer_mode,
+        verify_developer_mode_token,
+    )
+    from .ai.providers import (
+        activate_ai_draft,
+        generate_ai_response,
+        get_active_provider_name,
+        get_ai_settings,
+        rollback_ai_provider,
+        save_ai_draft,
+        test_ai_draft,
+    )
+    from .general.chat_history import chat_history_router, get_or_create_session, save_chat_turn
+else:
+    from general import database, models
+    from ai.conversation import (
+        analyze_birthday_leave,
+        build_conversation_transcript,
+        build_retrieval_query,
+        serialize_reasoning_context,
+    )
+    from ai.prompt import build_grounded_chat_prompt
+    from ai.embeddings import get_embedding
+    from general.email import send_staff_credentials_email
+    from general.auth import (
+        create_access_token,
+        create_developer_mode_token,
+        get_current_user,
+        require_admin,
+        require_developer,
+        require_developer_mode,
+        verify_developer_mode_token,
+    )
+    from ai.providers import (
+        activate_ai_draft,
+        generate_ai_response,
+        get_active_provider_name,
+        get_ai_settings,
+        rollback_ai_provider,
+        save_ai_draft,
+        test_ai_draft,
+    )
+    from general.chat_history import chat_history_router, get_or_create_session, save_chat_turn
 
 # API Application (creates the FastAPI service and shared account-domain setting)
 app = FastAPI()

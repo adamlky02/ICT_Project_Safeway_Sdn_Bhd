@@ -6,7 +6,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
-load_dotenv()
+# Backend Environment (loads the local file regardless of the process working directory)
+_BACKEND_ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(_BACKEND_ENV_PATH)
 
 # Database State (stores the configured connection, session factory, and model base)
 DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL", "")

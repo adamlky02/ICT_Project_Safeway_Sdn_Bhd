@@ -24,17 +24,17 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 
-from general import database, models
-from ai.conversation import (
+from backend.general import database, models
+from backend.ai.conversation import (
     analyze_birthday_leave,
     build_conversation_transcript,
     build_retrieval_query,
     serialize_reasoning_context,
 )
-from ai.prompt import build_grounded_chat_prompt
-from ai.embeddings import get_embedding
-from general.email import send_staff_credentials_email
-from general.auth import (
+from backend.ai.prompt import build_grounded_chat_prompt
+from backend.ai.embeddings import get_embedding
+from backend.general.email import send_staff_credentials_email
+from backend.general.auth import (
     create_access_token,
     create_developer_mode_token,
     get_current_user,
@@ -43,7 +43,7 @@ from general.auth import (
     require_developer_mode,
     verify_developer_mode_token,
 )
-from ai.providers import (
+from backend.ai.providers import (
     activate_ai_draft,
     generate_ai_response,
     get_active_provider_name,
@@ -52,7 +52,7 @@ from ai.providers import (
     save_ai_draft,
     test_ai_draft,
 )
-from general.chat_history import (
+from backend.general.chat_history import (
     chat_history_router,
     get_or_create_session,
     save_chat_turn,

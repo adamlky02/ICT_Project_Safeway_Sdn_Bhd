@@ -4,11 +4,14 @@ import bcrypt
 import secrets
 import string
 
-# Local Module Path (allows this standalone script to import backend modules)
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Project Module Path (allows this standalone script to import the backend package)
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(backend_dir)
+if project_dir not in sys.path:
+    sys.path.insert(0, project_dir)
 
-from general import database, models
-from general.database import SessionLocal, Base, configure_database, get_current_database_url
+from backend.general import database, models
+from backend.general.database import SessionLocal, Base, configure_database, get_current_database_url
 
 # Password Hashing (creates a bcrypt hash suitable for database storage)
 def hash_password(password: str) -> str:

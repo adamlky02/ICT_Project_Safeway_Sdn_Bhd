@@ -14,7 +14,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from general import models
+from backend.general import models
 
 
 AI_SETTING_CATEGORY = "ai_generation"

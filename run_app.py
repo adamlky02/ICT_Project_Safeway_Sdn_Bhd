@@ -30,8 +30,8 @@ def run_services():
 
     # Backend Process (runs the FastAPI development server with auto-reload)
     backend_process = subprocess.Popen(
-        [venv_python, "-m", "uvicorn", "main:app", "--reload", "--port", "8000"],
-        cwd=backend_dir
+        [venv_python, "-m", "uvicorn", "backend.main:app", "--reload", "--port", "8000"],
+        cwd=root_dir
     )
     print("✅ Backend started on http://localhost:8000")
 

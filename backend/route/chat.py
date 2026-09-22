@@ -17,6 +17,8 @@ try:
     from ..ai.prompt import build_grounded_chat_prompt
     from ..ai.providers import generate_ai_response
     from ..general import database
+    from ..general.auth import get_current_user
+    from ..general.models import User
     from ..general.chat_history import get_or_create_session, save_chat_turn
 except ImportError:
     from ai.conversation import analyze_birthday_leave, build_conversation_transcript, build_retrieval_query, serialize_reasoning_context
@@ -24,6 +26,8 @@ except ImportError:
     from ai.prompt import build_grounded_chat_prompt
     from ai.providers import generate_ai_response
     from general import database
+    from general.auth import get_current_user
+    from general.models import User
     from general.chat_history import get_or_create_session, save_chat_turn
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -37,21 +41,15 @@ class ChatTurn(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: list[ChatTurn] = Field(default_factory=list, max_length=12)
-    user_id: str | None = None
     session_id: str | None = None
 
 
 @router.post("/chat")
-async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db)):
+async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
+    # Resolve ownership before invoking AI; authorization errors must not be swallowed.
+    session = get_or_create_session(db, str(current_user.id), req.session_id, initial_title=req.message)
+    session_id = str(session.id)
     try:
-        session_id = None
-        if req.user_id:
-            try:
-                session = get_or_create_session(db, req.user_id, req.session_id, initial_title=req.message)
-                session_id = str(session.id)
-            except Exception as exc:
-                print("Error resolving chat session:", exc)
-
         history = [turn.model_dump() for turn in req.history[-10:]]
         today = datetime.now(KUCHING_TZ).date()
         query_vector = get_embedding(build_retrieval_query(history, req.message), task_type=None)

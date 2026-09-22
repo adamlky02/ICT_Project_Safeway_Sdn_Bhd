@@ -2,12 +2,14 @@ import uuid
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, relationship
 
 from . import database
+from .auth import get_current_user
+from .models import User
 
 # ==========================================
 # 1. SQLAlchemy Relational Models
@@ -60,7 +62,6 @@ class ChatMessageRecord(database.Base):
 # ==========================================
 
 class SessionCreateReq(BaseModel):
-    user_id: str
     title: Optional[str] = "New Conversation"
 
 class SessionUpdateTitleReq(BaseModel):
@@ -133,6 +134,7 @@ def get_or_create_session(
 
         if session:
             return session
+        raise HTTPException(status_code=404, detail="Chat session not found")
 
     # Auto-generate title if provided (truncate up to 35 chars)
     title = "New Conversation"
@@ -329,15 +331,15 @@ chat_history_router = APIRouter(prefix="/api/chat-history", tags=["Chat History"
 
 
 @chat_history_router.get("/sessions", response_model=List[SessionSummaryResponse])
-def api_list_sessions(user_id: str = Query(..., description="User UUID"), db: Session = Depends(database.get_db)):
+def api_list_sessions(db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
     """List all chat sessions belonging to the user."""
-    return get_user_sessions(db, user_id)
+    return get_user_sessions(db, str(current_user.id))
 
 
 @chat_history_router.post("/sessions", response_model=SessionSummaryResponse, status_code=status.HTTP_201_CREATED)
-def api_create_session(req: SessionCreateReq, db: Session = Depends(database.get_db)):
+def api_create_session(req: SessionCreateReq, db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
     """Create a new blank chat session."""
-    session = get_or_create_session(db, req.user_id, initial_title=req.title)
+    session = get_or_create_session(db, str(current_user.id), initial_title=req.title)
     return {
         "id": str(session.id),
         "user_id": str(session.user_id),
@@ -352,29 +354,29 @@ def api_create_session(req: SessionCreateReq, db: Session = Depends(database.get
 @chat_history_router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
 def api_get_session(
     session_id: str,
-    user_id: Optional[str] = Query(None, description="Optional user UUID for ownership verification"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     """Retrieve full messages for a specific session."""
-    return get_session_detail(db, session_id, user_id)
+    return get_session_detail(db, session_id, str(current_user.id))
 
 
 @chat_history_router.patch("/sessions/{session_id}/title")
 def api_update_title(
     session_id: str,
     req: SessionUpdateTitleReq,
-    user_id: str = Query(..., description="User UUID"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     """Rename a session."""
-    return update_session_title(db, session_id, user_id, req.title)
+    return update_session_title(db, session_id, str(current_user.id), req.title)
 
 
 @chat_history_router.delete("/sessions/{session_id}")
 def api_delete_session(
     session_id: str,
-    user_id: str = Query(..., description="User UUID"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     """Delete a session and all its messages."""
-    return delete_session(db, session_id, user_id)
+    return delete_session(db, session_id, str(current_user.id))

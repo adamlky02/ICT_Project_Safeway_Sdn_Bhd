@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getStoredUser } from '../api/client';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Loader2 } from 'lucide-react';
@@ -33,6 +34,11 @@ function escapeHtml(value: string): string {
 
 // Smart PDF Viewer (renders every PDF page and highlights lines matching retrieved text)
 const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
+    const accessToken = getStoredUser()?.access_token;
+    const file = useMemo(() => ({
+        url: fileUrl,
+        httpHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    }), [fileUrl, accessToken]);
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [pageWidth, setPageWidth] = useState(700);
@@ -111,8 +117,10 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
 
                 {/* PDF Document (renders every page with the custom searchable text layer) */}
                 <Document
-                    file={fileUrl}
+                    file={file}
                     onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={() => setLoading(false)}
+                    error={<p role="alert">Unable to load this document. Check your session and sign in again if needed.</p>}
                     className="flex flex-col items-center w-full"
                     loading={null}
                 >

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, getStoredUser, readJson } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
 import {
     deleteSession,
     fetchSessionDetail,
@@ -93,7 +93,7 @@ const ChatPage = () => {
     const loadSessions = async (userId: string, autoSelectLatest: boolean = false) => {
         setIsLoadingSessions(true);
         try {
-            const list = await fetchUserSessions(userId);
+            const list = await fetchUserSessions();
             setSessions(list);
             if (autoSelectLatest && list.length > 0 && !currentSessionId) {
                 await handleSelectSession(list[0].id);
@@ -110,7 +110,7 @@ const ChatPage = () => {
         const user = getStoredUser();
         if (!user?.id) return;
         try {
-            const detail = await fetchSessionDetail(sessionId, user.id);
+            const detail = await fetchSessionDetail(sessionId);
             setCurrentSessionId(sessionId);
             if (detail.messages && detail.messages.length > 0) {
                 setMessages(detail.messages.map((m) => ({
@@ -157,7 +157,7 @@ const ChatPage = () => {
         const user = getStoredUser();
         if (!user?.id) return;
         try {
-            await deleteSession(sessionId, user.id);
+            await deleteSession(sessionId);
             if (currentSessionId === sessionId) {
                 handleNewChat();
             }
@@ -172,7 +172,7 @@ const ChatPage = () => {
         const user = getStoredUser();
         if (!user?.id) return;
         try {
-            await updateSessionTitle(sessionId, user.id, newTitle);
+            await updateSessionTitle(sessionId, newTitle);
             await loadSessions(user.id, false);
         } catch (error) {
             console.error('Failed to rename session:', error);
@@ -199,7 +199,7 @@ const ChatPage = () => {
                 }
 
                 setUserRole(user.role);
-                const response = await fetch(`${API_URL}/api/profile/${user.id}`);
+                const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`);
                 if (!response.ok) {
                     throw new Error('Failed to load profile');
                 }
@@ -251,13 +251,12 @@ const ChatPage = () => {
                 content: message.text,
             }));
             const user = getStoredUser();
-            const response = await fetch(`${API_URL}/api/chat`, {
+            const response = await authenticatedFetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: userMessage.text,
                     history: conversationHistory,
-                    user_id: user?.id,
                     session_id: currentSessionId,
                 }),
                 signal: abortControllerRef.current.signal,
@@ -277,6 +276,9 @@ const ChatPage = () => {
                 if (user?.id) {
                     void loadSessions(user.id, false);
                 }
+            } else if (response.status === 401) {
+                localStorage.removeItem('userData');
+                navigate('/login');
             } else {
                 setMessages((current) => [...current, { sender: 'bot', text: t.chat_error_timeout || 'Error: Connection timed out.' }]);
             }

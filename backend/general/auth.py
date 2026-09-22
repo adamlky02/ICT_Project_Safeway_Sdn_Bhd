@@ -7,6 +7,7 @@ import os
 import secrets
 import time
 import warnings
+from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -61,7 +62,7 @@ def _verify_signed_token(token: str, invalid_detail: str) -> dict:
         if not payload.get("sub") or not payload.get("scope"):
             raise ValueError("Incomplete token")
         return payload
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError, binascii.Error, UnicodeDecodeError):
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError, binascii.Error, UnicodeError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=invalid_detail,
@@ -107,7 +108,11 @@ def get_current_user(
     )
     if payload.get("scope") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token.")
-    user = db.query(models.User).filter(models.User.id == payload["sub"]).first()
+    try:
+        user_id = UUID(payload["sub"])
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token.")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is unavailable.")
     return user

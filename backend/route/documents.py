@@ -1,5 +1,6 @@
 import io
 import os
+from pathlib import Path
 from uuid import uuid4
 import boto3
 import fitz
@@ -11,11 +12,11 @@ from sqlalchemy.orm import Session
 try:
     from ..ai.embeddings import get_embedding
     from ..general import database, models
-    from ..general.auth import require_admin
+    from ..general.auth import require_admin, get_current_user
 except ImportError:
     from ai.embeddings import get_embedding
     from general import database, models
-    from general.auth import require_admin
+    from general.auth import require_admin, get_current_user
 
 router = APIRouter(prefix="/api", tags=["documents"])
 UPLOAD_DIR = "uploads"
@@ -98,12 +99,20 @@ def delete_doc(did: int, db: Session = Depends(database.get_db), _admin: models.
 
 
 @router.get("/files/{filename}")
-async def get_file(filename: str):
+async def get_file(filename: str, db: Session = Depends(database.get_db), _user: models.User = Depends(get_current_user)):
+    if "/" in filename or "\\" in filename or filename in {".", ".."}:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.file_path == filename).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    headers = {"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"}
+    media_type = "application/pdf" if doc.file_type == "pdf" else "text/plain"
     try:
         obj = s3_client.get_object(Bucket=R2_BUCKET, Key=filename)
-        return StreamingResponse(io.BytesIO(obj["Body"].read()), media_type="application/pdf")
+        return StreamingResponse(io.BytesIO(obj["Body"].read()), media_type=media_type, headers=headers)
     except Exception:
-        file_path = os.path.join(UPLOAD_DIR, filename)
-        if os.path.exists(file_path):
-            return FileResponse(file_path)
-        raise HTTPException(status_code=404, detail="PDF File not found")
+        upload_root = Path(UPLOAD_DIR).resolve()
+        file_path = (upload_root / filename).resolve()
+        if file_path.is_relative_to(upload_root) and file_path.is_file():
+            return FileResponse(file_path, media_type=media_type, headers=headers)
+        raise HTTPException(status_code=404, detail="Document not found")

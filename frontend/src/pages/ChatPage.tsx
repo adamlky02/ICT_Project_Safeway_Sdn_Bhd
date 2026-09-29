@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
 import {
     deleteSession,
@@ -23,7 +23,6 @@ import type {
     ChatSessionSummary,
     DocumentSource,
     UserProfile,
-    UserRole,
 } from '../types';
 
 const CHAT_HISTORY_AUTO_RETRACT_MS = 3200;
@@ -32,6 +31,10 @@ const CHAT_HISTORY_AUTO_RETRACT_MS = 3200;
 const ChatPage = () => {
     // Chat State (tracks display settings, conversation, account menu, requests, and source preview)
     const navigate = useNavigate();
+    const location = useLocation();
+    const user = getStoredUser();
+    const showDashboardHome = location.state?.fromAdminPanel === true
+        && (user?.role === 'admin' || user?.role === 'developer');
     const { lang, t, toggleLanguage } = useLanguage();
     const { isDarkMode, toggleTheme } = useTheme({ broadcastChanges: true });
     const [messages, setMessages] = useState<ChatMessage[]>([
@@ -46,7 +49,6 @@ const ChatPage = () => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [userRole, setUserRole] = useState<UserRole>('staff');
     const [drawerSource, setDrawerSource] = useState<DocumentSource | null>(null);
 
     // Chat History & Session State
@@ -198,7 +200,6 @@ const ChatPage = () => {
                     return;
                 }
 
-                setUserRole(user.role);
                 const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`);
                 if (!response.ok) {
                     throw new Error('Failed to load profile');
@@ -323,7 +324,7 @@ const ChatPage = () => {
                 t={t}
                 isDarkMode={isDarkMode}
                 profile={profile}
-                userRole={userRole}
+                showDashboardHome={showDashboardHome}
                 dropdownOpen={dropdownOpen}
                 profileButtonRef={profileButtonRef}
                 onLanguageToggle={toggleLanguage}

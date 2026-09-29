@@ -480,7 +480,7 @@ const AdminDashboard = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat')} onOpenProfile={() => navigate('/profile')} />
+                    <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat', { state: { fromAdminPanel: true } })} onOpenProfile={() => navigate('/profile')} />
 
                     {/* Tab Content (animates between analytics, account, and document panels) */}
                     <AnimatePresence mode="wait" initial={false}>

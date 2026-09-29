@@ -45,6 +45,8 @@ export const translations = {
         chat_error_timeout: "Error: Connection to Safeway database timed out.",
         chat_error_network: "Network error. Please verify terminal connection.",
         admin_dash_btn: "Admin Dashboard",
+        chat_home: "Home",
+        chat_sign_out: "Sign out",
 
         // English Admin Copy (labels dashboard navigation, forms, and dialogs)
         admin_dashboard: "Dashboard ",
@@ -200,6 +202,8 @@ export const translations = {
         chat_error_timeout: "Ralat: Sambungan ke pangkalan data Safeway terputus.",
         chat_error_network: "Ralat rangkaian. Sila sahkan sambungan terminal.",
         admin_dash_btn: "Papan Pemuka",
+        chat_home: "Utama",
+        chat_sign_out: "Log Keluar",
 
         // Malay Admin Copy (labels dashboard navigation, forms, dialogs, and analytics)
         admin_dashboard: "Menu ",
@@ -355,6 +359,8 @@ export const translations = {
         chat_error_timeout: "错误：与 Safeway 数据库的连接超时。",
         chat_error_network: "网络错误。请验证终端连接。",
         admin_dash_btn: "后台管理",
+        chat_home: "首页",
+        chat_sign_out: "登出",
 
         // Chinese Admin Copy (labels dashboard navigation, forms, dialogs, and analytics)
         admin_dashboard: "后台管理",

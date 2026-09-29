@@ -1,0 +1,146 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getStoredUser } from '../api/client';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { Document, Page, pdfjs } from 'react-pdf';
+import { Loader2 } from 'lucide-react';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// PDF Worker (loads PDF.js parsing in a separate Vite-compatible worker)
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.mjs',
+    import.meta.url,
+).toString();
+
+// PDF Viewer Types (describe component inputs and the text-layer items being rendered)
+interface SmartPdfViewerProps {
+    fileUrl: string;
+    searchText: string;
+}
+
+interface PdfTextItem {
+    str: string;
+}
+
+// Highlight Escaping (prevents PDF text from injecting markup into highlighted output)
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Smart PDF Viewer (renders every PDF page and highlights lines matching retrieved text)
+const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
+    const accessToken = getStoredUser()?.access_token;
+    const file = useMemo(() => ({
+        url: fileUrl,
+        httpHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    }), [fileUrl, accessToken]);
+    const [numPages, setNumPages] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [pageWidth, setPageWidth] = useState(700);
+    const viewerRef = useRef<HTMLDivElement>(null);
+
+    // Responsive Page Sizing (fits each PDF page to the drawer while preserving a sharp desktop cap)
+    useEffect(() => {
+        const viewer = viewerRef.current;
+        if (!viewer) return;
+
+        const updatePageWidth = () => {
+            setPageWidth(Math.min(700, Math.max(260, viewer.clientWidth - 16)));
+        };
+        updatePageWidth();
+
+        const resizeObserver = new ResizeObserver(updatePageWidth);
+        resizeObserver.observe(viewer);
+        return () => resizeObserver.disconnect();
+    }, []);
+
+    // Document Load Handler (records page count and dismisses the loading state)
+    function onDocumentLoadSuccess(document: PDFDocumentProxy) {
+        setNumPages(document.numPages);
+        setLoading(false);
+    }
+
+    // Keyword Highlighter (scores significant shared words and marks strong line matches)
+    const customTextRenderer = useCallback(
+        (textItem: PdfTextItem) => {
+            if (!searchText) return textItem.str;
+
+            // Significant Query Words (normalizes the retrieved excerpt and removes short terms)
+            const aiWords = searchText
+                .toLowerCase()
+                .replace(/[^a-z0-9 ]/g, '')
+                .split(' ')
+                .filter(word => word.length > 4);
+
+            if (aiWords.length === 0) return textItem.str;
+
+            // PDF Line Normalization (prepares the current text item for comparison)
+            const pdfLine = textItem.str.toLowerCase();
+
+            // Match Score (counts significant query words found in the current PDF line)
+            let matchCount = 0;
+            for (const word of aiWords) {
+                if (pdfLine.includes(word)) {
+                    matchCount++;
+                }
+            }
+
+            // Highlight Threshold (marks lines containing at least five significant query words)
+            if (matchCount >= 5) {
+                return `<mark style="background-color: rgba(255, 165, 0, 0.4); color: inherit; padding: 0 2px">${escapeHtml(textItem.str)}</mark>`;
+            }
+
+            return textItem.str;
+        },
+        [searchText]
+    );
+
+    return (
+        // Viewer Canvas (allows two-axis scrolling so wide PDF pages are never clipped)
+        <div ref={viewerRef} className="h-full w-full overflow-auto bg-slate-200 p-2 custom-scrollbar dark:bg-[#050505] sm:p-4">
+
+            {/* Safe Page Centering (centers documents without preventing horizontal mobile scrolling) */}
+            <div className="mx-auto flex min-h-full w-full min-w-0 flex-col items-center">
+
+                {/* Loading State (reports PDF parsing progress until page metadata is available) */}
+                {loading && (
+                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+                        <Loader2 className="animate-spin mb-3 text-amber-500" size={32} />
+                        <p className="font-bold tracking-widest uppercase text-xs">Decrypting Document...</p>
+                    </div>
+                )}
+
+                {/* PDF Document (renders every page with the custom searchable text layer) */}
+                <Document
+                    file={file}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={() => setLoading(false)}
+                    error={<p role="alert">Unable to load this document. Check your session and sign in again if needed.</p>}
+                    className="flex flex-col items-center w-full"
+                    loading={null}
+                >
+                    {Array.from({ length: numPages ?? 0 }, (_, index) => (
+                        /* PDF Page (keeps each full-width rendered page visible and sharply scaled) */
+                        <div key={`page_${index + 1}`} className="relative z-10 mb-4 w-fit max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-800 sm:mb-6">
+                            <Page
+                                pageNumber={index + 1}
+                                width={pageWidth}
+                                renderTextLayer={true}
+                                renderAnnotationLayer={false}
+                                customTextRenderer={customTextRenderer}
+                                className="dark:opacity-90"
+                            />
+                        </div>
+                    ))}
+                </Document>
+            </div>
+        </div>
+    );
+};
+
+export default SmartPdfViewer;

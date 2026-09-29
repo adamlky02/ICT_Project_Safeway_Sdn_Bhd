@@ -1,27 +1,44 @@
 import sys
 import os
-import bcrypt # Using direct bcrypt instead of passlib
+import bcrypt
+import secrets
+import string
 
-# Ensure the script can find the other local files
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Project Module Path (allows this standalone script to import the backend package)
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(backend_dir)
+if project_dir not in sys.path:
+    sys.path.insert(0, project_dir)
 
-from database import SessionLocal, Base, configure_database, get_current_database_url
-import models
+from backend.general import database, models
+from backend.general.database import SessionLocal, Base, configure_database, get_current_database_url
 
+# Password Hashing (creates a bcrypt hash suitable for database storage)
 def hash_password(password: str) -> str:
-    # Bcrypt requires bytes, so we encode the string
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(pwd_bytes, salt)
-    # Return as string to store in DB
     return hashed_password.decode('utf-8')
 
+
+# Seed Password Generation (uses a private environment override or creates a one-time random password)
+def seed_password(environment_name: str) -> str:
+    configured_password = os.getenv(environment_name, "")
+    if configured_password:
+        if len(configured_password) < 12:
+            raise ValueError(f"{environment_name} must contain at least 12 characters")
+        return configured_password
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*_-=+"
+    return ''.join(secrets.choice(alphabet) for _ in range(16))
+
+# Database Seeding (creates tables and inserts the default accounts when absent)
 def seed_data():
     configure_database(get_current_database_url())
     print("🚀 Connecting to database...")
 
     try:
-        Base.metadata.create_all(bind=engine)
+        # Table Preparation (ensures all model tables exist before inserting records)
+        Base.metadata.create_all(bind=database.engine)
         print("✅ Database tables verified/created.")
     except Exception as e:
         print(f"❌ Error creating tables: {e}")
@@ -29,10 +46,11 @@ def seed_data():
 
     db = SessionLocal()
 
+    # Default Accounts (defines local identities without committing reusable passwords)
     mock_users = [
-        {"email": "admin@safeway.com", "password": "admin123", "role": "admin"},
-        {"email": "staff@safeway.com", "password": "staff123", "role": "staff"},
-        {"email": "mr.teo@safeway.com", "password": "password123", "role": "staff"}
+        {"email": "admin@safeway.com", "password_env": "SEED_ADMIN_PASSWORD", "role": "admin"},
+        {"email": "staff@safeway.com", "password_env": "SEED_STAFF_PASSWORD", "role": "staff"},
+        {"email": "mr.teo@safeway.com", "password_env": "SEED_MR_TEO_PASSWORD", "role": "staff"}
     ]
 
     print("🌱 Seeding users into 'User_list'...")
@@ -42,14 +60,15 @@ def seed_data():
             exists = db.query(models.User).filter(models.User.email == user_data["email"]).first()
 
             if not exists:
+                generated_password = seed_password(user_data["password_env"])
                 new_user = models.User(
                     email=user_data["email"],
-                    # Using our new hash function
-                    password_hash=hash_password(user_data["password"]),
+                    password_hash=hash_password(generated_password),
                     role=user_data["role"]
                 )
                 db.add(new_user)
                 print(f"   ➕ Added: {user_data['email']}")
+                print(f"      One-time password: {generated_password}")
             else:
                 print(f"   ⏩ Skipped: {user_data['email']}")
 
@@ -62,5 +81,6 @@ def seed_data():
     finally:
         db.close()
 
+# Script Entry Point (runs the seed operation only when executed directly)
 if __name__ == "__main__":
     seed_data()

@@ -1,0 +1,2 @@
+# Install after requirements.txt; used by FastAPI's test client.
+httpx==0.28.1

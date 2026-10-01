@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+from botocore.exceptions import ClientError
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -67,6 +68,7 @@ class ProtectedRouteTests(unittest.TestCase):
             ('PATCH', f'/api/chat-history/sessions/{sid}/title', {'title': 'Changed'}),
             ('DELETE', f'/api/chat-history/sessions/{sid}', None),
             ('GET', '/api/files/manual.pdf', None),
+            ('GET', '/api/admin/documents/42/download', None),
         ]
 
     def test_all_routes_reject_missing_invalid_expired_and_wrong_scope_tokens(self):
@@ -145,6 +147,45 @@ class ProtectedRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(response.content, b'%PDF-test')
         self.assertEqual(response.headers['cache-control'], 'private, no-store')
+
+    def test_admin_document_download_reads_r2_and_restricts_access(self):
+        admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
+        developer = models.User(id=uuid4(), email='dev@example.test', password_hash='unused', role='developer', is_active=True)
+        self.db.add_all([admin, developer])
+        self.db.add(models.KnowledgeBase(id=42, title='Safety Manual', category='Safety', file_path='stored-key.pdf', file_type='pdf', uploaded_by=admin.id))
+        self.db.commit()
+        url = '/api/admin/documents/42/download'
+
+        self.assertEqual(self.client.get(url).status_code, 401)
+        self.assertEqual(self.client.get(url, headers=self.headers()).status_code, 403)
+        self.assertEqual(self.client.get('/api/admin/documents/999/download', headers=self.headers(admin)).status_code, 404)
+        self.storage.get_object.assert_not_called()
+
+        for user in [admin, developer]:
+            body = io.BytesIO(b'%PDF-original')
+            self.storage.get_object.return_value = {'Body': body}
+            response = self.client.get(url, headers=self.headers(user))
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.content, b'%PDF-original')
+            self.assertEqual(response.headers['content-type'], 'application/pdf')
+            self.assertEqual(response.headers['cache-control'], 'private, no-store')
+            self.assertIn('attachment;', response.headers['content-disposition'])
+            self.assertIn('Safety%20Manual.pdf', response.headers['content-disposition'])
+            self.assertTrue(body.closed)
+        self.storage.get_object.assert_called_with(Bucket=documents.R2_BUCKET, Key='stored-key.pdf')
+
+    def test_admin_document_download_reports_missing_or_unavailable_r2_object(self):
+        admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
+        self.db.add(admin)
+        self.db.add(models.KnowledgeBase(id=42, title='Manual', category='General', file_path='stored-key.txt', file_type='txt', uploaded_by=admin.id))
+        self.db.commit()
+        url = '/api/admin/documents/42/download'
+        self.storage.get_object.side_effect = ClientError({'Error': {'Code': 'NoSuchKey', 'Message': 'Missing'}}, 'GetObject')
+        self.assertEqual(self.client.get(url, headers=self.headers(admin)).status_code, 404)
+        self.storage.get_object.side_effect = RuntimeError('Cloud unavailable')
+        response = self.client.get(url, headers=self.headers(admin))
+        self.assertEqual(response.status_code, 502)
+        self.assertNotIn('Cloud unavailable', response.text)
 
     def test_unknown_and_unsafe_files_never_reach_storage(self):
         for name in ['unknown.pdf', '..%5Csecret.txt']:

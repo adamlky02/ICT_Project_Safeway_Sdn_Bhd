@@ -137,6 +137,57 @@ python run_app.py
 
 The local frontend and generated API documentation are available at the addresses printed by the launcher.
 
+## Codebase exploration with Graphify
+
+[`AGENTS.md`](AGENTS.md) guides coding assistants to query the graph, verify
+results against source, and refresh it after changes. These are project
+instructions, not model training. Separate frontend/backend clusters are expected
+when HTTP relationships are not captured by static code extraction.
+
+Graphify is optional developer tooling that maps relationships in the Python and
+TypeScript source. It is separate from the application's document retrieval.
+
+Install the pinned version in a project-root environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-tools.txt
+make graphify
+```
+
+If `.venv` already exists, reuse it and skip the first command. For another
+environment, run `make graphify GRAPHIFY=graphify PYTHON=python` with that environment activated.
+
+The build uses local code extraction and disables LLM community naming, so no API
+key is required. Documents, PDFs, and images are skipped. Running bare `graphify .`
+also requests semantic extraction for those files and can fail with "no LLM API
+key found". The equivalent explicit commands (also usable without Make) are:
+
+```bash
+graphify extract . --code-only --no-cluster
+graphify cluster-only . --no-label
+python scripts/name_graphify_communities.py
+graphify cluster-only . --no-label
+```
+
+Explore the generated map and query it from the project root:
+
+```bash
+open graphify-out/graph.html  # macOS; elsewhere open this file in a browser
+.venv/bin/graphify query "authentication" --budget 1500
+.venv/bin/graphify god-nodes --top 10
+```
+
+Community names are assigned locally from their source modules by
+`scripts/name_graphify_communities.py`. The final clustering pass applies these
+names to the HTML, graph, and report. Names are recalculated from membership on
+each build, so they do not depend on community numbers staying the same.
+
+Re-run `make graphify` after source changes. Generated graphs, reports, and caches
+stay in the Git-ignored `graphify-out/` directory. `.graphifyignore` adds exclusions
+for environment files and uploaded content; Graphify also respects `.gitignore`.
+Treat graph results as navigation hints and verify relationships in source code.
+
 ## Quality checks
 
 Frontend:

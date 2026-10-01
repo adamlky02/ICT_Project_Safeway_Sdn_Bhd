@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { Ban, CheckCircle2, CircleAlert, Cloud, File, LoaderCircle, Square, Trash2, Upload, X } from 'lucide-react';
+import { Ban, CheckCircle2, CircleAlert, Cloud, Download, File, LoaderCircle, Square, Trash2, Upload, X } from 'lucide-react';
 import type { Translation } from '../../translations';
 import type { AccountForm, AdminDocument, AdminUploadItem } from '../../types';
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';
@@ -10,6 +10,7 @@ interface DocumentsPanelProps {
     form: AccountForm;
     uploadItems: AdminUploadItem[];
     isUploading: boolean;
+    downloadingDocumentId: number | null;
     t: Translation;
     onFormChange: (form: AccountForm) => void;
     onFilesSelected: (files: File[]) => void;
@@ -18,6 +19,7 @@ interface DocumentsPanelProps {
     onUpload: (event: FormEvent<HTMLFormElement>) => void;
     onForceStopUpload: () => void;
     onDeleteDocument: (id: number) => void;
+    onDownloadDocument: (document: AdminDocument) => void;
 }
 
 // Documents Panel (uploads new source files and manages indexed repository records)
@@ -26,6 +28,7 @@ export function DocumentsPanel({
     form,
     uploadItems,
     isUploading,
+    downloadingDocumentId,
     t,
     onFormChange,
     onFilesSelected,
@@ -34,6 +37,7 @@ export function DocumentsPanel({
     onUpload,
     onForceStopUpload,
     onDeleteDocument,
+    onDownloadDocument,
 }: DocumentsPanelProps) {
     const pendingCount = uploadItems.filter((item) => item.status !== 'success').length;
     const completedCount = uploadItems.filter((item) => item.status === 'success' || item.status === 'error' || item.status === 'cancelled').length;
@@ -163,7 +167,19 @@ export function DocumentsPanel({
                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{document.category} • {document.file_type}</p>
                                 </div>
                             </div>
-                            <button onClick={() => onDeleteDocument(document.id)} className="flex min-h-11 min-w-11 shrink-0 items-center justify-center text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-xl transition-colors" type="button" aria-label={`Delete ${document.title}`}><Trash2 size={18} /></button>
+                            <div className="flex shrink-0 items-center gap-1">
+                                <button
+                                    onClick={() => onDownloadDocument(document)}
+                                    className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-amber-600 disabled:cursor-wait disabled:opacity-50 dark:hover:bg-white/5"
+                                    type="button"
+                                    aria-label={`${t.download_document}: ${document.title}`}
+                                    title={t.download_document}
+                                    disabled={downloadingDocumentId !== null}
+                                >
+                                    {downloadingDocumentId === document.id ? <LoaderCircle className="animate-spin" size={18} /> : <Download size={18} />}
+                                </button>
+                                <button onClick={() => onDeleteDocument(document.id)} className="flex min-h-11 min-w-11 items-center justify-center text-slate-400 hover:text-red-500 dark:hover:bg-white/5 rounded-xl transition-colors" type="button" aria-label={`Delete ${document.title}`}><Trash2 size={18} /></button>
+                            </div>
                         </div>
                     ))}
                     {documents.length === 0 && <p className="p-8 text-center text-slate-500 italic text-sm">{t.no_matches}</p>}

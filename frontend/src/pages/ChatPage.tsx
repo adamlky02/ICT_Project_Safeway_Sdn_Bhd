@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, logoutSession, readJson } from '../api/client';
 import {
     deleteSession,
     fetchSessionDetail,
@@ -91,15 +91,12 @@ const ChatPage = () => {
 
     useEffect(() => () => cancelSidebarAutoRetract(), []);
 
-    // Load Sessions from Database
-    const loadSessions = async (userId: string, autoSelectLatest: boolean = false) => {
+    // Refresh the history list without opening a conversation automatically.
+    const loadSessions = async () => {
         setIsLoadingSessions(true);
         try {
             const list = await fetchUserSessions();
             setSessions(list);
-            if (autoSelectLatest && list.length > 0 && !currentSessionId) {
-                await handleSelectSession(list[0].id);
-            }
         } catch (error) {
             console.warn('Failed to load chat sessions:', error);
         } finally {
@@ -163,7 +160,7 @@ const ChatPage = () => {
             if (currentSessionId === sessionId) {
                 handleNewChat();
             }
-            await loadSessions(user.id, false);
+            await loadSessions();
         } catch (error) {
             console.error('Failed to delete session:', error);
         }
@@ -175,7 +172,7 @@ const ChatPage = () => {
         if (!user?.id) return;
         try {
             await updateSessionTitle(sessionId, newTitle);
-            await loadSessions(user.id, false);
+            await loadSessions();
         } catch (error) {
             console.error('Failed to rename session:', error);
         }
@@ -205,7 +202,7 @@ const ChatPage = () => {
                     throw new Error('Failed to load profile');
                 }
                 setProfile(await readJson<UserProfile>(response));
-                void loadSessions(user.id, true);
+                void loadSessions();
             } catch (error) {
                 console.error('Failed to load profile or history:', error);
             }
@@ -275,7 +272,7 @@ const ChatPage = () => {
                 }]);
 
                 if (user?.id) {
-                    void loadSessions(user.id, false);
+                    void loadSessions();
                 }
             } else if (response.status === 401) {
                 localStorage.removeItem('userData');
@@ -301,11 +298,15 @@ const ChatPage = () => {
         navigate(path);
     };
 
-    // Chat Logout (clears the browser session and returns to the landing page)
-    const handleLogout = () => {
-        localStorage.clear();
-        setDropdownOpen(false);
-        navigate('/');
+    // Revoke the login before leaving the authenticated workspace.
+    const handleLogout = async () => {
+        try {
+            await logoutSession();
+            setDropdownOpen(false);
+            navigate('/');
+        } catch {
+            window.alert('Logout could not be confirmed. Please check your connection and try again.');
+        }
     };
 
     return (

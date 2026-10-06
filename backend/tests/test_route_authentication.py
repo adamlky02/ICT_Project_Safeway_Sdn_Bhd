@@ -7,14 +7,16 @@ import os
 import tempfile
 import time
 import unittest
+import bcrypt
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from botocore.exceptions import ClientError
 from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
@@ -23,7 +25,7 @@ from sqlalchemy.pool import StaticPool
 # Do not load local credentials or construct a real cloud storage client.
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345", "GOOGLE_API_KEY": "test-only"}), patch('dotenv.load_dotenv'), patch('boto3.client'):
     from backend.general import auth, database, models, chat_history
-    from backend.route import chat, documents
+    from backend.route import chat, documents, authentication, profile
 
 
 class ProtectedRouteTests(unittest.TestCase):
@@ -34,7 +36,7 @@ class ProtectedRouteTests(unittest.TestCase):
         def functions(connection, _):
             connection.create_function('now', 0, lambda: datetime.now(timezone.utc).isoformat())
             connection.create_function('gen_random_uuid', 0, lambda: uuid4().hex)
-        tables = [models.User.__table__, models.KnowledgeBase.__table__, chat_history.ChatSession.__table__, chat_history.ChatMessageRecord.__table__]
+        tables = [models.User.__table__, models.AuthSession.__table__, models.KnowledgeBase.__table__, chat_history.ChatSession.__table__, chat_history.ChatMessageRecord.__table__]
         database.Base.metadata.create_all(self.engine, tables=tables)
         self.db = sessionmaker(bind=self.engine, expire_on_commit=False)()
         self.a = models.User(id=uuid4(), email='a@example.test', password_hash='unused', role='staff', is_active=True)
@@ -44,6 +46,8 @@ class ProtectedRouteTests(unittest.TestCase):
         chat_history.save_chat_turn(self.db, self.session.id, 'Private question', 'Private answer', [])
         self.app = FastAPI()
         self.app.include_router(chat.router)
+        self.app.include_router(authentication.router)
+        self.app.include_router(profile.router)
         self.app.include_router(documents.router)
         self.app.include_router(chat_history.chat_history_router)
         self.app.dependency_overrides[database.get_db] = lambda: self.db
@@ -56,7 +60,7 @@ class ProtectedRouteTests(unittest.TestCase):
         self.client.close(); self.storage_patch.stop(); self.db.close(); self.engine.dispose()
 
     def headers(self, user=None):
-        return {'Authorization': 'Bearer ' + auth.create_access_token(user or self.a)}
+        return {'Authorization': 'Bearer ' + auth.create_access_token(user or self.a, self.db)}
 
     def routes(self):
         sid = str(self.session.id)
@@ -72,8 +76,8 @@ class ProtectedRouteTests(unittest.TestCase):
         ]
 
     def test_all_routes_reject_missing_invalid_expired_and_wrong_scope_tokens(self):
-        invalid_tokens = [None, 'malformed', auth.create_access_token(self.a) + 'x', auth._create_signed_token({'sub': str(self.a.id), 'scope': 'access', 'exp': int(time.time())-1}),
-                          auth.create_developer_mode_token(self.a)[0],
+        invalid_tokens = [None, 'malformed', auth.create_access_token(self.a, self.db) + 'x', auth._create_signed_token({'sub': str(self.a.id), 'scope': 'access', 'exp': int(time.time())-1}),
+                          auth.create_developer_mode_token(self.a, SimpleNamespace(id=uuid4()))[0],
                           auth._create_signed_token({'sub': 'not-a-uuid', 'scope': 'access', 'exp': int(time.time())+60})]
         with patch.object(chat, 'get_embedding') as embed:
             for token in invalid_tokens:
@@ -135,6 +139,8 @@ class ProtectedRouteTests(unittest.TestCase):
         fake_db.query.return_value.filter.return_value.first.return_value = self.a
         fake_db.execute.return_value.fetchall.return_value = []
         self.app.dependency_overrides[database.get_db] = lambda: fake_db
+        # This test isolates chat's identity handling; authentication is covered separately.
+        self.app.dependency_overrides[auth.get_current_user] = lambda: self.a
         with patch.object(chat, 'get_or_create_session', return_value=SimpleNamespace(id=uuid4())) as resolve, patch.object(chat, 'save_chat_turn'), patch.object(chat, 'get_embedding', return_value=[0.1]):
             response = self.client.post('/api/chat', json={'message':'Hello', 'user_id':str(self.b.id)}, headers=self.headers())
             self.assertEqual(response.status_code, 200, response.text)
@@ -203,6 +209,81 @@ class ProtectedRouteTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.text, 'Internal note')
             self.assertIn('text/plain', response.headers['content-type'])
+
+    def login(self):
+        self.a.password_hash = bcrypt.hashpw(b'test-password', bcrypt.gensalt(rounds=4)).decode()
+        self.db.commit()
+        response = self.client.post('/api/login', json={'email': self.a.email, 'password': 'test-password', 'role': 'staff'})
+        self.assertEqual(response.status_code, 200, response.text)
+        return {'Authorization': 'Bearer ' + response.json()['access_token']}
+
+    def test_logout_revokes_only_current_login_and_blocks_all_protected_routes(self):
+        first = self.login()
+        second = self.login()
+        other = self.headers(self.b)
+        self.assertNotEqual(first, second)
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers=first).status_code, 200)
+        self.assertEqual(self.client.post('/api/logout', headers=first).status_code, 200)
+        # Open a new ORM session to demonstrate revocation is persisted, not in memory.
+        with sessionmaker(bind=self.engine)() as fresh_db:
+            self.app.dependency_overrides[database.get_db] = lambda: fresh_db
+            with patch.object(chat, 'get_embedding') as embed:
+                for method, url, body in self.routes():
+                    self.assertEqual(self.client.request(method, url, json=body, headers=first).status_code, 401, url)
+                embed.assert_not_called()
+            self.assertEqual(self.client.post('/api/logout', headers=first).status_code, 401)
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers=second).status_code, 200)
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers=other).status_code, 200)
+        self.storage.get_object.assert_not_called()
+
+    def test_database_expiration_unknown_session_and_legacy_tokens_are_rejected(self):
+        headers = self.headers()
+        payload = auth._verify_signed_token(headers['Authorization'][7:], 'Invalid')
+        session = self.db.query(models.AuthSession).filter_by(id=UUID(payload['sid'])).one()
+        session.expires_at = int(time.time()) - 1
+        self.db.commit()
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 401)
+        for change in [{'sid': str(uuid4())}, {'sid': payload['sid'], 'sub': str(self.b.id)}]:
+            token = auth._create_signed_token({**payload, **change})
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer '+token}).status_code, 401)
+        payload.pop('sid')
+        token = auth._create_signed_token(payload)
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer '+token}).status_code, 401)
+        self.assertEqual(self.client.post('/api/logout').status_code, 401)
+
+    def test_password_change_revokes_all_logins_and_new_password_can_log_in(self):
+        first, second = self.login(), self.login()
+        response = self.client.put(f'/api/profile/{self.a.id}', headers=first,
+                                   json={'full_name': 'Updated', 'password': 'new-password'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(response.json()['requires_login'])
+        for headers in [first, second]:
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 401)
+        response = self.client.post('/api/login', json={'email': self.a.email, 'password': 'test-password', 'role': 'staff'})
+        self.assertEqual(response.status_code, 401)
+        response = self.client.post('/api/login', json={'email': self.a.email, 'password': 'new-password', 'role': 'staff'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer '+response.json()['access_token']}).status_code, 200)
+
+    def test_profile_name_change_does_not_revoke_session(self):
+        headers = self.headers()
+        response = self.client.put(f'/api/profile/{self.a.id}', headers=headers, json={'full_name': 'Updated'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(response.json()['requires_login'])
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 200)
+
+    def test_developer_unlock_cannot_be_reused_in_a_new_login_session(self):
+        first, second = self.headers(), self.headers()
+        sessions = []
+        for headers in [first, second]:
+            payload = auth._verify_signed_token(headers['Authorization'][7:], 'Invalid')
+            sessions.append(self.db.query(models.AuthSession).filter_by(id=UUID(payload['sid'])).one())
+        token, _ = auth.create_developer_mode_token(self.a, sessions[0])
+        self.assertEqual(auth.verify_developer_mode_token(token, self.a, sessions[0]), self.a)
+        self.assertEqual(self.client.post('/api/logout', headers=first).status_code, 200)
+        with self.assertRaises(HTTPException) as caught:
+            auth.verify_developer_mode_token(token, self.a, sessions[1])
+        self.assertEqual(caught.exception.status_code, 403)
 
 if __name__ == '__main__':
     unittest.main()

@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 
 try:
     from ..general import database, models
-    from ..general.auth import get_current_user
+    from ..general.auth import get_current_user, revoke_user_sessions
 except ImportError:
     from general import database, models
-    from general.auth import get_current_user
+    from general.auth import get_current_user, revoke_user_sessions
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -45,6 +45,7 @@ def update_profile(
         current_user.password_hash = bcrypt.hashpw(
             req.password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
+        revoke_user_sessions(db, current_user.id)
     db.commit()
 
     return {
@@ -53,4 +54,5 @@ def update_profile(
         "email": current_user.email,
         "role": current_user.role,
         "full_name": current_user.full_name,
+        "requires_login": bool(req.password and req.password.strip()),
     }

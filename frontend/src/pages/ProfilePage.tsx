@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, getStoredUser, readJson, storeUser } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, logoutSession, readJson, storeUser } from '../api/client';
 import { ProfileForm } from '../components/profile/ProfileForm';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';
@@ -51,10 +51,13 @@ const ProfilePage = () => {
         void loadProfile();
     }, [navigate]);
 
-    // Profile Logout (clears the browser session and returns to the landing page)
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/');
+    const handleLogout = async () => {
+        try {
+            await logoutSession();
+            navigate('/');
+        } catch {
+            setError('Logout could not be confirmed. Please check your connection and try again.');
+        }
     };
 
     // Profile Save (validates passwords, updates the API, and synchronizes stored identity)
@@ -82,11 +85,16 @@ const ProfilePage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ full_name: form.full_name, password: form.password || null }),
             });
-            const data = await readJson<UserProfile & ApiErrorBody>(response);
+            const data = await readJson<UserProfile & ApiErrorBody & { requires_login?: boolean }>(response);
             if (!response.ok) {
                 throw new Error(data.detail || 'Failed to update profile');
             }
 
+            if (data.requires_login) {
+                localStorage.removeItem('userData');
+                navigate('/login', { replace: true });
+                return;
+            }
             setProfile(data);
             storeUser({ ...user, name: data.full_name });
             setForm({ full_name: data.full_name, password: '', confirmPassword: '' });

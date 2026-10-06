@@ -8,11 +8,11 @@ from sqlalchemy.orm import Session
 
 try:
     from ..general import database, models
-    from ..general.auth import require_admin, verify_developer_mode_token
+    from ..general.auth import require_admin, verify_developer_mode_token, revoke_user_sessions, get_current_session
     from ..general.email import send_staff_credentials_email
 except ImportError:
     from general import database, models
-    from general.auth import require_admin, verify_developer_mode_token
+    from general.auth import require_admin, verify_developer_mode_token, revoke_user_sessions, get_current_session
     from general.email import send_staff_credentials_email
 
 router = APIRouter(prefix="/api/admin/users", tags=["user administration"])
@@ -73,6 +73,7 @@ def update_staff(
     req: StaffUpdate,
     db: Session = Depends(database.get_db),
     admin: models.User = Depends(require_admin),
+    session: models.AuthSession = Depends(get_current_session),
     developer_token: str | None = Header(default=None, alias="X-Developer-Token"),
 ):
     user = db.query(models.User).filter(models.User.id == uid).first()
@@ -83,7 +84,7 @@ def update_staff(
     if user.role == "developer" or requested_role == "developer":
         if admin.role != "developer":
             raise HTTPException(status_code=403, detail="Only a developer can manage developer accounts.")
-        verify_developer_mode_token(developer_token, admin)
+        verify_developer_mode_token(developer_token, admin, session)
         if requested_role == "developer" and user.role not in {"admin", "developer"}:
             raise HTTPException(status_code=400, detail="Promote this account to administrator before granting developer access.")
         if str(user.id) == str(admin.id) and requested_role != user.role:
@@ -97,6 +98,7 @@ def update_staff(
     user.full_name = req.full_name
     if req.password and req.password.strip():
         user.password_hash = bcrypt.hashpw(req.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        revoke_user_sessions(db, user.id)
     if req.role in {"staff", "admin", "developer"}:
         user.role = req.role
     try:

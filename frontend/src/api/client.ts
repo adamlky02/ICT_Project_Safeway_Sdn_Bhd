@@ -20,6 +20,34 @@ export function storeUser(user: StoredUser): void {
     localStorage.setItem('userData', JSON.stringify(user));
 }
 
+// Keep the credentials until the server confirms revocation, so failed logout can be retried.
+let pendingLogout: Promise<void> | null = null;
+export function logoutSession(): Promise<void> {
+    if (pendingLogout) return pendingLogout;
+    pendingLogout = (async () => {
+        const token = getStoredUser()?.access_token;
+        if (token) {
+            const controller = new AbortController();
+            const timer = window.setTimeout(() => controller.abort(), 10000);
+            try {
+                const response = await fetch(`${API_URL}/api/logout`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                    signal: controller.signal,
+                });
+                if (!response.ok && response.status !== 401) {
+                    throw new Error('Unable to log out. Please try again.');
+                }
+            } finally {
+                window.clearTimeout(timer);
+            }
+        }
+        // Do not remove a newer login established in another tab during this request.
+        if (getStoredUser()?.access_token === token) localStorage.removeItem('userData');
+    })().finally(() => { pendingLogout = null; });
+    return pendingLogout;
+}
+
 // Authenticated Request (attaches the signed login token without disturbing FormData headers)
 export function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers);

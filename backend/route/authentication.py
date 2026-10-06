@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 
 try:
     from ..general import database, models
-    from ..general.auth import create_access_token
+    from ..general.auth import create_access_token, get_current_session, get_current_user
 except ImportError:
     from general import database, models
-    from general.auth import create_access_token
+    from general.auth import create_access_token, get_current_session, get_current_user
 
 router = APIRouter(prefix="/api", tags=["authentication"])
 
@@ -45,5 +45,16 @@ def login(req: LoginRequest, db: Session = Depends(database.get_db)):
         "email": user.email,
         "role": response_role,
         "name": user.full_name,
-        "access_token": create_access_token(user),
+        "access_token": create_access_token(user, db),
     }
+
+
+@router.post("/logout")
+def logout(
+    session: models.AuthSession = Depends(get_current_session),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    session.revoked = True
+    db.commit()
+    return {"message": "Logged out successfully"}

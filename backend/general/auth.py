@@ -70,21 +70,57 @@ def _verify_signed_token(token: str, invalid_detail: str) -> dict:
         )
 
 
-# Access Token Creation (signs identity, role, and expiration without storing a server session)
-def create_access_token(user: models.User) -> str:
-    return _create_signed_token({
+# Access tokens identify a persisted session so logout survives server restarts.
+def create_access_token(user: models.User, db: Session) -> str:
+    session = models.AuthSession(user_id=user.id, expires_at=int(time.time()) + _TOKEN_TTL_SECONDS)
+    db.add(session)
+    db.flush()
+    token = _create_signed_token({
+        "sid": str(session.id),
         "sub": str(user.id),
         "role": user.role,
         "scope": "access",
-        "exp": int(time.time()) + _TOKEN_TTL_SECONDS,
+        "exp": session.expires_at,
     })
+    db.commit()
+    return token
+
+
+def get_current_session(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    db: Session = Depends(database.get_db),
+) -> models.AuthSession:
+    invalid = HTTPException(status_code=401, detail="Your session is invalid or has expired. Please log in again.",
+                            headers={"WWW-Authenticate": "Bearer"})
+    if not credentials or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Authentication is required.", headers={"WWW-Authenticate": "Bearer"})
+    payload = _verify_signed_token(credentials.credentials, invalid.detail)
+    if payload.get("scope") != "access":
+        raise invalid
+    try:
+        session_id, user_id = UUID(payload["sid"]), UUID(payload["sub"])
+    except (KeyError, ValueError, TypeError, AttributeError):
+        raise invalid
+    session = db.query(models.AuthSession).filter(
+        models.AuthSession.id == session_id, models.AuthSession.user_id == user_id,
+    ).first()
+    if not session or session.revoked or session.expires_at <= int(time.time()):
+        raise invalid
+    return session
+
+
+def revoke_user_sessions(db: Session, user_id: UUID) -> None:
+    """Used when credentials change; caller commits the account and session updates together."""
+    db.query(models.AuthSession).filter(models.AuthSession.user_id == user_id).update(
+        {models.AuthSession.revoked: True}, synchronize_session="fetch")
 
 
 # Developer Mode Token Creation (issues a short-lived second-factor-by-password authorization)
-def create_developer_mode_token(user: models.User) -> tuple[str, int]:
+def create_developer_mode_token(user: models.User, session: models.AuthSession) -> tuple[str, int]:
     token = _create_signed_token({
         "sub": str(user.id),
         "scope": "developer_mode",
+        "sid": str(session.id),
         "exp": int(time.time()) + _DEVELOPER_MODE_TTL_SECONDS,
     })
     return token, _DEVELOPER_MODE_TTL_SECONDS
@@ -92,27 +128,10 @@ def create_developer_mode_token(user: models.User) -> tuple[str, int]:
 
 # Current User Dependency (resolves a valid token to an active database account)
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    session: models.AuthSession = Depends(get_current_session),
     db: Session = Depends(database.get_db),
 ) -> models.User:
-    if not credentials or credentials.scheme.lower() != "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication is required.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    payload = _verify_signed_token(
-        credentials.credentials,
-        "Your session is invalid or has expired. Please log in again.",
-    )
-    if payload.get("scope") != "access":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token.")
-    try:
-        user_id = UUID(payload["sub"])
-    except (ValueError, TypeError, AttributeError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token.")
-    user = db.query(models.User).filter(models.User.id == user_id).first()
+    user = db.query(models.User).filter(models.User.id == session.user_id).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is unavailable.")
     return user
@@ -133,14 +152,15 @@ def require_developer(current_user: models.User = Depends(get_current_user)) -> 
 
 
 # Developer Mode Verification (binds a recent password unlock to the current developer account)
-def verify_developer_mode_token(token: str | None, current_user: models.User) -> models.User:
+def verify_developer_mode_token(token: str | None, current_user: models.User, session: models.AuthSession) -> models.User:
     if not token:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unlock Developer Mode with your password to continue.",
         )
     payload = _verify_signed_token(token, "Developer Mode has expired. Enter your password again.")
-    if payload.get("scope") != "developer_mode" or payload.get("sub") != str(current_user.id):
+    if (payload.get("scope") != "developer_mode" or payload.get("sub") != str(current_user.id)
+            or payload.get("sid") != str(session.id)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Developer Mode authorization.")
     return current_user
 
@@ -148,6 +168,7 @@ def verify_developer_mode_token(token: str | None, current_user: models.User) ->
 # Developer Mode Dependency (requires both the developer role and a recent password confirmation)
 def require_developer_mode(
     current_user: models.User = Depends(require_developer),
+    session: models.AuthSession = Depends(get_current_session),
     developer_token: str | None = Header(default=None, alias="X-Developer-Token"),
 ) -> models.User:
-    return verify_developer_mode_token(developer_token, current_user)
+    return verify_developer_mode_token(developer_token, current_user, session)

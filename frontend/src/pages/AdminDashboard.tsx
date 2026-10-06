@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, logoutSession, readJson } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { AccountsPanel } from '../components/admin/AccountsPanel';
 import { AdminPageHeader } from '../components/admin/AdminPageHeader';
@@ -378,10 +378,13 @@ const AdminDashboard = () => {
         }
     };
 
-    // Admin Logout (clears the browser session and returns to the landing page)
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/');
+    const handleLogout = async () => {
+        try {
+            await logoutSession();
+            navigate('/');
+        } catch {
+            window.alert('Logout could not be confirmed. Please check your connection and try again.');
+        }
     };
 
     // Role Toggle Request (stages a privilege change for explicit confirmation)

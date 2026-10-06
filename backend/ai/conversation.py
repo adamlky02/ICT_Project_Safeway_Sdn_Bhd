@@ -257,6 +257,22 @@ def _calculate_birthday_leave(day: int, month: int, permanent: bool, today: date
     }
 
 
+def _is_birthday_turn(history: Sequence[Mapping[str, str]], current_message: str) -> bool:
+    if _contains_birthday_topic(current_message) or re.search(r"\bbday\b", current_message, re.IGNORECASE):
+        return True
+
+    if len(current_message.split()) > 12:
+        return False
+    last_assistant = next((turn.get("content", "") for turn in reversed(history) if turn.get("role") == "assistant"), "")
+    if _assistant_requested_birthday([last_assistant]) and _extract_birthday_from_text(current_message, allow_numeric=True):
+        return True
+    if _assistant_requested_employment_type([last_assistant]) and re.search(
+        r"\b(yes|no|permanent|contract|temporary|probation)\b|tetap|kontrak|正式|合同", current_message, re.IGNORECASE
+    ):
+        return True
+    return False
+
+
 # Birthday Leave Analysis (collects conversation facts and returns trusted reasoning context)
 def analyze_birthday_leave(
     history: Sequence[Mapping[str, str]],
@@ -265,9 +281,7 @@ def analyze_birthday_leave(
 ) -> dict:
     user_messages = [turn["content"] for turn in history if turn.get("role") == "user"] + [current_message]
     assistant_messages = [turn["content"] for turn in history if turn.get("role") == "assistant"]
-    full_conversation = " ".join(user_messages + assistant_messages)
-
-    if not _contains_birthday_topic(full_conversation):
+    if not _is_birthday_turn(history, current_message):
         return {"intent": "other"}
 
     birthday = _extract_birthday(user_messages, assistant_messages, current_message)
@@ -308,19 +322,18 @@ def build_retrieval_query(
     history: Sequence[Mapping[str, str]],
     current_message: str,
 ) -> str:
-    conversation_text = " ".join(turn.get("content", "") for turn in history[-8:])
-    if _contains_birthday_topic(f"{conversation_text} {current_message}"):
+    if _is_birthday_turn(history, current_message):
         query = (
             "Safeway Birthday Leave policy for permanent employees: paid leave entitlement, "
             "weekend or public-holiday adjustment, application notice, staffing, and unused leave"
         )
     else:
-        recent_user_messages = [
-            turn.get("content", "")
-            for turn in history[-6:]
-            if turn.get("role") == "user"
-        ][-2:]
-        query = " ".join([*recent_user_messages, current_message]).strip()
+        query = current_message.strip()
+        if len(current_message.split()) <= 12 and re.search(
+            r"\b(it|its|they|their|those|that|this|same|what about)\b", current_message, re.IGNORECASE
+        ):
+            previous_user = next((turn.get("content", "") for turn in reversed(history) if turn.get("role") == "user"), "")
+            query = " ".join(part for part in (previous_user, query) if part)
 
     return f"task: search result | query: {query}"
 

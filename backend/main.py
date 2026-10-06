@@ -32,5 +32,5 @@ for router in routers:
 
 @app.on_event("startup")
 def create_tables() -> None:
-    database.Base.metadata.create_all(bind=database.engine)
+    database.create_tables()
     ensure_bootstrap_developer()

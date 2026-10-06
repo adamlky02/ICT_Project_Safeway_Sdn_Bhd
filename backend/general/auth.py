@@ -7,8 +7,10 @@ import os
 import secrets
 import time
 import warnings
+from urllib.parse import quote
 from uuid import UUID
 
+from cryptography.fernet import Fernet, InvalidToken
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -28,6 +30,7 @@ elif len(_configured_secret) < 32:
 _AUTH_SECRET = (_configured_secret or secrets.token_urlsafe(48)).encode("utf-8")
 _TOKEN_TTL_SECONDS = int(os.getenv("ACCESS_TOKEN_TTL_SECONDS", "43200"))
 _DEVELOPER_MODE_TTL_SECONDS = int(os.getenv("DEVELOPER_MODE_TTL_SECONDS", "900"))
+_MFA_TOKEN_TTL_SECONDS = 300
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -88,6 +91,92 @@ def create_developer_mode_token(user: models.User) -> tuple[str, int]:
         "exp": int(time.time()) + _DEVELOPER_MODE_TTL_SECONDS,
     })
     return token, _DEVELOPER_MODE_TTL_SECONDS
+
+
+# MFA Challenge Token Creation (issues a short-lived token that cannot access protected routes)
+def create_mfa_token(user: models.User, *, setup: bool, portal_role: str) -> str:
+    return _create_signed_token({
+        "sub": str(user.id),
+        "scope": "mfa_setup" if setup else "mfa_login",
+        "portal_role": portal_role,
+        "exp": int(time.time()) + _MFA_TOKEN_TTL_SECONDS,
+    })
+
+
+# MFA Challenge Token Verification (accepts only the intended pending-login operation)
+def verify_mfa_token(token: str) -> tuple[UUID, str, str]:
+    payload = _verify_signed_token(token, "This authentication step has expired. Please log in again.")
+    scope = payload.get("scope")
+    portal_role = payload.get("portal_role")
+    if scope not in {"mfa_setup", "mfa_login"} or portal_role not in {"admin", "developer", "staff"}:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication step.")
+    try:
+        return UUID(payload["sub"]), scope, portal_role
+    except (ValueError, TypeError, AttributeError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication step.")
+
+
+# TOTP Encryption (uses the stable deployment encryption key and authenticates stored secrets)
+def _totp_cipher() -> Fernet:
+    source_secret = (
+        os.getenv("AI_CONFIG_ENCRYPTION_KEY", "").strip()
+        or _configured_secret
+    )
+    if len(source_secret) < 32:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Configure a stable SECRET_KEY or AI_CONFIG_ENCRYPTION_KEY of at least 32 characters to use administrator MFA.",
+        )
+    derived_key = base64.urlsafe_b64encode(hashlib.sha256(source_secret.encode("utf-8")).digest())
+    return Fernet(derived_key)
+
+
+def encrypt_totp_secret(secret: str) -> str:
+    return _totp_cipher().encrypt(secret.encode("ascii")).decode("ascii")
+
+
+def decrypt_totp_secret(ciphertext: str) -> str:
+    try:
+        return _totp_cipher().decrypt(ciphertext.encode("ascii")).decode("ascii")
+    except (InvalidToken, UnicodeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The authenticator secret cannot be decrypted. Restore the original encryption key.",
+        )
+
+
+# TOTP Verification (returns the matching time counter to prevent code reuse)
+def verify_totp_code(secret: str, code: str, *, current_time: int | None = None) -> int | None:
+    if len(code) != 6 or not code.isascii() or not code.isdigit():
+        return None
+
+    counter = (int(time.time()) if current_time is None else current_time) // 30
+    try:
+        key = base64.b32decode(secret, casefold=True)
+    except (binascii.Error, ValueError):
+        return None
+
+    for candidate_counter in range(max(counter - 1, 0), counter + 2):
+        digest = hmac.new(key, candidate_counter.to_bytes(8, "big"), hashlib.sha1).digest()
+        offset = digest[-1] & 0x0F
+        value = int.from_bytes(digest[offset:offset + 4], "big") & 0x7FFFFFFF
+        expected_code = f"{value % 1_000_000:06d}"
+        if hmac.compare_digest(expected_code, code):
+            return candidate_counter
+    return None
+
+
+# Authenticator Provisioning (creates a standard URI for authenticator apps)
+def create_totp_setup(user: models.User, secret: str | None = None) -> tuple[str, str]:
+    if secret is None:
+        secret = base64.b32encode(secrets.token_bytes(20)).decode("ascii").rstrip("=")
+    account = quote(f"Safeway:{user.email}", safe="")
+    issuer = quote("Safeway", safe="")
+    provisioning_uri = (
+        f"otpauth://totp/{account}?secret={secret}&issuer={issuer}"
+        "&algorithm=SHA1&digits=6&period=30"
+    )
+    return secret, provisioning_uri
 
 
 # Current User Dependency (resolves a valid token to an active database account)

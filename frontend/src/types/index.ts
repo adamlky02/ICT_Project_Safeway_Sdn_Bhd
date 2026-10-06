@@ -13,6 +13,15 @@ export interface StoredUser {
     access_token: string;
 }
 
+// Pending MFA Challenge (holds an in-memory setup or verification token during login)
+export interface LoginMfaChallenge {
+    mfa_required: true;
+    mfa_setup_required: boolean;
+    mfa_token: string;
+    secret?: string;
+    otpauth_url?: string;
+}
+
 // User Profile (describes account details returned by profile endpoints)
 export interface UserProfile {
     id: string;

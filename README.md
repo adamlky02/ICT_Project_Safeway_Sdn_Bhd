@@ -137,6 +137,12 @@ python run_app.py
 
 The local frontend and generated API documentation are available at the addresses printed by the launcher.
 
+### Administrator multi-factor authentication
+
+Administrator and developer accounts must enroll in a time-based authenticator app on their first password login. The login screen provides an authenticator setup key and an `otpauth` link; enter the displayed six-digit code to finish setup. Later logins require a fresh code after the password. Management accounts use MFA even when signing in through the staff portal.
+
+The backend encrypts saved authenticator secrets with `AI_CONFIG_ENCRYPTION_KEY`, or `SECRET_KEY` when the dedicated key is unset. Configure one stable secret of at least 32 characters before enrolling accounts and keep it unchanged; changing or losing it prevents stored authenticator secrets from being decrypted. Five incorrect codes lock MFA verification for 15 minutes. On PostgreSQL, backend startup adds the MFA columns to the existing user table.
+
 ## Quality checks
 
 Frontend:

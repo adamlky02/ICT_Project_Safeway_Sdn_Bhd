@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowLeft, Loader2, LockKeyhole, LogIn } from 'lucide-react';
+import { ArrowLeft, Loader2, LockKeyhole, LogIn, ShieldCheck } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL, readJson, STAFF_EMAIL_DOMAIN, storeUser } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
@@ -9,11 +10,15 @@ import { LoginLoadingOverlay } from '../components/login/LoginLoadingOverlay';
 import { fadeUp } from '../components/motion/presets';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import type { ApiErrorBody, PortalRole, StoredUser } from '../types';
+import type { ApiErrorBody, LoginMfaChallenge, PortalRole, StoredUser } from '../types';
 
 // Login Navigation State (carries the portal role selected on the landing page)
 interface LoginLocationState {
     role?: PortalRole;
+}
+
+function isLoginMfaChallenge(result: StoredUser | LoginMfaChallenge): result is LoginMfaChallenge {
+    return 'mfa_required' in result && result.mfa_required;
 }
 
 // Login Page (authenticates a user for the selected staff or administrator portal)
@@ -26,8 +31,15 @@ const LoginPage = () => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [mfaCode, setMfaCode] = useState('');
+    const [mfaChallenge, setMfaChallenge] = useState<LoginMfaChallenge | null>(null);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const finishLogin = (user: StoredUser) => {
+        storeUser(user);
+        navigate(user.role === 'admin' || user.role === 'developer' ? '/admin' : '/chat');
+    };
 
     // Login Submission (validates credentials through the API and routes the accepted role)
     const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -43,14 +55,45 @@ const LoginPage = () => {
             });
 
             if (response.ok) {
-                const user = await readJson<StoredUser>(response);
-                storeUser(user);
-                navigate(user.role === 'admin' || user.role === 'developer' ? '/admin' : '/chat');
+                const result = await readJson<StoredUser | LoginMfaChallenge>(response);
+                if (isLoginMfaChallenge(result)) {
+                    setPassword('');
+                    setMfaChallenge(result);
+                    return;
+                }
+                finishLogin(result);
                 return;
             }
 
             const responseError = await readJson<ApiErrorBody>(response);
             setError(responseError.detail || 'Login failed');
+        } catch {
+            setError(lang === 'en' ? 'Network error: Could not reach server.' : 'Ralat Rangkaian / 网络错误');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleMfaVerification = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!mfaChallenge) return;
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const response = await fetch(`${API_URL}/api/login/mfa`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mfa_token: mfaChallenge.mfa_token, code: mfaCode }),
+            });
+
+            if (response.ok) {
+                finishLogin(await readJson<StoredUser>(response));
+                return;
+            }
+
+            const responseError = await readJson<ApiErrorBody>(response);
+            setError(responseError.detail || 'Authentication code verification failed');
         } catch {
             setError(lang === 'en' ? 'Network error: Could not reach server.' : 'Ralat Rangkaian / 网络错误');
         } finally {
@@ -109,7 +152,11 @@ const LoginPage = () => {
                     </h2>
                 </div>
 
-                <p className="text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 text-sm font-medium leading-relaxed">{t.login_desc}</p>
+                <p className="text-slate-600 dark:text-slate-400 mb-6 sm:mb-8 text-sm font-medium leading-relaxed">
+                    {mfaChallenge
+                        ? (mfaChallenge.mfa_setup_required ? t.mfa_setup_instructions : t.mfa_prompt)
+                        : t.login_desc}
+                </p>
 
                 {/* Login Error (shows a failed credential or network response) */}
                 <AnimatePresence initial={false}>
@@ -129,6 +176,76 @@ const LoginPage = () => {
                 </AnimatePresence>
 
                 {/* Credential Form (collects the account email and secure password) */}
+                {mfaChallenge ? (
+                    <form onSubmit={handleMfaVerification} className="space-y-4 sm:space-y-5">
+                        {mfaChallenge.mfa_setup_required && mfaChallenge.secret && (
+                            <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-center text-sm text-slate-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-slate-200">
+                                {mfaChallenge.otpauth_url && (
+                                    <div className="inline-flex rounded-xl bg-white p-3">
+                                        <QRCodeSVG
+                                            value={mfaChallenge.otpauth_url}
+                                            size={220}
+                                            level="M"
+                                            marginSize={2}
+                                            title={t.mfa_qr_alt}
+                                        />
+                                    </div>
+                                )}
+                                <p>{t.mfa_setup_instructions}</p>
+                                <details className="text-left">
+                                    <summary className="cursor-pointer font-bold text-amber-700 underline dark:text-amber-400">
+                                        {t.mfa_manual_setup}
+                                    </summary>
+                                    <code className="mt-2 block select-all break-all rounded-lg bg-white p-3 font-mono text-base font-bold tracking-wider dark:bg-slate-950">
+                                        {mfaChallenge.secret}
+                                    </code>
+                                </details>
+                            </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <label htmlFor="mfa-code" className="ml-1 block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                {t.mfa_code_label}
+                            </label>
+                            <input
+                                id="mfa-code"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                pattern="[0-9]{6}"
+                                maxLength={6}
+                                className="w-full rounded-xl border border-slate-300 bg-slate-50 p-3.5 text-center font-mono text-xl tracking-[0.4em] text-slate-900 shadow-inner outline-none transition-all focus:border-amber-500 focus:ring-2 focus:ring-amber-500/50 dark:border-slate-800 dark:bg-[#0a0a0a] dark:text-white"
+                                value={mfaCode}
+                                onChange={(event) => setMfaCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                                disabled={isLoading}
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading || mfaCode.length !== 6}
+                            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 disabled:grayscale active:scale-[0.98] dark:text-slate-900"
+                        >
+                            {isLoading
+                                ? <Loader2 className="animate-spin" size={18} />
+                                : <ShieldCheck size={18} />}
+                            {isLoading ? t.btn_loading : t.mfa_verify}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMfaChallenge(null);
+                                setMfaCode('');
+                                setError('');
+                            }}
+                            disabled={isLoading}
+                            className="flex min-h-11 w-full items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 transition-colors hover:text-amber-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-amber-500"
+                        >
+                            <ArrowLeft size={16} /> {t.mfa_back}
+                        </button>
+                    </form>
+                ) : (
                 <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     <div className="space-y-1.5">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
@@ -167,6 +284,7 @@ const LoginPage = () => {
                         {isLoading ? t.btn_loading : t.btn_login}
                     </button>
                 </form>
+                )}
 
             </m.div>
         </div>

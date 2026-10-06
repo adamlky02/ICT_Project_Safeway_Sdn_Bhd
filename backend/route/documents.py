@@ -1,19 +1,23 @@
 import io
 import os
 from pathlib import Path
+from urllib.parse import quote
 from uuid import uuid4
 import boto3
 import fitz
+from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 try:
+    from ..ai.catalogue_chunks import build_index_chunks
     from ..ai.embeddings import get_embedding
     from ..general import database, models
     from ..general.auth import require_admin, get_current_user
 except ImportError:
+    from ai.catalogue_chunks import build_index_chunks
     from ai.embeddings import get_embedding
     from general import database, models
     from general.auth import require_admin, get_current_user
@@ -68,7 +72,7 @@ async def upload_document(
         db.add(new_doc)
         db.commit()
         db.refresh(new_doc)
-        chunks = [extracted_text[i:i + 1000] for i in range(0, len(extracted_text), 1000)]
+        chunks = build_index_chunks(extracted_text)
         for chunk in chunks:
             if len(chunk.strip()) > 20:
                 vector = get_embedding(chunk)
@@ -96,6 +100,43 @@ def delete_doc(did: int, db: Session = Depends(database.get_db), _admin: models.
     db.delete(doc)
     db.commit()
     return {"message": "Document and physical file deleted"}
+
+
+@router.get("/admin/documents/{did}/download")
+def download_doc(did: int, db: Session = Depends(database.get_db), _admin: models.User = Depends(require_admin)):
+    doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
+    if not doc or not doc.file_path:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    try:
+        obj = s3_client.get_object(Bucket=R2_BUCKET, Key=doc.file_path)
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in {"NoSuchKey", "404", "NotFound"}:
+            raise HTTPException(status_code=404, detail="Document file not found") from exc
+        raise HTTPException(status_code=502, detail="Could not download document from cloud storage") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Could not download document from cloud storage") from exc
+
+    extension = "pdf" if doc.file_type == "pdf" else "txt"
+    base_name = "".join(char for char in doc.title if char.isprintable() and char not in '/\\').strip()[:120]
+    base_name = base_name or f"document-{did}"
+    filename = base_name if base_name.lower().endswith(f".{extension}") else f"{base_name}.{extension}"
+    headers = {
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+    }
+
+    def stream_file():
+        body = obj["Body"]
+        try:
+            while chunk := body.read(64 * 1024):
+                yield chunk
+        finally:
+            body.close()
+
+    media_type = "application/pdf" if extension == "pdf" else "text/plain"
+    return StreamingResponse(stream_file(), media_type=media_type, headers=headers)
 
 
 @router.get("/files/{filename}")

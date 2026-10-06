@@ -75,6 +75,7 @@ const AdminDashboard = () => {
     const [generatedPassword, setGeneratedPassword] = useState<GeneratedCredentials>({ email: '', password: '' });
     const [uploadItems, setUploadItems] = useState<AdminUploadItem[]>([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [downloadingDocumentId, setDownloadingDocumentId] = useState<number | null>(null);
     const uploadAbortController = useRef<AbortController | null>(null);
     const [form, setForm] = useState<AccountForm>(emptyAccountForm);
     const [developerToken, setDeveloperToken] = useState<string | null>(null);
@@ -351,6 +352,32 @@ const AdminDashboard = () => {
         }
     };
 
+    // Document Download (fetches the R2 object through the authenticated admin API)
+    const handleDownloadDocument = async (doc: AdminDocument) => {
+        setDownloadingDocumentId(doc.id);
+        try {
+            const response = await authenticatedFetch(`${API_URL}/api/admin/documents/${doc.id}/download`);
+            if (!response.ok) {
+                throw new Error(`Download failed (${response.status})`);
+            }
+            const blobUrl = URL.createObjectURL(await response.blob());
+            const extension = doc.file_type === 'pdf' ? 'pdf' : 'txt';
+            const baseName = doc.title.replace(/[\\/\x00-\x1f\x7f]/g, '').trim().slice(0, 120) || `document-${doc.id}`;
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = baseName.toLowerCase().endsWith(`.${extension}`) ? baseName : `${baseName}.${extension}`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        } catch (error) {
+            console.error('Document download error:', error);
+            alert(t.download_failed);
+        } finally {
+            setDownloadingDocumentId(null);
+        }
+    };
+
     // Admin Logout (clears the browser session and returns to the landing page)
     const handleLogout = () => {
         localStorage.clear();
@@ -528,6 +555,7 @@ const AdminDashboard = () => {
                                     form={form}
                                     uploadItems={uploadItems}
                                     isUploading={isUploading}
+                                    downloadingDocumentId={downloadingDocumentId}
                                     t={t}
                                     onFormChange={setForm}
                                     onFilesSelected={handleFilesSelected}
@@ -536,6 +564,7 @@ const AdminDashboard = () => {
                                     onUpload={(event) => void handleFileUpload(event)}
                                     onForceStopUpload={handleForceStopUpload}
                                     onDeleteDocument={(id) => void deleteItem('documents', id)}
+                                    onDownloadDocument={(document) => void handleDownloadDocument(document)}
                                 />
                             )}
                             {tab === 'ai' && (

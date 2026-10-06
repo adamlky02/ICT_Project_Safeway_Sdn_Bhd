@@ -137,11 +137,56 @@ python run_app.py
 
 The local frontend and generated API documentation are available at the addresses printed by the launcher.
 
-### Administrator multi-factor authentication
+## Codebase exploration with Graphify
 
-Administrator and developer accounts must enroll in a time-based authenticator app on their first password login. The login screen provides an authenticator setup key and an `otpauth` link; enter the displayed six-digit code to finish setup. Later logins require a fresh code after the password. Management accounts use MFA even when signing in through the staff portal.
+[`AGENTS.md`](AGENTS.md) guides coding assistants to query the graph, verify
+results against source, and refresh it after changes. These are project
+instructions, not model training. Separate frontend/backend clusters are expected
+when HTTP relationships are not captured by static code extraction.
 
-The backend encrypts saved authenticator secrets with `AI_CONFIG_ENCRYPTION_KEY`, or `SECRET_KEY` when the dedicated key is unset. Configure one stable secret of at least 32 characters before enrolling accounts and keep it unchanged; changing or losing it prevents stored authenticator secrets from being decrypted. Five incorrect codes lock MFA verification for 15 minutes. On PostgreSQL, backend startup adds the MFA columns to the existing user table.
+Graphify is optional developer tooling that maps relationships in the Python and
+TypeScript source. It is separate from the application's document retrieval.
+
+Install the pinned version in a project-root environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-tools.txt
+make graphify
+```
+
+If `.venv` already exists, reuse it and skip the first command. For another
+environment, run `make graphify GRAPHIFY=graphify PYTHON=python` with that environment activated.
+
+The build uses local code extraction and disables LLM community naming, so no API
+key is required. Documents, PDFs, and images are skipped. Running bare `graphify .`
+also requests semantic extraction for those files and can fail with "no LLM API
+key found". The equivalent explicit commands (also usable without Make) are:
+
+```bash
+graphify extract . --code-only --no-cluster
+graphify cluster-only . --no-label
+python scripts/name_graphify_communities.py
+graphify cluster-only . --no-label
+```
+
+Explore the generated map and query it from the project root:
+
+```bash
+open graphify-out/graph.html  # macOS; elsewhere open this file in a browser
+.venv/bin/graphify query "authentication" --budget 1500
+.venv/bin/graphify god-nodes --top 10
+```
+
+Community names are assigned locally from their source modules by
+`scripts/name_graphify_communities.py`. The final clustering pass applies these
+names to the HTML, graph, and report. Names are recalculated from membership on
+each build, so they do not depend on community numbers staying the same.
+
+Re-run `make graphify` after source changes. Generated graphs, reports, and caches
+stay in the Git-ignored `graphify-out/` directory. `.graphifyignore` adds exclusions
+for environment files and uploaded content; Graphify also respects `.gitignore`.
+Treat graph results as navigation hints and verify relationships in source code.
 
 ## Quality checks
 

@@ -2,6 +2,9 @@
 
 Run from the repository root: python -m unittest discover -s backend/tests -v
 """
+import base64
+import hashlib
+import hmac
 import io
 import os
 import tempfile
@@ -23,7 +26,7 @@ from sqlalchemy.pool import StaticPool
 # Do not load local credentials or construct a real cloud storage client.
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345", "GOOGLE_API_KEY": "test-only"}), patch('dotenv.load_dotenv'), patch('boto3.client'):
     from backend.general import auth, database, models, chat_history
-    from backend.route import chat, documents
+    from backend.route import authentication, chat, documents
 
 
 class ProtectedRouteTests(unittest.TestCase):
@@ -39,10 +42,12 @@ class ProtectedRouteTests(unittest.TestCase):
         self.db = sessionmaker(bind=self.engine, expire_on_commit=False)()
         self.a = models.User(id=uuid4(), email='a@example.test', password_hash='unused', role='staff', is_active=True)
         self.b = models.User(id=uuid4(), email='b@example.test', password_hash='unused', role='staff', is_active=True)
-        self.db.add_all([self.a, self.b]); self.db.commit()
+        self.admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
+        self.db.add_all([self.a, self.b, self.admin]); self.db.commit()
         self.session = chat_history.get_or_create_session(self.db, str(self.b.id), initial_title='Private B history')
         chat_history.save_chat_turn(self.db, self.session.id, 'Private question', 'Private answer', [])
         self.app = FastAPI()
+        self.app.include_router(authentication.router)
         self.app.include_router(chat.router)
         self.app.include_router(documents.router)
         self.app.include_router(chat_history.chat_history_router)
@@ -57,6 +62,15 @@ class ProtectedRouteTests(unittest.TestCase):
 
     def headers(self, user=None):
         return {'Authorization': 'Bearer ' + auth.create_access_token(user or self.a)}
+
+    @staticmethod
+    def totp_code(secret, current_time):
+        key = base64.b32decode(secret)
+        counter = current_time // 30
+        digest = hmac.new(key, counter.to_bytes(8, 'big'), hashlib.sha1).digest()
+        offset = digest[-1] & 0x0F
+        value = int.from_bytes(digest[offset:offset+4], 'big') & 0x7FFFFFFF
+        return f'{value % 1_000_000:06d}'
 
     def routes(self):
         sid = str(self.session.id)
@@ -203,6 +217,127 @@ class ProtectedRouteTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.text, 'Internal note')
             self.assertIn('text/plain', response.headers['content-type'])
+
+    def test_management_login_requires_totp_enrollment_and_prevents_code_reuse(self):
+        current_time = 1_800_000_000
+        with patch.object(authentication.bcrypt, 'checkpw', return_value=True), \
+             patch.object(auth.time, 'time', return_value=current_time):
+            response = self.client.post('/api/login', json={
+                'email': self.admin.email, 'password': 'correct-password', 'role': 'staff',
+            })
+            self.assertEqual(response.status_code, 200, response.text)
+            challenge = response.json()
+            self.assertTrue(challenge['mfa_setup_required'])
+            self.assertNotIn('access_token', challenge)
+            self.assertTrue(challenge['otpauth_url'].startswith('otpauth://totp/'))
+            pending_access = self.client.get(
+                '/api/chat-history/sessions',
+                headers={'Authorization': 'Bearer ' + challenge['mfa_token']},
+            )
+            self.assertEqual(pending_access.status_code, 401)
+
+            code = self.totp_code(challenge['secret'], current_time)
+            verified = self.client.post('/api/login/mfa', json={
+                'mfa_token': challenge['mfa_token'], 'code': code,
+            })
+            self.assertEqual(verified.status_code, 200, verified.text)
+            self.assertEqual(verified.json()['role'], 'staff')
+            self.assertIn('access_token', verified.json())
+            self.db.refresh(self.admin)
+            self.assertTrue(self.admin.totp_enabled)
+
+            replay = self.client.post('/api/login/mfa', json={
+                'mfa_token': challenge['mfa_token'], 'code': code,
+            })
+            self.assertEqual(replay.status_code, 401, replay.text)
+
+    def test_enabled_management_login_needs_a_valid_authenticator_code(self):
+        current_time = 1_800_000_000
+        secret, _ = auth.create_totp_setup(self.admin)
+        self.admin.totp_secret = auth.encrypt_totp_secret(secret)
+        self.admin.totp_enabled = True
+        self.db.commit()
+
+        with patch.object(authentication.bcrypt, 'checkpw', return_value=True), \
+             patch.object(auth.time, 'time', return_value=current_time):
+            response = self.client.post('/api/login', json={
+                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
+            })
+            self.assertEqual(response.status_code, 200, response.text)
+            challenge = response.json()
+            self.assertFalse(challenge['mfa_setup_required'])
+            self.assertNotIn('secret', challenge)
+
+            invalid_code = str((int(self.totp_code(secret, current_time)) + 1) % 1_000_000).zfill(6)
+            rejected = self.client.post('/api/login/mfa', json={
+                'mfa_token': challenge['mfa_token'], 'code': invalid_code,
+            })
+            self.assertEqual(rejected.status_code, 401, rejected.text)
+
+            accepted = self.client.post('/api/login/mfa', json={
+                'mfa_token': challenge['mfa_token'],
+                'code': self.totp_code(secret, current_time),
+            })
+            self.assertEqual(accepted.status_code, 200, accepted.text)
+            self.assertEqual(accepted.json()['role'], 'admin')
+
+    def test_mfa_codes_are_rate_limited_after_five_failures(self):
+        current_time = 1_800_000_000
+        secret, _ = auth.create_totp_setup(self.admin)
+        self.admin.totp_secret = auth.encrypt_totp_secret(secret)
+        self.admin.totp_enabled = True
+        self.db.commit()
+
+        with patch.object(authentication.bcrypt, 'checkpw', return_value=True), \
+             patch.object(auth.time, 'time', return_value=current_time) as clock:
+            challenge_response = self.client.post('/api/login', json={
+                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
+            })
+            self.assertEqual(challenge_response.status_code, 200, challenge_response.text)
+            challenge = challenge_response.json()
+            invalid_code = '000000'
+            while auth.verify_totp_code(secret, invalid_code, current_time=current_time) is not None:
+                invalid_code = f'{(int(invalid_code) + 1) % 1_000_000:06d}'
+
+            for _ in range(5):
+                rejected = self.client.post('/api/login/mfa', json={
+                    'mfa_token': challenge['mfa_token'], 'code': invalid_code,
+                })
+                self.assertEqual(rejected.status_code, 401, rejected.text)
+
+            self.db.refresh(self.admin)
+            self.assertEqual(self.admin.totp_failed_attempts, 5)
+            self.assertEqual(self.admin.totp_lock_until, current_time + 900)
+            throttled = self.client.post('/api/login/mfa', json={
+                'mfa_token': challenge['mfa_token'],
+                'code': self.totp_code(secret, current_time),
+            })
+            self.assertEqual(throttled.status_code, 429, throttled.text)
+            locked_login = self.client.post('/api/login', json={
+                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
+            })
+            self.assertEqual(locked_login.status_code, 429, locked_login.text)
+
+            clock.return_value = current_time + 901
+            retry = self.client.post('/api/login', json={
+                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
+            })
+            self.assertEqual(retry.status_code, 200, retry.text)
+            self.assertFalse(retry.json()['mfa_setup_required'])
+            verified = self.client.post('/api/login/mfa', json={
+                'mfa_token': retry.json()['mfa_token'],
+                'code': self.totp_code(secret, current_time + 901),
+            })
+            self.assertEqual(verified.status_code, 200, verified.text)
+
+    def test_staff_login_remains_single_factor(self):
+        with patch.object(authentication.bcrypt, 'checkpw', return_value=True):
+            response = self.client.post('/api/login', json={
+                'email': self.a.email, 'password': 'staff-password', 'role': 'staff',
+            })
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('access_token', response.json())
+        self.assertNotIn('mfa_required', response.json())
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,7 @@
 """Database engine, model base, and request-session dependencies."""
 
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -52,6 +52,28 @@ def get_current_database_url() -> str:
 # Table Creation (creates any missing tables from the registered SQLAlchemy models)
 def create_tables():
     Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as connection:
+            connection.execute(text(
+                'ALTER TABLE "AI chatbot"."User_list" '
+                'ADD COLUMN IF NOT EXISTS totp_secret TEXT'
+            ))
+            connection.execute(text(
+                'ALTER TABLE "AI chatbot"."User_list" '
+                'ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE'
+            ))
+            connection.execute(text(
+                'ALTER TABLE "AI chatbot"."User_list" '
+                'ADD COLUMN IF NOT EXISTS totp_last_counter INTEGER'
+            ))
+            connection.execute(text(
+                'ALTER TABLE "AI chatbot"."User_list" '
+                'ADD COLUMN IF NOT EXISTS totp_failed_attempts INTEGER NOT NULL DEFAULT 0'
+            ))
+            connection.execute(text(
+                'ALTER TABLE "AI chatbot"."User_list" '
+                'ADD COLUMN IF NOT EXISTS totp_lock_until INTEGER'
+            ))
 
 
 # Initial Database Connection (configures the application with its default database)

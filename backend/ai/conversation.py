@@ -257,6 +257,7 @@ def _calculate_birthday_leave(day: int, month: int, permanent: bool, today: date
     }
 
 
+# Birthday Follow-up Detection (recognizes explicit questions and short replies to recent leave-related prompts)
 def _is_birthday_turn(history: Sequence[Mapping[str, str]], current_message: str) -> bool:
     if _contains_birthday_topic(current_message) or re.search(r"\bbday\b", current_message, re.IGNORECASE):
         return True

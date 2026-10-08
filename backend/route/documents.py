@@ -23,6 +23,7 @@ except ImportError:
     from general.auth import require_admin, get_current_user
 
 router = APIRouter(prefix="/api", tags=["documents"])
+# Document Storage (configures cloud objects and the local fallback used by authenticated previews)
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 s3_client = boto3.client(
@@ -33,11 +34,13 @@ s3_client = boto3.client(
 R2_BUCKET = os.getenv("R2_BUCKET_NAME")
 
 
+# Document Directory (lists registered knowledge-base documents for administrators)
 @router.get("/admin/documents")
 def get_docs(db: Session = Depends(database.get_db), _admin: models.User = Depends(require_admin)):
     return db.query(models.KnowledgeBase).all()
 
 
+# Document Ingestion (stores an administrator's PDF or text file and indexes its extracted passages)
 @router.post("/admin/upload")
 async def upload_document(
     title: str = Form(...), category: str = Form(...), file: UploadFile = File(...),
@@ -46,6 +49,7 @@ async def upload_document(
     extension = file.filename.split(".")[-1].lower()
     if extension not in {"pdf", "txt"}:
         raise HTTPException(status_code=400, detail="Only PDF and TXT are supported for AI indexing.")
+    # Storage Identity (uses a generated object key independently of the document's display title)
     unique_filename = f"{uuid4()}.{extension}"
     file_bytes = await file.read()
     try:
@@ -55,6 +59,7 @@ async def upload_document(
         raise HTTPException(status_code=500, detail="Internal server error saving file to Cloud Storage.")
 
     try:
+        # Text Extraction (reads PDF page text or decodes a text upload before chunking)
         if extension == "pdf":
             document = fitz.open(stream=file_bytes, filetype="pdf")
             extracted_text = "".join(page.get_text() + "\n" for page in document)
@@ -72,6 +77,7 @@ async def upload_document(
         db.add(new_doc)
         db.commit()
         db.refresh(new_doc)
+        # Vector Indexing (keeps catalogue source labels and embeds passages with enough searchable text)
         chunks = build_index_chunks(extracted_text)
         for chunk in chunks:
             if len(chunk.strip()) > 20:
@@ -87,6 +93,7 @@ async def upload_document(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+# Document Removal (attempts cloud-object deletion before removing the registered document)
 @router.delete("/admin/documents/{did}")
 def delete_doc(did: int, db: Session = Depends(database.get_db), _admin: models.User = Depends(require_admin)):
     doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
@@ -102,6 +109,7 @@ def delete_doc(did: int, db: Session = Depends(database.get_db), _admin: models.
     return {"message": "Document and physical file deleted"}
 
 
+# Administrator Download (streams a registered cloud object with attachment and private-cache headers)
 @router.get("/admin/documents/{did}/download")
 def download_doc(did: int, db: Session = Depends(database.get_db), _admin: models.User = Depends(require_admin)):
     doc = db.query(models.KnowledgeBase).filter(models.KnowledgeBase.id == did).first()
@@ -117,6 +125,7 @@ def download_doc(did: int, db: Session = Depends(database.get_db), _admin: model
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Could not download document from cloud storage") from exc
 
+    # Download Filename (removes path separators and encodes a readable attachment name)
     extension = "pdf" if doc.file_type == "pdf" else "txt"
     base_name = "".join(char for char in doc.title if char.isprintable() and char not in '/\\').strip()[:120]
     base_name = base_name or f"document-{did}"
@@ -127,6 +136,7 @@ def download_doc(did: int, db: Session = Depends(database.get_db), _admin: model
         "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
     }
 
+    # Stream Cleanup (reads bounded chunks and closes the cloud response body when streaming ends)
     def stream_file():
         body = obj["Body"]
         try:
@@ -139,6 +149,7 @@ def download_doc(did: int, db: Session = Depends(database.get_db), _admin: model
     return StreamingResponse(stream_file(), media_type=media_type, headers=headers)
 
 
+# Authenticated File Preview (serves only registered document keys and rejects path-like filenames)
 @router.get("/files/{filename}")
 async def get_file(filename: str, db: Session = Depends(database.get_db), _user: models.User = Depends(get_current_user)):
     if "/" in filename or "\\" in filename or filename in {".", ".."}:
@@ -152,6 +163,7 @@ async def get_file(filename: str, db: Session = Depends(database.get_db), _user:
         obj = s3_client.get_object(Bucket=R2_BUCKET, Key=filename)
         return StreamingResponse(io.BytesIO(obj["Body"].read()), media_type=media_type, headers=headers)
     except Exception:
+        # Local Preview Fallback (resolves the file and confirms it stays within the upload directory)
         upload_root = Path(UPLOAD_DIR).resolve()
         file_path = (upload_root / filename).resolve()
         if file_path.is_relative_to(upload_root) and file_path.is_file():

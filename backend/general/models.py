@@ -13,6 +13,7 @@ class User(Base):
     full_name = Column(String(255))
     role = Column(String(20), server_default="staff")
     is_active = Column(Boolean, server_default="true")
+    # Authenticator State (stores the encrypted secret, enrollment status, replay counter, and lockout tracking)
     totp_secret = Column(Text)
     totp_enabled = Column(Boolean, nullable=False, server_default=text("false"))
     totp_last_counter = Column(Integer)

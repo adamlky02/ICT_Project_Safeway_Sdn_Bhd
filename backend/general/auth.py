@@ -34,10 +34,12 @@ _MFA_TOKEN_TTL_SECONDS = 300
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 
+# Token Segment Encoding (creates compact URL-safe Base64 without trailing padding)
 def _encode_segment(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
 
 
+# Token Segment Decoding (restores Base64 padding before reading the signed payload or signature)
 def _decode_segment(value: str) -> bytes:
     padding = "=" * (-len(value) % 4)
     return base64.urlsafe_b64decode(f"{value}{padding}")
@@ -131,10 +133,12 @@ def _totp_cipher() -> Fernet:
     return Fernet(derived_key)
 
 
+# Authenticator Secret Storage (encrypts the enrollment secret before database persistence)
 def encrypt_totp_secret(secret: str) -> str:
     return _totp_cipher().encrypt(secret.encode("ascii")).decode("ascii")
 
 
+# Authenticator Secret Recovery (decrypts the saved secret and reports invalid ciphertext safely)
 def decrypt_totp_secret(ciphertext: str) -> str:
     try:
         return _totp_cipher().decrypt(ciphertext.encode("ascii")).decode("ascii")
@@ -156,6 +160,7 @@ def verify_totp_code(secret: str, code: str, *, current_time: int | None = None)
     except (binascii.Error, ValueError):
         return None
 
+    # Clock Tolerance (checks the previous, current, and next 30-second periods for small clock differences)
     for candidate_counter in range(max(counter - 1, 0), counter + 2):
         digest = hmac.new(key, candidate_counter.to_bytes(8, "big"), hashlib.sha1).digest()
         offset = digest[-1] & 0x0F

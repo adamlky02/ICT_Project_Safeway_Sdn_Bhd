@@ -15,6 +15,7 @@ except ImportError:
 router = APIRouter(prefix="/api/admin/ai-settings", tags=["AI settings"])
 
 
+# Provider Draft Payload (validates supported providers, generation limits, and optional replacement credentials)
 class AIProviderDraftRequest(BaseModel):
     display_name: str = Field(min_length=1, max_length=100)
     provider: Literal["gemini", "openai_compatible"]
@@ -27,26 +28,31 @@ class AIProviderDraftRequest(BaseModel):
     thinking_mode: Literal["enabled", "disabled"] = "disabled"
 
 
+# Settings Read (returns public provider metadata after developer role and unlock-token verification)
 @router.get("")
 def read_ai_settings(db: Session = Depends(database.get_db), _developer: models.User = Depends(require_developer_mode)):
     return get_ai_settings(db)
 
 
+# Draft Save (records proposed settings and the editor without activating the response provider)
 @router.put("/draft")
 def update_ai_settings_draft(req: AIProviderDraftRequest, db: Session = Depends(database.get_db), admin: models.User = Depends(require_developer_mode)):
     return save_ai_draft(db, req.model_dump(), str(admin.id))
 
 
+# Connection Test (checks the saved draft and records its result before activation is allowed)
 @router.post("/test")
 def test_ai_settings_connection(db: Session = Depends(database.get_db), _developer: models.User = Depends(require_developer_mode)):
     return test_ai_draft(db)
 
 
+# Provider Activation (promotes a tested draft and preserves the previous configuration for rollback)
 @router.post("/activate")
 def activate_ai_settings(db: Session = Depends(database.get_db), admin: models.User = Depends(require_developer_mode)):
     return activate_ai_draft(db, str(admin.id))
 
 
+# Provider Rollback (restores the previous response provider under the current developer authorization)
 @router.post("/rollback")
 def rollback_ai_settings(db: Session = Depends(database.get_db), admin: models.User = Depends(require_developer_mode)):
     return rollback_ai_provider(db, str(admin.id))

@@ -13,11 +13,13 @@ except ImportError:
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 
+# Profile Update Payload (allows a name change and an optional replacement password)
 class ProfileUpdate(BaseModel):
     full_name: str
     password: str | None = None
 
 
+# Own Profile Read (requires the requested user ID to match the authenticated account)
 @router.get("/{uid}")
 def get_profile(uid: str, current_user: models.User = Depends(get_current_user)):
     if str(current_user.id) != uid:
@@ -30,6 +32,7 @@ def get_profile(uid: str, current_user: models.User = Depends(get_current_user))
     }
 
 
+# Own Profile Update (saves the authenticated user's name and hashes any nonblank replacement password)
 @router.put("/{uid}")
 def update_profile(
     uid: str,

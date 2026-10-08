@@ -52,6 +52,7 @@ def get_current_database_url() -> str:
 # Table Creation (creates any missing tables from the registered SQLAlchemy models)
 def create_tables():
     Base.metadata.create_all(bind=engine)
+    # Existing Account Migration (adds missing authenticator columns to an already deployed PostgreSQL table)
     if engine.dialect.name == "postgresql":
         with engine.begin() as connection:
             connection.execute(text(

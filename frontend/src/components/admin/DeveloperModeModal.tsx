@@ -7,6 +7,7 @@ import type { ApiErrorBody, DeveloperUnlockResponse } from '../../types';
 import { fadeScale, modalBackdrop } from '../motion/presets';
 import { inputStyle, primaryButtonStyle } from './styles';
 
+// Developer Unlock Controls (connects the password dialog to dismissal and authorized dashboard actions)
 interface DeveloperModeModalProps {
     t: Translation;
     onClose: () => void;
@@ -15,10 +16,12 @@ interface DeveloperModeModalProps {
 
 // Developer Mode Modal (requires a fresh password check before sensitive tools are available)
 export function DeveloperModeModal({ t, onClose, onUnlocked }: DeveloperModeModalProps) {
+    // Unlock State (keeps the password, validation feedback, and request progress within the dialog)
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isUnlocking, setIsUnlocking] = useState(false);
 
+    // Password Confirmation (exchanges a valid password for a developer token and clears the input on success)
     const handleUnlock = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError('');
@@ -54,6 +57,7 @@ export function DeveloperModeModal({ t, onClose, onUnlocked }: DeveloperModeModa
                     </div>
                 </div>
 
+                {/* Unlock Form (collects the current password and blocks duplicate requests while verification runs) */}
                 <form onSubmit={handleUnlock} className="space-y-4">
                     <label className="block space-y-2 text-xs font-bold uppercase tracking-wider text-slate-500">
                         {t.password_label || 'Password'}
@@ -73,6 +77,7 @@ export function DeveloperModeModal({ t, onClose, onUnlocked }: DeveloperModeModa
                         </div>
                     </label>
 
+                    {/* Unlock Error (displays credential or network failures before another attempt) */}
                     {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
 
                     <div className="grid grid-cols-2 gap-3 pt-2">

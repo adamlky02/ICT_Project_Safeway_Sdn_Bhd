@@ -11,9 +11,6 @@ backend/venv/
 .coverage
 htmlcov/
 
-# Local Graphify code maps and extraction caches
-graphify-out/
-
 # Node dependencies and generated output
 node_modules/
 frontend/node_modules/

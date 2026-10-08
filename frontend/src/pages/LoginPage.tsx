@@ -17,6 +17,7 @@ interface LoginLocationState {
     role?: PortalRole;
 }
 
+// MFA Response Detection (distinguishes a pending authenticator challenge from a completed login)
 function isLoginMfaChallenge(result: StoredUser | LoginMfaChallenge): result is LoginMfaChallenge {
     return 'mfa_required' in result && result.mfa_required;
 }
@@ -36,6 +37,7 @@ const LoginPage = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Completed Login (stores the issued session and opens the workspace selected by the response role)
     const finishLogin = (user: StoredUser) => {
         storeUser(user);
         navigate(user.role === 'admin' || user.role === 'developer' ? '/admin' : '/chat');
@@ -56,6 +58,7 @@ const LoginPage = () => {
 
             if (response.ok) {
                 const result = await readJson<StoredUser | LoginMfaChallenge>(response);
+                // Pending MFA (clears the password and waits for verification before storing an authenticated session)
                 if (isLoginMfaChallenge(result)) {
                     setPassword('');
                     setMfaChallenge(result);
@@ -74,6 +77,7 @@ const LoginPage = () => {
         }
     };
 
+    // Authenticator Submission (sends the pending challenge token and code to complete enrollment or login)
     const handleMfaVerification = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!mfaChallenge) return;
@@ -175,9 +179,10 @@ const LoginPage = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Credential Form (collects the account email and secure password) */}
+                {/* Authentication Forms (switches from account credentials to the pending authenticator step) */}
                 {mfaChallenge ? (
                     <form onSubmit={handleMfaVerification} className="space-y-4 sm:space-y-5">
+                        {/* Authenticator Enrollment (renders a local QR code and manual secret for first-time setup) */}
                         {mfaChallenge.mfa_setup_required && mfaChallenge.secret && (
                             <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-center text-sm text-slate-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-slate-200">
                                 {mfaChallenge.otpauth_url && (
@@ -203,6 +208,7 @@ const LoginPage = () => {
                             </div>
                         )}
 
+                        {/* Authenticator Code (collects exactly six numeric digits for the pending challenge) */}
                         <div className="space-y-1.5">
                             <label htmlFor="mfa-code" className="ml-1 block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                                 {t.mfa_code_label}
@@ -232,6 +238,7 @@ const LoginPage = () => {
                                 : <ShieldCheck size={18} />}
                             {isLoading ? t.btn_loading : t.mfa_verify}
                         </button>
+                        {/* Credential Step Reset (discards the local challenge and code when returning to login) */}
                         <button
                             type="button"
                             onClick={() => {

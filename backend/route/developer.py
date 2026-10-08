@@ -12,10 +12,12 @@ except ImportError:
 router = APIRouter(prefix="/api/developer", tags=["developer"])
 
 
+# Developer Unlock Payload (requires a bounded password for a fresh credential check)
 class DeveloperUnlockRequest(BaseModel):
     password: str = Field(min_length=1, max_length=500)
 
 
+# Developer Mode Unlock (verifies the developer's password and issues a temporary authorization token)
 @router.post("/unlock")
 def unlock_developer_mode(
     req: DeveloperUnlockRequest,

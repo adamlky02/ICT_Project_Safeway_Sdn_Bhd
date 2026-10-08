@@ -33,23 +33,27 @@ except ImportError:
 router = APIRouter(prefix="/api", tags=["chat"])
 
 
+# Conversation Turn (accepts bounded user and assistant messages for follow-up context)
 class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=4000)
 
 
+# Chat Request (carries the latest question, recent conversation, and optional existing session)
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: list[ChatTurn] = Field(default_factory=list, max_length=12)
     session_id: str | None = None
 
 
+# Grounded Chat Response (retrieves document passages and saves the answer in the authenticated user's session)
 @router.post("/chat")
 async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
     # Resolve ownership before invoking AI; authorization errors must not be swallowed.
     session = get_or_create_session(db, str(current_user.id), req.session_id, initial_title=req.message)
     session_id = str(session.id)
     try:
+        # Retrieval Context (combines recent turns with the question before ranking the four nearest passages)
         history = [turn.model_dump() for turn in req.history[-10:]]
         today = datetime.now(KUCHING_TZ).date()
         query_vector = get_embedding(build_retrieval_query(history, req.message), task_type=None)
@@ -60,6 +64,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
             ORDER BY c.embedding <=> :v LIMIT 4
         '''), {"v": str(query_vector)}).fetchall()
 
+        # Empty Knowledge Base (records a clear fallback reply when retrieval has no document passages)
         if not results:
             bot_reply = "I don't have any manuals covering this topic yet."
             if session_id:
@@ -69,12 +74,14 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
                     print("Error saving chat turn:", exc)
             return {"sender": "bot", "message": bot_reply, "sources": [], "session_id": session_id}
 
+        # Source Evidence (keeps document labels and file paths alongside the text sent to the response model)
         context_parts = []
         sources_list = []
         for content, title, category, file_path in results:
             context_parts.append(f"DOCUMENT TITLE: {title} | CATEGORY: {category}\nTEXT: {content}")
             sources_list.append({"title": title, "category": category, "content": content.strip(), "file_path": file_path})
 
+        # Grounded Prompt (combines retrieved evidence with conversation and local birthday-leave calculations)
         prompt = build_grounded_chat_prompt(
             today=today,
             conversation_text=build_conversation_transcript(history),
@@ -82,6 +89,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
             context_text="\n\n---\n\n".join(context_parts),
             staff_question=req.message,
         )
+        # Response Persistence (returns the generated reply even if saving the chat turn fails)
         bot_reply = generate_ai_response(db, prompt)
         if session_id:
             try:

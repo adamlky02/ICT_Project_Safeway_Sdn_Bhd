@@ -17,6 +17,7 @@ import type { AIProviderForm, AIProviderProfile, AISettingsState, ApiErrorBody }
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';
 
 
+// AI Settings Controls (receives recent developer authorization and callbacks for activation or expiration)
 interface AISettingsPanelProps {
     t: Translation;
     developerToken: string;
@@ -24,9 +25,11 @@ interface AISettingsPanelProps {
     onDeveloperModeExpired: () => void;
 }
 
+// Provider Workflow States (tracks the selected template and the request currently blocking further actions)
 type ProviderPreset = 'gemini' | 'deepseek' | 'custom';
 type PendingAction = 'load' | 'save' | 'test' | 'activate' | 'rollback' | null;
 
+// Initial Provider Form (matches the Gemini fallback settings with an empty write-only API key)
 const emptyForm: AIProviderForm = {
     display_name: 'Render Gemini fallback',
     provider: 'gemini',
@@ -39,6 +42,7 @@ const emptyForm: AIProviderForm = {
     thinking_mode: 'disabled',
 };
 
+// Editable Profile Conversion (copies public settings into the form and clears the API key input)
 function profileToForm(profile: AIProviderProfile): AIProviderForm {
     return {
         display_name: profile.display_name,
@@ -53,6 +57,7 @@ function profileToForm(profile: AIProviderProfile): AIProviderForm {
     };
 }
 
+// Connection Status Label (turns persisted test results into a readable draft status)
 function profileStatus(profile: AIProviderProfile | null): string {
     if (!profile) return 'Not configured';
     if (profile.test_status === 'passed') return 'Connection verified';
@@ -63,6 +68,7 @@ function profileStatus(profile: AIProviderProfile | null): string {
 
 // AI Settings Panel (manages a tested draft before hot-switching live response generation)
 export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeveloperModeExpired }: AISettingsPanelProps) {
+    // Panel State (tracks persisted profiles, unsaved edits, request progress, and operation feedback)
     const [settings, setSettings] = useState<AISettingsState | null>(null);
     const [form, setForm] = useState<AIProviderForm>(emptyForm);
     const [pendingAction, setPendingAction] = useState<PendingAction>('load');
@@ -70,11 +76,13 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
     const [error, setError] = useState('');
     const [isDirty, setIsDirty] = useState(false);
 
+    // Preset Detection (selects the displayed template from the form's provider type and base URL)
     const preset = useMemo<ProviderPreset>(() => {
         if (form.provider === 'gemini') return 'gemini';
         return form.base_url.toLowerCase().includes('deepseek.com') ? 'deepseek' : 'custom';
     }, [form.base_url, form.provider]);
 
+    // Settings Load (restores the saved draft or active profile using the current developer unlock token)
     const loadSettings = async () => {
         setPendingAction('load');
         setError('');
@@ -95,10 +103,12 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         }
     };
 
+    // Authorization Refresh (reloads settings whenever a new developer unlock token is supplied)
     useEffect(() => {
         void loadSettings();
     }, [developerToken]);
 
+    // Provider Preset Selection (updates endpoint defaults and clears the key input when switching templates)
     const selectPreset = (nextPreset: ProviderPreset) => {
         setNotice('');
         setError('');
@@ -137,12 +147,14 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         }));
     };
 
+    // Unsaved Form Edits (marks changed fields so a connection test requires saving the draft first)
     const updateForm = <K extends keyof AIProviderForm>(field: K, value: AIProviderForm[K]) => {
         setForm((current) => ({ ...current, [field]: value }));
         setIsDirty(true);
         setNotice('');
     };
 
+    // Action Response Handling (reads updated profiles and forwards authorization failures to the dashboard)
     const readActionResult = async (response: Response): Promise<AISettingsState> => {
         const data = await readJson<AISettingsState & ApiErrorBody>(response);
         if ([401, 403].includes(response.status)) onDeveloperModeExpired();
@@ -150,6 +162,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         return data;
     };
 
+    // Draft Submission (sends edited settings and leaves credential reuse to the backend when the key is blank)
     const saveDraft = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setPendingAction('save');
@@ -176,6 +189,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         }
     };
 
+    // Provider Lifecycle Actions (tests a saved draft or confirms activation and rollback before submission)
     const runAction = async (action: Exclude<PendingAction, 'load' | 'save' | null>) => {
         if (action === 'activate' && !window.confirm(t.ai_activate_confirm || 'Activate this tested model for all new chat responses?')) return;
         if (action === 'rollback' && !window.confirm(t.ai_rollback_confirm || 'Restore the previously active response model?')) return;
@@ -211,6 +225,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         }
     };
 
+    // Initial Loading View (waits for provider profiles before rendering editable configuration)
     if (pendingAction === 'load') {
         return (
             <div className={`${cardStyle} flex min-h-64 items-center justify-center p-8`}>
@@ -245,6 +260,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                     </div>
                 </div>
 
+                {/* Embedding Configuration (shows the fixed model that must remain compatible with existing vectors) */}
                 <div className={`${cardStyle} p-5 sm:p-7`}>
                     <div className="flex items-center gap-3">
                         <Database className="text-blue-500" size={22} />
@@ -322,6 +338,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                     </label>
                 </div>
 
+                {/* Provider Actions (enables operations according to saved draft, test status, and pending requests) */}
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <button type="submit" disabled={pendingAction !== null} className={`${primaryButtonStyle} sm:w-auto sm:px-6`}>
                         {pendingAction === 'save' ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />}
@@ -341,6 +358,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                     </button>
                 </div>
 
+                {/* Draft Feedback (shows connection status, measured latency, and credential availability) */}
                 {settings?.draft && (
                     <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-white/10 dark:bg-black/20 dark:text-slate-300">
                         <strong>{t.ai_draft_status || 'Draft status'}:</strong> {profileStatus(settings.draft)}
@@ -348,6 +366,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                         {' · '}{settings.draft.has_api_key ? (t.ai_key_secured || 'API key secured') : (t.ai_key_missing || 'API key missing')}
                     </div>
                 )}
+                {/* Operation Feedback (reports the latest success notice or backend error) */}
                 {notice && <p className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">{notice}</p>}
                 {error && <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
             </form>

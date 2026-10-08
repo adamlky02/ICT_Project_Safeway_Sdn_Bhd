@@ -20,6 +20,7 @@ else:
     from general import models
 
 
+# Provider Defaults (identifies the stored settings record and the deployment's Gemini fallback)
 AI_SETTING_CATEGORY = "ai_generation"
 DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = os.getenv("GOOGLE_GENERATION_MODEL", "gemini-3.1-flash-lite")
@@ -30,6 +31,7 @@ class ProviderError(RuntimeError):
     """Safe provider error that never contains an API key or full remote response."""
 
 
+# Configuration Timestamp (records provider lifecycle events in a consistent UTC format)
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -57,10 +59,12 @@ def _get_cipher() -> Fernet:
     return Fernet(derived_key)
 
 
+# API Key Storage (encrypts provider credentials before they are written to the settings record)
 def _encrypt_api_key(api_key: str) -> str:
     return _get_cipher().encrypt(api_key.encode("utf-8")).decode("ascii")
 
 
+# API Key Recovery (decrypts stored credentials and reports an unavailable encryption key safely)
 def _decrypt_api_key(ciphertext: str) -> str:
     try:
         return _get_cipher().decrypt(ciphertext.encode("ascii")).decode("utf-8")
@@ -108,6 +112,7 @@ def _validated_base_url(value: str, provider: str) -> str:
     return clean
 
 
+# Environment Fallback Profile (builds generation settings that resolve the Gemini key from the environment)
 def _default_profile() -> dict[str, Any]:
     return {
         "display_name": "Render Gemini fallback",
@@ -125,6 +130,7 @@ def _default_profile() -> dict[str, Any]:
     }
 
 
+# Provider Lifecycle State (normalizes the active, draft, and previous configuration slots)
 def _setting_container(setting: models.IntegrationSetting | None) -> dict[str, Any]:
     if not setting or not isinstance(setting.config, dict):
         return {"active": None, "draft": None, "previous": None}
@@ -135,6 +141,7 @@ def _setting_container(setting: models.IntegrationSetting | None) -> dict[str, A
     }
 
 
+# Saved Key Reuse (retains a credential only when the draft matches its provider type and base URL)
 def _find_reusable_secret(container: dict[str, Any], payload: dict[str, Any]) -> tuple[str | None, str | None]:
     for name in ("draft", "active", "previous"):
         candidate = container.get(name)
@@ -149,6 +156,7 @@ def _find_reusable_secret(container: dict[str, Any], payload: dict[str, Any]) ->
     return None, None
 
 
+# Runtime Credential Resolution (prefers an encrypted stored key and permits Gemini's environment fallback)
 def _resolve_api_key(profile: dict[str, Any]) -> str:
     ciphertext = profile.get("api_key_ciphertext")
     if ciphertext:
@@ -160,6 +168,7 @@ def _resolve_api_key(profile: dict[str, Any]) -> str:
     raise HTTPException(status_code=422, detail="This provider does not have an API key.")
 
 
+# Public Configuration View (exposes approved metadata and key availability without returning credentials)
 def _public_profile(profile: dict[str, Any] | None) -> dict[str, Any] | None:
     if not profile:
         return None
@@ -185,12 +194,14 @@ def _public_profile(profile: dict[str, Any] | None) -> dict[str, Any] | None:
     return public
 
 
+# Settings Lookup (loads the response-generation configuration by its unique category)
 def _get_setting(db: Session) -> models.IntegrationSetting | None:
     return db.query(models.IntegrationSetting).filter(
         models.IntegrationSetting.category == AI_SETTING_CATEGORY
     ).first()
 
 
+# Administrative Settings View (returns public lifecycle profiles and the fixed document-embedding configuration)
 def get_ai_settings(db: Session) -> dict[str, Any]:
     container = _setting_container(_get_setting(db))
     active = container["active"] or _default_profile()
@@ -208,6 +219,7 @@ def get_ai_settings(db: Session) -> dict[str, Any]:
     }
 
 
+# Draft Persistence (validates provider settings, secures the key, and resets connection-test results)
 def save_ai_draft(db: Session, payload: dict[str, Any], updated_by: str) -> dict[str, Any]:
     provider = payload["provider"]
     base_url = _validated_base_url(payload.get("base_url", ""), provider)
@@ -218,6 +230,7 @@ def save_ai_draft(db: Session, payload: dict[str, Any], updated_by: str) -> dict
 
     setting = _get_setting(db)
     container = _setting_container(setting)
+    # Credential Selection (uses a replacement key, a matching saved key, or the Gemini environment key)
     supplied_api_key = (payload.get("api_key") or "").strip()
     if supplied_api_key:
         ciphertext = _encrypt_api_key(supplied_api_key)
@@ -264,6 +277,7 @@ def save_ai_draft(db: Session, payload: dict[str, Any], updated_by: str) -> dict
     return get_ai_settings(db)
 
 
+# Provider Dispatch (validates the endpoint and selects the matching generation API adapter)
 def _provider_request(profile: dict[str, Any], prompt: str, test_mode: bool = False) -> str:
     profile = dict(profile)
     provider = profile["provider"]
@@ -275,6 +289,7 @@ def _provider_request(profile: dict[str, Any], prompt: str, test_mode: bool = Fa
     raise ProviderError("Unsupported AI provider type.")
 
 
+# Gemini Generation (uses the configured token budget and returns text with safe provider errors)
 def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> str:
     api_key = _resolve_api_key(profile)
     model = quote(profile["model"].removeprefix("models/"), safe="-._")
@@ -283,7 +298,7 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0 if test_mode else profile["temperature"],
-            "maxOutputTokens": 24 if test_mode else profile["max_tokens"],
+            "maxOutputTokens": profile["max_tokens"],
         },
     }
     try:
@@ -310,6 +325,7 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
         raise ProviderError("The Gemini provider returned an unsupported response format.")
 
 
+# Compatible Generation (calls a chat-completions API and normalizes its text response)
 def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> str:
     api_key = _resolve_api_key(profile)
     endpoint = f"{profile['base_url']}/chat/completions"
@@ -317,12 +333,15 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
         "model": profile["model"],
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0 if test_mode else profile["temperature"],
-        "max_tokens": 24 if test_mode else profile["max_tokens"],
+        "max_tokens": profile["max_tokens"],
         "stream": False,
     }
+    # Thinking Controls (adds the provider-specific setting only for recognized DeepSeek and OpenRouter hosts)
     hostname = (urlparse(profile["base_url"]).hostname or "").lower()
     if hostname == "api.deepseek.com" or hostname.endswith(".deepseek.com"):
         body["thinking"] = {"type": profile.get("thinking_mode", "disabled")}
+    elif hostname == "openrouter.ai":
+        body["reasoning"] = {"enabled": profile.get("thinking_mode", "disabled") == "enabled"}
 
     try:
         response = requests.post(
@@ -333,11 +352,20 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
         )
         response.raise_for_status()
         data = response.json()
-        content = data["choices"][0]["message"]["content"]
+        choice = data["choices"][0]
+        content = choice["message"]["content"]
+        # Text Normalization (accepts plain message text or a list of text content parts)
         if isinstance(content, list):
             content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
         text = str(content or "").strip()
         if not text:
+            # Output Exhaustion (explains an empty answer when the provider consumed its token budget)
+            if choice.get("finish_reason") == "length":
+                raise ProviderError(
+                    "The provider reached the output token limit before returning an answer. "
+                    "Increase Maximum output tokens, or disable Thinking mode if the model supports it, "
+                    "save the draft, and test again."
+                )
             raise ProviderError("The provider returned an empty response.")
         return text
     except requests.Timeout:
@@ -350,6 +378,7 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
         raise ProviderError("The provider returned a response that is not OpenAI-compatible.")
 
 
+# Draft Connection Test (persists success or failure and request latency for the saved configuration)
 def test_ai_draft(db: Session) -> dict[str, Any]:
     setting = _get_setting(db)
     container = _setting_container(setting)
@@ -378,6 +407,7 @@ def test_ai_draft(db: Session) -> dict[str, Any]:
     return {"message": "Connection test passed.", "preview": preview[:120], **get_ai_settings(db)}
 
 
+# Tested Draft Activation (requires a passed connection test and preserves one previous provider)
 def activate_ai_draft(db: Session, updated_by: str) -> dict[str, Any]:
     setting = _get_setting(db)
     container = _setting_container(setting)
@@ -400,6 +430,7 @@ def activate_ai_draft(db: Session, updated_by: str) -> dict[str, Any]:
     return get_ai_settings(db)
 
 
+# Provider Restoration (swaps active and previous profiles and discards the pending draft)
 def rollback_ai_provider(db: Session, updated_by: str) -> dict[str, Any]:
     setting = _get_setting(db)
     container = _setting_container(setting)
@@ -418,6 +449,7 @@ def rollback_ai_provider(db: Session, updated_by: str) -> dict[str, Any]:
     return get_ai_settings(db)
 
 
+# Live Response Generation (uses the active profile and attempts the configured Gemini fallback on failure)
 def generate_ai_response(db: Session, prompt: str) -> str:
     setting = _get_setting(db)
     container = _setting_container(setting)
@@ -426,12 +458,14 @@ def generate_ai_response(db: Session, prompt: str) -> str:
         return _provider_request(active, prompt)
     except (ProviderError, HTTPException):
         fallback = _default_profile()
+        # Fallback Eligibility (skips retrying the fallback model or calling it without an environment key)
         is_already_fallback = active.get("provider") == "gemini" and active.get("model") == fallback["model"]
         if is_already_fallback or not os.getenv("GOOGLE_API_KEY", "").strip():
             raise
         return _provider_request(fallback, prompt)
 
 
+# Dashboard Provider Label (returns a readable name for the active profile or environment fallback)
 def get_active_provider_name(db: Session) -> str:
     active = _setting_container(_get_setting(db)).get("active") or _default_profile()
     return active.get("display_name") or active.get("model") or "AI provider"

@@ -16,17 +16,20 @@ except ImportError:
 router = APIRouter(prefix="/api", tags=["authentication"])
 
 
+# Login Credentials (pairs account credentials with the requested staff or administrator portal)
 class LoginRequest(BaseModel):
     email: str
     password: str
     role: str
 
 
+# MFA Verification Payload (binds a six-digit authenticator code to a pending login challenge)
 class MfaVerificationRequest(BaseModel):
     mfa_token: str
     code: str = Field(pattern=r"^\d{6}$")
 
 
+# Completed Login Response (returns the portal identity and a signed access token)
 def _authenticated_user_response(user: models.User, response_role: str) -> dict:
     return {
         "id": str(user.id),
@@ -37,6 +40,7 @@ def _authenticated_user_response(user: models.User, response_role: str) -> dict:
     }
 
 
+# Credential Verification (completes staff login or starts authenticator verification for management accounts)
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(database.get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()
@@ -49,6 +53,7 @@ def login(req: LoginRequest, db: Session = Depends(database.get_db)):
     ):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    # Portal Access (checks the selected portal against the account's stored role)
     is_management_account = user.role in {"admin", "developer"}
     if req.role == "admin" and not is_management_account:
         raise HTTPException(status_code=403, detail="This portal is for administrators only")
@@ -57,10 +62,12 @@ def login(req: LoginRequest, db: Session = Depends(database.get_db)):
     if req.role not in {"admin", "staff"}:
         raise HTTPException(status_code=400, detail="Unknown login portal")
 
+    # Portal Identity (lets management accounts enter the staff workspace while retaining their stored role)
     response_role = "staff" if is_management_account and req.role == "staff" else user.role
     if not is_management_account:
         return _authenticated_user_response(user, response_role)
 
+    # MFA Lockout (blocks pending logins until the cooldown expires and then clears failed attempts)
     now = int(time.time())
     if user.totp_lock_until and user.totp_lock_until > now:
         raise HTTPException(
@@ -72,6 +79,7 @@ def login(req: LoginRequest, db: Session = Depends(database.get_db)):
         user.totp_lock_until = None
         db.commit()
 
+    # Initial Enrollment (stores an encrypted secret before issuing an authenticator setup challenge)
     if not user.totp_secret:
         secret, _ = auth.create_totp_setup(user)
         user.totp_secret = auth.encrypt_totp_secret(secret)
@@ -88,6 +96,7 @@ def login(req: LoginRequest, db: Session = Depends(database.get_db)):
             portal_role=response_role,
         ),
     }
+    # Setup Details (returns the provisioning URI and manual secret only while enrollment is incomplete)
     if mfa_setup_required:
         secret = auth.decrypt_totp_secret(user.totp_secret)
         _, provisioning_uri = auth.create_totp_setup(user, secret)
@@ -96,6 +105,7 @@ def login(req: LoginRequest, db: Session = Depends(database.get_db)):
     return challenge
 
 
+# Authenticator Verification (completes enrollment or login after a valid, unused authenticator code)
 @router.post("/login/mfa")
 def verify_login_mfa(req: MfaVerificationRequest, db: Session = Depends(database.get_db)):
     user_id, scope, response_role = auth.verify_mfa_token(req.mfa_token)
@@ -114,6 +124,7 @@ def verify_login_mfa(req: MfaVerificationRequest, db: Session = Depends(database
     secret = auth.decrypt_totp_secret(user.totp_secret)
     matched_counter = auth.verify_totp_code(secret, req.code)
     if matched_counter is None:
+        # Failure Accounting (increments attempts in the database and locks the account after five failures)
         next_attempts = func.coalesce(models.User.totp_failed_attempts, 0) + 1
         db.query(models.User).filter(models.User.id == user.id).update(
             {
@@ -128,10 +139,12 @@ def verify_login_mfa(req: MfaVerificationRequest, db: Session = Depends(database
         db.commit()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication code.")
 
+    # Challenge State (rejects setup tokens after enrollment and login tokens before enrollment)
     is_setup = scope == "mfa_setup"
     if (is_setup and user.totp_enabled) or (not is_setup and not user.totp_enabled):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication step.")
 
+    # Code Consumption (atomically accepts only a newer counter so concurrent requests cannot reuse a code)
     update = db.query(models.User).filter(
         models.User.id == user.id,
         or_(

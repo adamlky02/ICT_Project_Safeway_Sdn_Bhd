@@ -4,10 +4,12 @@ import re
 from textwrap import wrap
 
 
+# Catalogue Boundaries (recognizes explicit product and source-page markers in extracted text)
 PRODUCT_HEADER = re.compile(r"^=== PRODUCT: (.+?) ===$", re.MULTILINE)
 PAGE_HEADER = re.compile(r"^--- PAGE (\d+) ---$", re.MULTILINE)
 
 
+# Page Chunk Assembly (reserves room for source labels and repeats them on every passage)
 def _split_page(text: str, prefix: str, max_chars: int) -> list[str]:
     capacity = max_chars - len(prefix) - 2
     if capacity < 100:
@@ -42,10 +44,12 @@ def build_index_chunks(text: str, max_chars: int = 1600) -> list[str]:
         text[product.end():products[index + 1].start() if index + 1 < len(products) else len(text)]
         for index, product in enumerate(products)
     ]
+    # Legacy Text Fallback (avoids discarding introductory text or product sections without page markers)
     if text[:products[0].start()].strip() or any(not PAGE_HEADER.search(section) for section in sections):
         return [text[i:i + 1000] for i in range(0, len(text), 1000)]
 
     chunks: list[str] = []
+    # Source-Bounded Chunking (keeps each passage within one product and one catalogue page)
     for product, section in zip(products, sections):
         pages = list(PAGE_HEADER.finditer(section))
         for page_index, page in enumerate(pages):

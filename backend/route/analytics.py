@@ -14,6 +14,7 @@ except ImportError:
 router = APIRouter(prefix="/api/admin", tags=["admin analytics"])
 
 
+# Administrator Metrics (summarizes account counts, document storage, and the configured response provider)
 @router.get("/analytics")
 def get_analytics(
     db: Session = Depends(database.get_db),
@@ -24,6 +25,7 @@ def get_analytics(
         "total_users": db.query(models.User).count(),
         "total_docs": db.query(models.KnowledgeBase).count(),
         "total_storage_mb": round(total_size_bytes / (1024 * 1024), 2),
+        # Service Labels (reports dashboard labels and the provider name without probing external services)
         "status": {
             "database": "operational",
             "storage": "operational",

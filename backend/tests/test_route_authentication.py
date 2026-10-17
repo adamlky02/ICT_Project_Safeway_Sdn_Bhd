@@ -8,7 +8,7 @@ import tempfile
 import time
 import unittest
 import bcrypt
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -69,6 +69,7 @@ class ProtectedRouteTests(unittest.TestCase):
             ('GET', '/api/chat-history/sessions', None),
             ('POST', '/api/chat-history/sessions', {}),
             ('GET', f'/api/chat-history/sessions/{sid}', None),
+            ('GET', f'/api/chat-history/sessions/{sid}/export', None),
             ('PATCH', f'/api/chat-history/sessions/{sid}/title', {'title': 'Changed'}),
             ('DELETE', f'/api/chat-history/sessions/{sid}', None),
             ('GET', '/api/files/manual.pdf', None),
@@ -198,6 +199,69 @@ class ProtectedRouteTests(unittest.TestCase):
             response = self.client.get('/api/files/'+name, headers=self.headers())
             self.assertEqual(response.status_code, 404, response.text)
         self.storage.get_object.assert_not_called()
+
+    def test_export_only_allows_owner_and_uses_private_attachment_headers(self):
+        url = f'/api/chat-history/sessions/{self.session.id}/export'
+        self.assertEqual(self.client.get(url).status_code, 401)
+        self.assertEqual(self.client.get(url, headers=self.headers()).status_code, 404)
+        admin = models.User(id=uuid4(), email='export-admin@example.test', password_hash='unused', role='admin', is_active=True)
+        self.db.add(admin); self.db.commit()
+        self.assertEqual(self.client.get(url, headers=self.headers(admin)).status_code, 404)
+        response = self.client.get(url, headers=self.headers(self.b))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('Private question', response.text)
+        self.assertIn('Private answer', response.text)
+        self.assertIn('attachment;', response.headers['content-disposition'])
+        self.assertIn('.txt', response.headers['content-disposition'])
+        self.assertEqual(response.headers['cache-control'], 'private, no-store')
+        self.assertEqual(response.headers['x-content-type-options'], 'nosniff')
+        self.assertTrue(response.content.startswith(b'\xef\xbb\xbf'))
+        self.assertIn('charset=utf-8', response.headers['content-type'])
+        self.assertEqual(self.client.get(f'/api/chat-history/sessions/{uuid4()}/export', headers=self.headers(self.b)).status_code, 404)
+        self.assertEqual(self.client.get('/api/chat-history/sessions/invalid/export', headers=self.headers(self.b)).status_code, 400)
+
+    def test_export_last_rounds_preserves_order_unicode_and_source_titles(self):
+        session = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='中文 / Bahasa Melayu')
+        now = datetime.now(timezone.utc)
+        for index in range(3):
+            # User and assistant timestamps deliberately match, as PostgreSQL now() does.
+            created_at = now + timedelta(seconds=index)
+            self.db.add_all([
+                chat_history.ChatMessageRecord(session_id=session.id, sender='bot', content=f'回答-{index}', created_at=created_at,
+                    sources=[{'title': '员工手册 / Panduan', 'file_path': 'private-storage-key'}]),
+                chat_history.ChatMessageRecord(session_id=session.id, sender='user', content=f'问题-{index}', created_at=created_at),
+            ])
+        self.db.commit()
+        url = f'/api/chat-history/sessions/{session.id}/export'
+        headers = self.headers()
+        for rounds, first_index in [(1, 2), (2, 1), (99, 0)]:
+            response = self.client.get(url, params={'last_rounds': rounds}, headers=headers)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertIn('中文 / Bahasa Melayu', response.text)
+            self.assertIn('Source: 员工手册 / Panduan', response.text)
+            self.assertNotIn('private-storage-key', response.text)
+            for index in range(3):
+                if index < first_index:
+                    self.assertNotIn(f'问题-{index}', response.text)
+                    self.assertNotIn(f'回答-{index}', response.text)
+                else:
+                    self.assertLess(response.text.index(f'问题-{index}'), response.text.index(f'回答-{index}'))
+            if first_index < 2:
+                self.assertLess(response.text.index(f'回答-{first_index}'), response.text.index(f'问题-{first_index+1}'))
+        response = self.client.get(url, headers=headers)
+        for index in range(3):
+            self.assertIn(f'问题-{index}', response.text)
+            self.assertIn(f'回答-{index}', response.text)
+
+    def test_export_rejects_invalid_rounds_and_handles_empty_conversation(self):
+        session = chat_history.get_or_create_session(self.db, str(self.a.id))
+        url = f'/api/chat-history/sessions/{session.id}/export'
+        headers = self.headers()
+        for count in ['0', '-1', '1.5', 'abc', '10001']:
+            self.assertEqual(self.client.get(url, params={'last_rounds': count}, headers=headers).status_code, 422)
+        response = self.client.get(url, headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('No saved messages', response.text)
 
     def test_local_fallback_still_requires_authentication(self):
         self.db.add(models.KnowledgeBase(title='Text', category='General', file_path='note.txt', file_type='txt', uploaded_by=self.a.id)); self.db.commit()

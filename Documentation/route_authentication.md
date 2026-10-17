@@ -59,6 +59,30 @@ that implementation would not enforce the revocation records.
 
 ## Client contract
 
+### Download a conversation
+
+In Chat History, use the download icon beside a conversation and choose
+**Entire conversation** or **Most recent question-and-answer rounds**. Enter a
+positive whole number (1–10000) for the latter, then choose **Download TXT**.
+Each round starts with a saved user question and includes the following AI
+reply. If fewer rounds exist, the download includes all available rounds.
+The TXT contains the conversation title, saved messages, timestamps and source
+titles. It does not include the source documents themselves or unsaved messages.
+Chinese and Malay text use UTF-8 with a BOM for Windows compatibility.
+
+The authenticated endpoint is
+`GET /api/chat-history/sessions/{session_id}/export`, with optional
+`?last_rounds=N`. No parameter means the full conversation. Invalid counts
+return 422. A foreign or unknown conversation returns 404, even for an admin;
+missing, expired or revoked credentials return 401. Downloads use private,
+no-store attachment headers and require no database migration.
+
+Manual check: save at least three questions in one conversation, download the
+entire conversation, then download the latest two rounds. Verify that the
+second file excludes the first round, keeps each question before its answer,
+and retains multilingual text. Try another account's conversation ID and
+confirm it cannot be downloaded. Check download controls on mobile as well.
+
 - Chat accepts `message`, optional `history` and optional `session_id`.
 - History creation accepts an optional `title` in the JSON body.
 - History list/detail/rename/delete use the signed-in account automatically.

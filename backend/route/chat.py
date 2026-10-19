@@ -1,6 +1,7 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Literal
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -13,24 +14,25 @@ except Exception:
 
 try:
     from ..ai.conversation import analyze_birthday_leave, build_conversation_transcript, build_retrieval_query, serialize_reasoning_context
-    from ..ai.embeddings import get_embedding
+    from ..ai.embeddings import EmbeddingError, get_embedding
     from ..ai.prompt import build_grounded_chat_prompt
-    from ..ai.providers import generate_ai_response
+    from ..ai.providers import ProviderError, generate_ai_response
     from ..general import database
     from ..general.auth import get_current_user
     from ..general.models import User
     from ..general.chat_history import get_or_create_session, save_chat_turn
 except ImportError:
     from ai.conversation import analyze_birthday_leave, build_conversation_transcript, build_retrieval_query, serialize_reasoning_context
-    from ai.embeddings import get_embedding
+    from ai.embeddings import EmbeddingError, get_embedding
     from ai.prompt import build_grounded_chat_prompt
-    from ai.providers import generate_ai_response
+    from ai.providers import ProviderError, generate_ai_response
     from general import database
     from general.auth import get_current_user
     from general.models import User
     from general.chat_history import get_or_create_session, save_chat_turn
 
 router = APIRouter(prefix="/api", tags=["chat"])
+logger = logging.getLogger(__name__)
 
 
 # Conversation Turn (accepts bounded user and assistant messages for follow-up context)
@@ -52,11 +54,13 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
     # Resolve ownership before invoking AI; authorization errors must not be swallowed.
     session = get_or_create_session(db, str(current_user.id), req.session_id, initial_title=req.message)
     session_id = str(session.id)
+    stage = "embedding"
     try:
         # Retrieval Context (combines recent turns with the question before ranking the four nearest passages)
         history = [turn.model_dump() for turn in req.history[-10:]]
         today = datetime.now(KUCHING_TZ).date()
         query_vector = get_embedding(build_retrieval_query(history, req.message), task_type=None)
+        stage = "retrieval"
         results = db.execute(text('''
             SELECT c.content, k.title, k.category, k.file_path
             FROM "AI chatbot"."document_chunks" c
@@ -75,6 +79,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
             return {"sender": "bot", "message": bot_reply, "sources": [], "session_id": session_id}
 
         # Source Evidence (keeps document labels and file paths alongside the text sent to the response model)
+        stage = "prompt"
         context_parts = []
         sources_list = []
         for content, title, category, file_path in results:
@@ -90,6 +95,7 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
             staff_question=req.message,
         )
         # Response Persistence (returns the generated reply even if saving the chat turn fails)
+        stage = "generation"
         bot_reply = generate_ai_response(db, prompt)
         if session_id:
             try:
@@ -98,5 +104,22 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
                 print("Error saving chat turn:", exc)
         return {"sender": "bot", "message": bot_reply, "sources": sources_list, "session_id": session_id}
     except Exception as exc:
-        print("AI Chat Error:", exc)
-        return {"sender": "bot", "message": "The AI servers are currently busy. Please try again.", "sources": []}
+        error_code = f"chat_{stage}_failed"
+        message = {
+            "embedding": "Document search is temporarily unavailable. Please contact an administrator if this continues.",
+            "retrieval": "The document index could not be searched. Please contact an administrator.",
+            "generation": "The AI response provider is unavailable. Please try again later.",
+        }.get(stage, "The assistant could not prepare a response. Please try again later.")
+        if isinstance(exc, EmbeddingError):
+            error_code, message = exc.code, str(exc)
+        elif stage == "generation" and isinstance(exc, HTTPException):
+            error_code = "generation_configuration_error"
+            message = "The AI response provider is not configured correctly. Please contact an administrator."
+
+        # Never log raw database/SDK exceptions: they can contain credentials or document passages.
+        safe_detail = str(exc) if isinstance(exc, (EmbeddingError, ProviderError)) else ""
+        logger.error(
+            "AI Chat Error: stage=%s code=%s error_type=%s status=%s detail=%s",
+            stage, error_code, type(exc).__name__, getattr(exc, "status_code", None), safe_detail,
+        )
+        return {"sender": "bot", "message": message, "sources": [], "session_id": session_id, "error_code": error_code}

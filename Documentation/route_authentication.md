@@ -24,6 +24,46 @@ Department-level or per-document permissions are not introduced by this change.
 Direct cloud-object exposure must be controlled separately by the storage bucket
 configuration; these changes protect the application's routes.
 
+## Login and hosted backend configuration
+
+All staff, administrator, and developer accounts sign in with their email and
+password through `POST /api/login`. A successful login immediately returns the
+account's portal identity and signed access token. Inactive accounts, incorrect
+passwords, and unauthorized portal roles remain rejected. Management accounts
+may enter the staff portal while retaining their stored permissions. Developer
+Mode still requires a recent confirmation of the same account password.
+
+Configure these backend settings in the hosting platform's environment or
+managed secret store:
+
+| Setting | Purpose |
+| --- | --- |
+| `APP_ENV=production` | Validate stable authentication settings at startup; Render is also detected automatically. |
+| `SECRET_KEY` | A random, stable secret of at least 32 characters for signing login tokens. |
+| `DATABASE_URL` | The shared database containing accounts and application data. |
+| `ALLOWED_ORIGINS` | The deployed frontend's HTTPS origin(s). |
+
+Use the same signing key on every backend worker and retain it across restarts
+and redeployments. Keep backend secrets out of `VITE_*`, Git, and browser code.
+The frontend's `VITE_API_URL` must point to the public HTTPS backend URL at build
+time. AI configuration encryption remains separate and unchanged.
+
+### Deploying the password-only login
+
+Deploy the updated backend and rebuild/redeploy the frontend together. The
+authenticator enrollment and verification endpoint has been removed. Previously
+enrolled or locked accounts now use the same password-only login as other
+accounts; saved authenticator state is no longer read or required. The backend
+no longer requires `MFA_ENCRYPTION_KEY` or `MFA_ENCRYPTION_PREVIOUS_KEYS`; remove
+those obsolete settings from the hosting environment.
+
+After every backend instance has been updated, run
+`backend/migrations/20261019_remove_mfa.sql` against the deployed PostgreSQL
+database to permanently delete the old enrollment, replay, and lockout columns.
+This idempotent cleanup is separate from application startup to avoid breaking
+older instances during a rolling deployment. Take a database backup first if
+you need to retain a rollback option. Fresh databases omit these columns.
+
 ## Verification
 
 From the repository root in an installed backend environment:
@@ -37,6 +77,8 @@ The suite uses an in-memory SQLite database and mocked storage/AI services. It
 does not load local environment credentials or call company services. It checks
 missing/invalid/expired/wrong-scope tokens, disabled accounts, identity spoofing,
 cross-user reads and mutations, owner access, and cloud/local file downloads.
+Login regressions cover all account roles and portals, previously enrolled
+accounts, credential failures, removed endpoints, and stable signing configuration.
 CI runs the suite after installing the locked backend dependencies.
 
 For a deployment smoke test, sign in, send a message, reopen/rename/delete your

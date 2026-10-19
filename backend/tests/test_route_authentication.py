@@ -2,9 +2,6 @@
 
 Run from the repository root: python -m unittest discover -s backend/tests -v
 """
-import base64
-import hashlib
-import hmac
 import io
 import os
 import tempfile
@@ -19,7 +16,7 @@ from uuid import uuid4
 from botocore.exceptions import ClientError
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -62,15 +59,6 @@ class ProtectedRouteTests(unittest.TestCase):
 
     def headers(self, user=None):
         return {'Authorization': 'Bearer ' + auth.create_access_token(user or self.a)}
-
-    @staticmethod
-    def totp_code(secret, current_time):
-        key = base64.b32decode(secret)
-        counter = current_time // 30
-        digest = hmac.new(key, counter.to_bytes(8, 'big'), hashlib.sha1).digest()
-        offset = digest[-1] & 0x0F
-        value = int.from_bytes(digest[offset:offset+4], 'big') & 0x7FFFFFFF
-        return f'{value % 1_000_000:06d}'
 
     def routes(self):
         sid = str(self.session.id)
@@ -163,9 +151,9 @@ class ProtectedRouteTests(unittest.TestCase):
         self.assertEqual(response.headers['cache-control'], 'private, no-store')
 
     def test_admin_document_download_reads_r2_and_restricts_access(self):
-        admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
+        admin = self.admin
         developer = models.User(id=uuid4(), email='dev@example.test', password_hash='unused', role='developer', is_active=True)
-        self.db.add_all([admin, developer])
+        self.db.add(developer)
         self.db.add(models.KnowledgeBase(id=42, title='Safety Manual', category='Safety', file_path='stored-key.pdf', file_type='pdf', uploaded_by=admin.id))
         self.db.commit()
         url = '/api/admin/documents/42/download'
@@ -189,8 +177,7 @@ class ProtectedRouteTests(unittest.TestCase):
         self.storage.get_object.assert_called_with(Bucket=documents.R2_BUCKET, Key='stored-key.pdf')
 
     def test_admin_document_download_reports_missing_or_unavailable_r2_object(self):
-        admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
-        self.db.add(admin)
+        admin = self.admin
         self.db.add(models.KnowledgeBase(id=42, title='Manual', category='General', file_path='stored-key.txt', file_type='txt', uploaded_by=admin.id))
         self.db.commit()
         url = '/api/admin/documents/42/download'
@@ -218,126 +205,91 @@ class ProtectedRouteTests(unittest.TestCase):
             self.assertEqual(response.text, 'Internal note')
             self.assertIn('text/plain', response.headers['content-type'])
 
-    def test_management_login_requires_totp_enrollment_and_prevents_code_reuse(self):
-        current_time = 1_800_000_000
-        with patch.object(authentication.bcrypt, 'checkpw', return_value=True), \
-             patch.object(auth.time, 'time', return_value=current_time):
-            response = self.client.post('/api/login', json={
-                'email': self.admin.email, 'password': 'correct-password', 'role': 'staff',
-            })
-            self.assertEqual(response.status_code, 200, response.text)
-            challenge = response.json()
-            self.assertTrue(challenge['mfa_setup_required'])
-            self.assertNotIn('access_token', challenge)
-            self.assertTrue(challenge['otpauth_url'].startswith('otpauth://totp/'))
-            pending_access = self.client.get(
-                '/api/chat-history/sessions',
-                headers={'Authorization': 'Bearer ' + challenge['mfa_token']},
-            )
-            self.assertEqual(pending_access.status_code, 401)
-
-            code = self.totp_code(challenge['secret'], current_time)
-            verified = self.client.post('/api/login/mfa', json={
-                'mfa_token': challenge['mfa_token'], 'code': code,
-            })
-            self.assertEqual(verified.status_code, 200, verified.text)
-            self.assertEqual(verified.json()['role'], 'staff')
-            self.assertIn('access_token', verified.json())
-            self.db.refresh(self.admin)
-            self.assertTrue(self.admin.totp_enabled)
-
-            replay = self.client.post('/api/login/mfa', json={
-                'mfa_token': challenge['mfa_token'], 'code': code,
-            })
-            self.assertEqual(replay.status_code, 401, replay.text)
-
-    def test_enabled_management_login_needs_a_valid_authenticator_code(self):
-        current_time = 1_800_000_000
-        secret, _ = auth.create_totp_setup(self.admin)
-        self.admin.totp_secret = auth.encrypt_totp_secret(secret)
-        self.admin.totp_enabled = True
+    def prepare_login_accounts(self):
+        developer = models.User(id=uuid4(), email='dev@example.test', role='developer', is_active=True)
+        password_hash = authentication.bcrypt.hashpw(b'correct-password', authentication.bcrypt.gensalt(rounds=4)).decode('utf-8')
+        for user in (self.a, self.admin, developer):
+            user.password_hash = password_hash
+        self.db.add(developer)
         self.db.commit()
+        return developer
 
-        with patch.object(authentication.bcrypt, 'checkpw', return_value=True), \
-             patch.object(auth.time, 'time', return_value=current_time):
-            response = self.client.post('/api/login', json={
-                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
-            })
-            self.assertEqual(response.status_code, 200, response.text)
-            challenge = response.json()
-            self.assertFalse(challenge['mfa_setup_required'])
-            self.assertNotIn('secret', challenge)
-
-            invalid_code = str((int(self.totp_code(secret, current_time)) + 1) % 1_000_000).zfill(6)
-            rejected = self.client.post('/api/login/mfa', json={
-                'mfa_token': challenge['mfa_token'], 'code': invalid_code,
-            })
-            self.assertEqual(rejected.status_code, 401, rejected.text)
-
-            accepted = self.client.post('/api/login/mfa', json={
-                'mfa_token': challenge['mfa_token'],
-                'code': self.totp_code(secret, current_time),
-            })
-            self.assertEqual(accepted.status_code, 200, accepted.text)
-            self.assertEqual(accepted.json()['role'], 'admin')
-
-    def test_mfa_codes_are_rate_limited_after_five_failures(self):
-        current_time = 1_800_000_000
-        secret, _ = auth.create_totp_setup(self.admin)
-        self.admin.totp_secret = auth.encrypt_totp_secret(secret)
-        self.admin.totp_enabled = True
-        self.db.commit()
-
-        with patch.object(authentication.bcrypt, 'checkpw', return_value=True), \
-             patch.object(auth.time, 'time', return_value=current_time) as clock:
-            challenge_response = self.client.post('/api/login', json={
-                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
-            })
-            self.assertEqual(challenge_response.status_code, 200, challenge_response.text)
-            challenge = challenge_response.json()
-            invalid_code = '000000'
-            while auth.verify_totp_code(secret, invalid_code, current_time=current_time) is not None:
-                invalid_code = f'{(int(invalid_code) + 1) % 1_000_000:06d}'
-
-            for _ in range(5):
-                rejected = self.client.post('/api/login/mfa', json={
-                    'mfa_token': challenge['mfa_token'], 'code': invalid_code,
+    def test_password_login_issues_usable_access_for_every_role_and_portal(self):
+        developer = self.prepare_login_accounts()
+        cases = [(self.a, 'staff', 'staff'), (self.admin, 'admin', 'admin'),
+                 (self.admin, 'staff', 'staff'), (developer, 'admin', 'developer'),
+                 (developer, 'staff', 'staff')]
+        for user, portal, response_role in cases:
+            with self.subTest(account_role=user.role, portal=portal):
+                response = self.client.post('/api/login', json={
+                    'email': user.email, 'password': 'correct-password', 'role': portal,
                 })
-                self.assertEqual(rejected.status_code, 401, rejected.text)
+                self.assertEqual(response.status_code, 200, response.text)
+                result = response.json()
+                self.assertEqual(set(result), {'id', 'email', 'role', 'name', 'access_token'})
+                self.assertEqual(result['id'], str(user.id))
+                self.assertEqual(result['role'], response_role)
+                payload = auth._verify_signed_token(result['access_token'], 'Invalid token')
+                self.assertEqual(payload['scope'], 'access')
+                self.assertEqual(payload['role'], user.role)
+                headers = {'Authorization': 'Bearer ' + result['access_token']}
+                self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 200)
 
-            self.db.refresh(self.admin)
-            self.assertEqual(self.admin.totp_failed_attempts, 5)
-            self.assertEqual(self.admin.totp_lock_until, current_time + 900)
-            throttled = self.client.post('/api/login/mfa', json={
-                'mfa_token': challenge['mfa_token'],
-                'code': self.totp_code(secret, current_time),
-            })
-            self.assertEqual(throttled.status_code, 429, throttled.text)
-            locked_login = self.client.post('/api/login', json={
-                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
-            })
-            self.assertEqual(locked_login.status_code, 429, locked_login.text)
+    def test_login_still_rejects_bad_credentials_inactive_accounts_and_wrong_portals(self):
+        developer = self.prepare_login_accounts()
+        cases = [(self.a.email, 'wrong-password', 'staff', 401),
+                 (self.admin.email, 'wrong-password', 'admin', 401),
+                 (developer.email, 'wrong-password', 'admin', 401),
+                 ('unknown@example.test', 'correct-password', 'staff', 401),
+                 (self.a.email, 'correct-password', 'admin', 403),
+                 (developer.email, 'correct-password', 'developer', 400),
+                 (self.admin.email, 'correct-password', 'unknown', 400)]
+        for email, password, portal, expected in cases:
+            with self.subTest(email=email, portal=portal, expected=expected):
+                response = self.client.post('/api/login', json={'email': email, 'password': password, 'role': portal})
+                self.assertEqual(response.status_code, expected, response.text)
+                self.assertNotIn('access_token', response.json())
+        for user, portal in ((self.a, 'staff'), (self.admin, 'admin'), (developer, 'admin')):
+            user.is_active = False
+            self.db.commit()
+            response = self.client.post('/api/login', json={'email': user.email, 'password': 'correct-password', 'role': portal})
+            self.assertEqual(response.status_code, 401, response.text)
 
-            clock.return_value = current_time + 901
-            retry = self.client.post('/api/login', json={
-                'email': self.admin.email, 'password': 'correct-password', 'role': 'admin',
-            })
-            self.assertEqual(retry.status_code, 200, retry.text)
-            self.assertFalse(retry.json()['mfa_setup_required'])
-            verified = self.client.post('/api/login/mfa', json={
-                'mfa_token': retry.json()['mfa_token'],
-                'code': self.totp_code(secret, current_time + 901),
-            })
-            self.assertEqual(verified.status_code, 200, verified.text)
+    def test_previously_enrolled_and_locked_accounts_can_sign_in_with_password(self):
+        developer = self.prepare_login_accounts()
+        # Emulate an existing database before the optional column cleanup.
+        for column in ('totp_secret TEXT', 'totp_enabled BOOLEAN DEFAULT FALSE',
+                       'totp_last_counter INTEGER', 'totp_failed_attempts INTEGER DEFAULT 0',
+                       'totp_lock_until INTEGER'):
+            self.db.execute(text('ALTER TABLE "User_list" ADD COLUMN ' + column))
+        self.db.execute(text('UPDATE "User_list" SET totp_secret = :secret, totp_enabled = TRUE, '
+                             'totp_failed_attempts = 5, totp_lock_until = :lock_until'),
+                        {'secret': 'unreadable-legacy-enrollment', 'lock_until': int(time.time()) + 900})
+        self.db.commit()
+        for user in (self.admin, developer):
+            for portal in ('admin', 'staff'):
+                with self.subTest(account_role=user.role, portal=portal):
+                    response = self.client.post('/api/login', json={'email': user.email, 'password': 'correct-password', 'role': portal})
+                    self.assertEqual(response.status_code, 200, response.text)
+                    self.assertIn('access_token', response.json())
 
-    def test_staff_login_remains_single_factor(self):
-        with patch.object(authentication.bcrypt, 'checkpw', return_value=True):
-            response = self.client.post('/api/login', json={
-                'email': self.a.email, 'password': 'staff-password', 'role': 'staff',
-            })
-        self.assertEqual(response.status_code, 200, response.text)
-        self.assertIn('access_token', response.json())
-        self.assertNotIn('mfa_required', response.json())
+    def test_removed_authenticator_endpoint_and_old_challenges_cannot_issue_access(self):
+        response = self.client.post('/api/login/mfa', json={'mfa_token': 'obsolete', 'code': '123456'})
+        self.assertEqual(response.status_code, 404, response.text)
+        for scope in ('mfa_setup', 'mfa_login'):
+            token = auth._create_signed_token({'sub': str(self.admin.id), 'scope': scope, 'exp': int(time.time()) + 300})
+            response = self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer ' + token})
+            self.assertEqual(response.status_code, 401, response.text)
+
+    def test_production_requires_stable_signing_key_without_authenticator_configuration(self):
+        with patch.dict(os.environ, {'APP_ENV': 'production', 'MFA_ENCRYPTION_KEY': '', 'MFA_ENCRYPTION_PREVIOUS_KEYS': ''}):
+            for key in ('', 'short'):
+                with self.subTest(key=key), patch.object(auth, '_configured_secret', key):
+                    with self.assertRaisesRegex(RuntimeError, 'SECRET_KEY'):
+                        auth.validate_auth_configuration()
+            with patch.object(auth, '_configured_secret', 'test-only-stable-signing-key-1234567890'):
+                auth.validate_auth_configuration()
+
 
 if __name__ == '__main__':
     unittest.main()

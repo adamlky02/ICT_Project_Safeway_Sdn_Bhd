@@ -5,11 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Backend Entry Points (supports both package imports and direct execution from the backend directory)
 if __package__:
-    from .general import database
+    from .general import auth, database
     from .general.bootstrap import ensure_bootstrap_developer
     from .route import routers
 else:
-    from general import database
+    from general import auth, database
     from general.bootstrap import ensure_bootstrap_developer
     from route import routers
 
@@ -36,5 +36,6 @@ for router in routers:
 # Startup Initialization (prepares database tables and the optional initial developer account)
 @app.on_event("startup")
 def create_tables() -> None:
+    auth.validate_auth_configuration()
     database.create_tables()
     ensure_bootstrap_developer()

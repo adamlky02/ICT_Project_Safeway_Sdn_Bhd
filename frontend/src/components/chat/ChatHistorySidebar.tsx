@@ -114,12 +114,12 @@ export function ChatHistorySidebar({
                 onPointerDown={onEngage}
                 onFocusCapture={onEngage}
                 className={`
-                    fixed bottom-0 left-0 top-20 z-40 flex w-72 md:w-80 flex-col
+                    fixed bottom-0 left-0 top-20 z-40 flex w-72 min-w-0 shrink-0 flex-col overflow-hidden
                     border-r border-slate-200/80 bg-white/95 shadow-xl backdrop-blur-2xl
                     transition-all duration-300 ease-in-out
                     dark:border-white/10 dark:bg-slate-900/95
-                    md:static md:z-10 md:shadow-none
-                    ${isOpen ? 'translate-x-0' : '-translate-x-full md:-ml-72 md:w-0 md:opacity-0 md:pointer-events-none'}
+                    md:static md:col-start-1 md:row-start-1 md:row-span-2 md:min-h-0 md:z-10 md:shadow-none
+                    ${isOpen ? 'translate-x-0 md:w-80' : '-translate-x-full md:w-0 md:translate-x-0 md:border-r-0 md:opacity-0 md:pointer-events-none'}
                 `}
             >
                 {/* Sidebar Header */}

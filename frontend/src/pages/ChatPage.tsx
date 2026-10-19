@@ -310,13 +310,27 @@ const ChatPage = () => {
 
     return (
         <m.div
-            className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 flex-col overflow-hidden bg-slate-50 font-sans transition-colors duration-300 dark:bg-[#0a0a0a]"
+            className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 flex-col overflow-hidden bg-slate-50 font-sans transition-colors duration-300 dark:bg-[#0a0a0a] md:grid md:grid-cols-[auto_minmax(0,1fr)] md:grid-rows-[5rem_minmax(0,1fr)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
         >
             {/* Workspace Background (adds restrained visual depth behind the conversation) */}
             <EngineeringBackground />
+
+            {/* History Panel (uses the full desktop height beside the navigation and conversation) */}
+            <ChatHistorySidebar
+                isOpen={sidebarOpen}
+                onClose={closeSidebar}
+                onEngage={cancelSidebarAutoRetract}
+                sessions={sessions}
+                activeSessionId={currentSessionId}
+                onSelectSession={handleSelectSession}
+                onNewChat={handleNewChat}
+                onDeleteSession={handleDeleteSession}
+                onRenameSession={handleRenameSession}
+                isLoading={isLoadingSessions}
+            />
 
             {/* Chat Header (provides branding, history toggle, controls, and account menu) */}
             <ChatHeader
@@ -337,21 +351,8 @@ const ChatPage = () => {
                 onNewChat={handleNewChat}
             />
 
-            {/* Workspace Main (History Sidebar + Conversation Workspace) */}
-            <div className="relative flex flex-1 w-full min-h-0 overflow-hidden">
-                <ChatHistorySidebar
-                    isOpen={sidebarOpen}
-                    onClose={closeSidebar}
-                    onEngage={cancelSidebarAutoRetract}
-                    sessions={sessions}
-                    activeSessionId={currentSessionId}
-                    onSelectSession={handleSelectSession}
-                    onNewChat={handleNewChat}
-                    onDeleteSession={handleDeleteSession}
-                    onRenameSession={handleRenameSession}
-                    isLoading={isLoadingSessions}
-                />
-
+            {/* Conversation Workspace (stays below the navigation and beside desktop history) */}
+            <div className="relative flex min-h-0 w-full flex-1 overflow-hidden md:col-start-2 md:row-start-2">
                 <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
                     {/* Conversation Feed (shows messages, sources, and request progress) */}
                     <ChatMessages

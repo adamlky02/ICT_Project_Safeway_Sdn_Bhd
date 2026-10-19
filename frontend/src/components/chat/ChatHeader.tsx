@@ -41,39 +41,39 @@ export function ChatHeader({
     onToggleSidebar,
     onNewChat,
 }: ChatHeaderProps) {
-    const iconButtonClass = 'flex min-h-10 min-w-7 items-center justify-center rounded-full sm:min-w-10 text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-amber-400';
+    const iconButtonClass = 'flex min-h-10 min-w-7 items-center justify-center rounded-full @min-[40rem]:min-w-10 text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-amber-400';
 
     return (
-        <header className="pointer-events-none relative z-50 flex h-20 shrink-0 justify-center">
+        <header className="@container pointer-events-none relative z-50 flex h-20 min-w-0 shrink-0 justify-center md:col-start-2 md:row-start-1">
             <FloatingNavigationDock
                 isDarkMode={isDarkMode}
                 ariaLabel="Chat navigation"
-                className="w-[calc(100vw-1rem)] lg:w-[min(60rem,calc(100vw-2rem))]"
+                className="w-[calc(100%-1rem)] @min-[64rem]:w-[min(60rem,calc(100%-2rem))]"
             >
-                <div className="grid h-full grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] items-center px-2 sm:px-3">
+                <div className="grid h-full grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] items-center px-2 @min-[40rem]:px-3">
                     {/* Conversation Controls (opens history, starts a chat, and changes language) */}
-                    <div className="flex min-w-0 items-center justify-end gap-0.5 pr-1 sm:gap-1 sm:pr-2">
+                    <div className="flex min-w-0 items-center justify-end gap-0.5 pr-1 @min-[40rem]:gap-1 @min-[40rem]:pr-2">
                         {onToggleSidebar && (
                             <button
                                 onClick={onToggleSidebar}
-                                className={`${iconButtonClass} gap-2 px-0.5 sm:px-2 lg:px-3`}
+                                className={`${iconButtonClass} gap-2 px-0.5 @min-[40rem]:px-2 @min-[64rem]:px-3`}
                                 title="Chat History"
                                 aria-label="Open chat history"
                                 type="button"
                             >
                                 <History size={17} />
-                                <span className="hidden text-xs font-bold lg:inline">History</span>
+                                <span className="hidden text-xs font-bold @min-[64rem]:inline">History</span>
                             </button>
                         )}
                         {onNewChat && (
                             <button
                                 onClick={onNewChat}
-                                className="hidden min-h-10 items-center justify-center gap-2 rounded-full px-3 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-400 dark:hover:bg-amber-500/10 sm:flex"
+                                className="hidden min-h-10 items-center justify-center gap-2 rounded-full px-3 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-400 dark:hover:bg-amber-500/10 @min-[40rem]:flex"
                                 title="New Chat"
                                 type="button"
                             >
                                 <Plus size={16} />
-                                <span className="hidden lg:inline">New Chat</span>
+                                <span className="hidden @min-[64rem]:inline">New Chat</span>
                             </button>
                         )}
                         <button
@@ -91,7 +91,7 @@ export function ChatHeader({
                     <div aria-hidden="true" />
 
                     {/* Display & Account Controls (changes theme and opens the account menu) */}
-                    <div className="flex min-w-0 items-center justify-start gap-0.5 pl-1 sm:gap-1 sm:pl-2">
+                    <div className="flex min-w-0 items-center justify-start gap-0.5 pl-1 @min-[40rem]:gap-1 @min-[40rem]:pl-2">
                         <button
                             onClick={onThemeToggle}
                             className={iconButtonClass}
@@ -105,13 +105,13 @@ export function ChatHeader({
                         {showDashboardHome && (
                             <button
                                 onClick={onAdminDashboard}
-                                className={`${iconButtonClass} gap-2 px-0.5 sm:px-2 lg:px-3`}
+                                className={`${iconButtonClass} gap-2 px-0.5 @min-[40rem]:px-2 @min-[64rem]:px-3`}
                                 title={t.admin_dash_btn}
                                 aria-label={`${t.chat_home}: ${t.admin_dash_btn}`}
                                 type="button"
                             >
                                 <Home size={17} />
-                                <span className="hidden text-xs font-bold lg:inline">{t.chat_home}</span>
+                                <span className="hidden text-xs font-bold @min-[64rem]:inline">{t.chat_home}</span>
                             </button>
                         )}
 
@@ -131,7 +131,7 @@ export function ChatHeader({
                             }}
                         >
                             <button
-                                className="flex min-h-10 min-w-7 items-center justify-center gap-1 rounded-full px-1 sm:min-w-10 text-slate-700 transition-colors hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-300 dark:hover:bg-white/10 sm:px-2.5 xl:gap-2 xl:px-3"
+                                className="flex min-h-10 min-w-7 items-center justify-center gap-1 rounded-full px-1 @min-[40rem]:min-w-10 text-slate-700 transition-colors hover:bg-slate-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-300 dark:hover:bg-white/10 @min-[40rem]:px-2.5 @min-[80rem]:gap-2 @min-[80rem]:px-3"
                                 onClick={onDropdownToggle}
                                 type="button"
                                 aria-expanded={dropdownOpen}
@@ -139,8 +139,8 @@ export function ChatHeader({
                                 aria-label={dropdownOpen ? 'Close account menu' : 'Open account menu'}
                             >
                                 <User size={17} className="text-amber-600 dark:text-amber-400" />
-                                <span className="hidden max-w-32 truncate text-xs font-bold xl:block">{profile?.full_name || t.staff_account || 'Staff'}</span>
-                                <ChevronDown size={14} className={`hidden transition-transform duration-300 sm:block ${dropdownOpen ? 'rotate-180' : ''}`} />
+                                <span className="hidden max-w-32 truncate text-xs font-bold @min-[80rem]:block">{profile?.full_name || t.staff_account || 'Staff'}</span>
+                                <ChevronDown size={14} className={`hidden transition-transform duration-300 @min-[40rem]:block ${dropdownOpen ? 'rotate-180' : ''}`} />
                             </button>
 
                             <AnimatePresence>

@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import ipaddress
+import logging
 import os
 import socket
 import time
@@ -25,10 +26,31 @@ AI_SETTING_CATEGORY = "ai_generation"
 DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = os.getenv("GOOGLE_GENERATION_MODEL", "gemini-3.1-flash-lite")
 DEFAULT_TEST_PROMPT = "Reply with exactly: CONNECTED"
+PROVIDER_CONNECT_TIMEOUT_SECONDS = 10
+logger = logging.getLogger(__name__)
 
 
 class ProviderError(RuntimeError):
     """Safe provider error that never contains an API key or full remote response."""
+
+
+class ProviderTimeoutError(ProviderError):
+    """The provider could not connect or respond within its configured timeout."""
+
+
+def _request_timeout(profile: dict[str, Any]) -> tuple[float, float]:
+    # Fail unreachable connections promptly while retaining the model's response allowance.
+    response_timeout = float(profile["timeout_seconds"])
+    return min(PROVIDER_CONNECT_TIMEOUT_SECONDS, response_timeout), response_timeout
+
+
+def _log_provider_failure(attempt: str, exc: Exception) -> None:
+    # Only ProviderError messages are sanitized; configuration exceptions may carry other details.
+    logger.warning(
+        "AI Provider Error: attempt=%s error_type=%s status=%s detail=%s",
+        attempt, type(exc).__name__, getattr(exc, "status_code", None),
+        str(exc) if isinstance(exc, ProviderError) else "",
+    )
 
 
 # Configuration Timestamp (records provider lifecycle events in a consistent UTC format)
@@ -306,7 +328,7 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
             endpoint,
             headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
             json=body,
-            timeout=profile["timeout_seconds"],
+            timeout=_request_timeout(profile),
         )
         response.raise_for_status()
         data = response.json()
@@ -315,8 +337,15 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
         if not text:
             raise ProviderError("The Gemini provider returned an empty response.")
         return text
+    except requests.ConnectTimeout:
+        raise ProviderTimeoutError(
+            "The Gemini provider connection timed out. Check the provider URL and the backend's network access."
+        ) from None
     except requests.Timeout:
-        raise ProviderError("The Gemini provider timed out.")
+        raise ProviderTimeoutError(
+            f"The Gemini provider did not respond within {profile['timeout_seconds']} seconds. "
+            "Increase Request timeout or use a faster model, then save and test again."
+        ) from None
     except requests.RequestException as exc:
         status_code = exc.response.status_code if exc.response is not None else None
         suffix = f" (HTTP {status_code})" if status_code else ""
@@ -348,7 +377,7 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
             endpoint,
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
             json=body,
-            timeout=profile["timeout_seconds"],
+            timeout=_request_timeout(profile),
         )
         response.raise_for_status()
         data = response.json()
@@ -368,8 +397,15 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
                 )
             raise ProviderError("The provider returned an empty response.")
         return text
+    except requests.ConnectTimeout:
+        raise ProviderTimeoutError(
+            "The AI provider connection timed out. Check the provider URL and the backend's network access."
+        ) from None
     except requests.Timeout:
-        raise ProviderError("The AI provider timed out.")
+        raise ProviderTimeoutError(
+            f"The AI provider did not respond within {profile['timeout_seconds']} seconds. "
+            "Increase Request timeout or use a faster model, then save and test again."
+        ) from None
     except requests.RequestException as exc:
         status_code = exc.response.status_code if exc.response is not None else None
         suffix = f" (HTTP {status_code})" if status_code else ""
@@ -456,13 +492,18 @@ def generate_ai_response(db: Session, prompt: str) -> str:
     active = container.get("active") or _default_profile()
     try:
         return _provider_request(active, prompt)
-    except (ProviderError, HTTPException):
+    except (ProviderError, HTTPException) as exc:
+        _log_provider_failure("active", exc)
         fallback = _default_profile()
         # Fallback Eligibility (skips retrying the fallback model or calling it without an environment key)
         is_already_fallback = active.get("provider") == "gemini" and active.get("model") == fallback["model"]
         if is_already_fallback or not os.getenv("GOOGLE_API_KEY", "").strip():
             raise
-        return _provider_request(fallback, prompt)
+        try:
+            return _provider_request(fallback, prompt)
+        except (ProviderError, HTTPException) as fallback_exc:
+            _log_provider_failure("fallback", fallback_exc)
+            raise
 
 
 # Dashboard Provider Label (returns a readable name for the active profile or environment fallback)

@@ -3,10 +3,12 @@
 import asyncio
 import os
 import unittest
+from threading import Event
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from httpx import ASGITransport, AsyncClient
 
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345"}), patch("dotenv.load_dotenv"), patch("boto3.client"):
     from backend.route import chat
@@ -31,7 +33,7 @@ class ChatFailureTests(unittest.TestCase):
             self.addCleanup(mocked.stop)
 
     def request(self):
-        return asyncio.run(chat.chat_with_ai(chat.ChatRequest(message="Synthetic question"), self.db, self.user))
+        return chat.chat_with_ai(chat.ChatRequest(message="Synthetic question"), self.db, self.user)
 
     def test_each_failure_identifies_its_stage_and_preserves_session_without_leaking_details(self):
         for stage, target in (
@@ -79,6 +81,47 @@ class ChatFailureTests(unittest.TestCase):
         self.assertEqual(result["error_code"], "chat_generation_failed")
         self.assertIn("HTTP 429", logs.output[0])
         self.assertNotIn("HTTP 429", result["message"])
+
+    def test_timeout_is_reported_explicitly_without_saving_a_failed_answer(self):
+        self.generate_ai_response.side_effect = chat.ProviderTimeoutError("Safe timeout detail")
+        with self.assertLogs(chat.logger, level="ERROR"):
+            result = self.request()
+        self.assertEqual(result["error_code"], "generation_timeout")
+        self.assertIn("took too long", result["message"])
+        self.save_chat_turn.assert_not_called()
+
+    def test_waiting_for_provider_does_not_block_other_requests(self):
+        entered, release = Event(), Event()
+
+        def slow_provider(*args):
+            entered.set()
+            if not release.wait(timeout=3):
+                raise RuntimeError("Another request could not run while the provider was waiting")
+            return "Synthetic answer"
+
+        self.generate_ai_response.side_effect = slow_provider
+        app = FastAPI()
+        app.include_router(chat.router)
+        app.dependency_overrides[chat.database.get_db] = lambda: self.db
+        app.dependency_overrides[chat.get_current_user] = lambda: self.user
+
+        @app.get("/probe")
+        async def probe():
+            release.set()
+            return {"ok": True}
+
+        async def exercise():
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                pending = asyncio.create_task(client.post("/api/chat", json={"message": "Synthetic question"}))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                    self.assertEqual((await client.get("/probe")).status_code, 200)
+                finally:
+                    release.set()
+                    response = await pending
+                self.assertEqual(response.json()["message"], "Synthetic answer")
+
+        asyncio.run(exercise())
 
     def test_success_still_returns_sources_and_saves_the_answer(self):
         result = self.request()

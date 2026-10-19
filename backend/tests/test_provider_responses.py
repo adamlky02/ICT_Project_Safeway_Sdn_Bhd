@@ -2,7 +2,10 @@
 
 import os
 import unittest
-from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, Mock, patch
+
+from fastapi import HTTPException
 
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://"}), patch("dotenv.load_dotenv"):
     from backend.ai import providers
@@ -81,6 +84,66 @@ class ProviderResponseTests(unittest.TestCase):
         with patch.object(providers, "_resolve_api_key", return_value="test-only-key"):
             self.assertEqual(providers._gemini_request(self.profile, "Hello", test_mode=True), "CONNECTED")
         self.assertEqual(self.post.call_args.kwargs["json"]["generationConfig"]["maxOutputTokens"], 1024)
+
+    def test_connect_timeout_is_short_while_response_timeout_honors_the_profile(self):
+        for adapter in (providers._gemini_request, providers._openai_compatible_request):
+            for seconds in (5, 45, 120):
+                with self.subTest(adapter=adapter.__name__, seconds=seconds):
+                    self.profile["timeout_seconds"] = seconds
+                    self.post.side_effect = providers.requests.ReadTimeout("private-network-detail")
+                    with self.assertRaises(providers.ProviderTimeoutError) as caught:
+                        adapter(self.profile, "Synthetic question", test_mode=False)
+                    self.assertEqual(self.post.call_args.kwargs["timeout"], (min(10, seconds), seconds))
+                    self.assertIn(f"within {seconds} seconds", str(caught.exception))
+                    self.assertNotIn("private-network-detail", str(caught.exception))
+
+    def test_connection_timeout_is_distinct_from_waiting_for_model_output(self):
+        for adapter in (providers._gemini_request, providers._openai_compatible_request):
+            with self.subTest(adapter=adapter.__name__):
+                self.post.side_effect = providers.requests.ConnectTimeout("private-network-detail")
+                with self.assertRaises(providers.ProviderTimeoutError) as caught:
+                    adapter(self.profile, "Synthetic question", test_mode=True)
+                self.assertIn("connection timed out", str(caught.exception))
+                self.assertNotIn("private-network-detail", str(caught.exception))
+
+    def test_timed_out_connection_test_marks_draft_failed_and_keeps_active_provider(self):
+        active = {"provider": "gemini", "model": "synthetic-active-model"}
+        draft = dict(self.profile)
+        setting = SimpleNamespace(config={"active": active, "draft": draft, "previous": None})
+        db = MagicMock()
+        self.post.side_effect = providers.requests.ReadTimeout("private-network-detail")
+        with patch.object(providers, "_get_setting", return_value=setting), patch.object(providers, "_validated_base_url", return_value=self.profile["base_url"]):
+            with self.assertRaises(HTTPException) as caught:
+                providers.test_ai_draft(db)
+        self.assertEqual(caught.exception.status_code, 502)
+        self.assertIn("within 120 seconds", caught.exception.detail)
+        self.assertEqual(setting.config["draft"]["test_status"], "failed")
+        self.assertIs(setting.config["active"], active)
+        db.commit.assert_called_once()
+
+    def test_live_timeout_uses_fallback_without_changing_the_saved_active_profile(self):
+        setting = SimpleNamespace(config={"active": self.profile, "draft": None, "previous": None})
+        db = MagicMock()
+        with patch.dict(os.environ, {"GOOGLE_API_KEY": "test-only-fallback-key"}), patch.object(providers, "_get_setting", return_value=setting), patch.object(providers, "_provider_request", side_effect=[providers.ProviderTimeoutError("Active provider timed out"), "Fallback answer"]) as request:
+            with self.assertLogs(providers.logger, level="WARNING") as logs:
+                self.assertEqual(providers.generate_ai_response(db, "Synthetic prompt"), "Fallback answer")
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_args_list[1].args[0]["provider"], "gemini")
+        self.assertIn("attempt=active", logs.output[0])
+        self.assertIs(setting.config["active"], self.profile)
+        db.commit.assert_not_called()
+
+    def test_both_provider_failures_are_logged_without_raw_configuration_details(self):
+        setting = SimpleNamespace(config={"active": self.profile, "draft": None, "previous": None})
+        failures = [providers.ProviderTimeoutError("Active provider timed out"), HTTPException(503, "private-configuration-detail")]
+        with patch.dict(os.environ, {"GOOGLE_API_KEY": "test-only-fallback-key"}), patch.object(providers, "_get_setting", return_value=setting), patch.object(providers, "_provider_request", side_effect=failures):
+            with self.assertLogs(providers.logger, level="WARNING") as logs:
+                with self.assertRaises(HTTPException):
+                    providers.generate_ai_response(MagicMock(), "Synthetic prompt")
+        self.assertIn("attempt=active", logs.output[0])
+        self.assertIn("Active provider timed out", logs.output[0])
+        self.assertIn("attempt=fallback", logs.output[1])
+        self.assertNotIn("private-configuration-detail", str(logs.output))
 
 
 if __name__ == "__main__":

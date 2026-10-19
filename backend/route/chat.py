@@ -16,7 +16,7 @@ try:
     from ..ai.conversation import analyze_birthday_leave, build_conversation_transcript, build_retrieval_query, serialize_reasoning_context
     from ..ai.embeddings import EmbeddingError, get_embedding
     from ..ai.prompt import build_grounded_chat_prompt
-    from ..ai.providers import ProviderError, generate_ai_response
+    from ..ai.providers import ProviderError, ProviderTimeoutError, generate_ai_response
     from ..general import database
     from ..general.auth import get_current_user
     from ..general.models import User
@@ -25,7 +25,7 @@ except ImportError:
     from ai.conversation import analyze_birthday_leave, build_conversation_transcript, build_retrieval_query, serialize_reasoning_context
     from ai.embeddings import EmbeddingError, get_embedding
     from ai.prompt import build_grounded_chat_prompt
-    from ai.providers import ProviderError, generate_ai_response
+    from ai.providers import ProviderError, ProviderTimeoutError, generate_ai_response
     from general import database
     from general.auth import get_current_user
     from general.models import User
@@ -50,7 +50,8 @@ class ChatRequest(BaseModel):
 
 # Grounded Chat Response (retrieves document passages and saves the answer in the authenticated user's session)
 @router.post("/chat")
-async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
+# The database and provider SDKs are synchronous; FastAPI runs this handler in its thread pool.
+def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
     # Resolve ownership before invoking AI; authorization errors must not be swallowed.
     session = get_or_create_session(db, str(current_user.id), req.session_id, initial_title=req.message)
     session_id = str(session.id)
@@ -112,6 +113,9 @@ async def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db),
         }.get(stage, "The assistant could not prepare a response. Please try again later.")
         if isinstance(exc, EmbeddingError):
             error_code, message = exc.code, str(exc)
+        elif isinstance(exc, ProviderTimeoutError):
+            error_code = "generation_timeout"
+            message = "The AI response provider took too long to respond. Please try again later."
         elif stage == "generation" and isinstance(exc, HTTPException):
             error_code = "generation_configuration_error"
             message = "The AI response provider is not configured correctly. Please contact an administrator."

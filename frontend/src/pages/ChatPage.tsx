@@ -1,7 +1,8 @@
+import { MfaReminder } from '../components/authenticator/MfaReminder';
 import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
+import { API_URL, authenticatedFetch, logout, getStoredUser, readJson } from '../api/client';
 import {
     deleteSession,
     fetchSessionDetail,
@@ -302,8 +303,8 @@ const ChatPage = () => {
     };
 
     // Chat Logout (clears the browser session and returns to the landing page)
-    const handleLogout = () => {
-        localStorage.clear();
+    const handleLogout = async () => {
+        try { await logout(); } catch { /* Local sign-out still completes if the server is unavailable. */ }
         setDropdownOpen(false);
         navigate('/');
     };
@@ -336,6 +337,7 @@ const ChatPage = () => {
                 onToggleSidebar={handleSidebarToggle}
                 onNewChat={handleNewChat}
             />
+            <MfaReminder />
 
             {/* Workspace Main (History Sidebar + Conversation Workspace) */}
             <div className="relative flex flex-1 w-full min-h-0 overflow-hidden">

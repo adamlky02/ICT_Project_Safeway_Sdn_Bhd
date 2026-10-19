@@ -2,7 +2,7 @@
 export type Language = 'en' | 'ms' | 'zh';
 export type UserRole = 'admin' | 'developer' | 'staff';
 export type PortalRole = 'admin' | 'staff';
-export type AdminTab = 'analytics' | 'staff' | 'docs' | 'ai';
+export type AdminTab = 'analytics' | 'staff' | 'docs' | 'ai' | 'authenticator';
 
 // Stored User (describes the authenticated account cached in the browser)
 export interface StoredUser {
@@ -207,9 +207,48 @@ export interface ProfileFormData {
     full_name: string;
     password: string;
     confirmPassword: string;
+    currentPassword?: string;
+    mfaCode?: string;
 }
 
 // API Error Body (captures an optional backend error explanation)
 export interface ApiErrorBody {
     detail?: string;
+}
+
+// Authenticator Contracts (restricted challenges and one-time recovery codes remain in memory only).
+export interface MfaResetRequest {
+    id: string;
+    status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
+    reason: string;
+    created_at: number;
+    reviewed_at?: number | null;
+    review_note?: string | null;
+}
+export interface MfaStatus {
+    enabled: boolean;
+    requires_enrollment: boolean;
+    enrolled_at?: number | null;
+    reset_request: MfaResetRequest | null;
+    role?: UserRole;
+}
+export interface MfaChallenge {
+    mfa_required: true;
+    setup_required: boolean;
+    challenge_token?: string;
+    setup_token?: string;
+    secret?: string;
+    otpauth_uri?: string;
+    expires_in: number;
+    reset_request?: MfaResetRequest | null;
+}
+export interface MfaLoginResult extends StoredUser {
+    recovery_codes?: string[];
+}
+export interface AuthenticatorAccount extends MfaStatus {
+    id: string;
+    email: string;
+    full_name: string;
+    role: UserRole;
+    is_active: boolean;
 }

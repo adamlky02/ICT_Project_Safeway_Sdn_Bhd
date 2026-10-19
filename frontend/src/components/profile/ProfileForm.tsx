@@ -135,6 +135,11 @@ export function ProfileForm({
                                     }`}
                                     placeholder="Confirm new password"
                                 />
+                                {/* Credential Change Confirmation (an existing factor is also required when the account has MFA enabled). */}
+                                {form.password && <div className="mt-4 space-y-3">
+                                    <label className="block text-sm font-semibold">Current password<input type="password" autoComplete="current-password" required value={form.currentPassword || ''} onChange={(event) => onFormChange({ ...form, currentPassword: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-900" /></label>
+                                    <label className="block text-sm font-semibold">Authenticator or recovery code, if MFA is enabled<input autoComplete="one-time-code" maxLength={40} value={form.mfaCode || ''} onChange={(event) => onFormChange({ ...form, mfaCode: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-900" /></label>
+                                </div>}
                                 <AnimatePresence>
                                     {passwordError && (
                                         <m.p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>

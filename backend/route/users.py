@@ -7,11 +7,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 try:
-    from ..general import database, models
+    from ..general import database, models, mfa
     from ..general.auth import require_admin, verify_developer_mode_token
     from ..general.email import send_staff_credentials_email
 except ImportError:
-    from general import database, models
+    from general import database, models, mfa
     from general.auth import require_admin, verify_developer_mode_token
     from general.email import send_staff_credentials_email
 
@@ -91,7 +91,7 @@ def update_staff(
     if user.role == "developer" or requested_role == "developer":
         if admin.role != "developer":
             raise HTTPException(status_code=403, detail="Only a developer can manage developer accounts.")
-        verify_developer_mode_token(developer_token, admin)
+        verify_developer_mode_token(developer_token, admin, db)
         if requested_role == "developer" and user.role not in {"admin", "developer"}:
             raise HTTPException(status_code=400, detail="Promote this account to administrator before granting developer access.")
         if str(user.id) == str(admin.id) and requested_role != user.role:
@@ -101,6 +101,13 @@ def update_staff(
             if count <= 1:
                 raise HTTPException(status_code=400, detail="The system must keep at least one developer account.")
 
+    # Credential/Role Revocation (management edits invalidate old sessions and pending login challenges).
+    credentials_changed = bool(req.password and req.password.strip()) or requested_role != user.role
+    if credentials_changed:
+        state = mfa.state_for(db, user, lock=True)
+        mfa.revoke_sessions(db, state)
+        mfa.cancel_requests(db, user, "Account credentials or role changed; submit a fresh request if needed.")
+        mfa.audit(db, "account_credentials_changed", user, admin)
     user.email = f"{_normalize_username(req.username)}@{STAFF_EMAIL_DOMAIN}"
     user.full_name = req.full_name
     if req.password and req.password.strip():

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, Integer, ForeignKey, JSON
+from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, Integer, ForeignKey, JSON, BigInteger, Index
 from sqlalchemy.dialects.postgresql import UUID
 from .database import Base
 
@@ -45,3 +45,75 @@ class IntegrationSetting(Base):
     config = Column(JSON, nullable=False, default=dict)
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
     updated_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"), onupdate=text("now()"))
+
+
+# Authenticator State (optional per-account enrollment; reset approval preserves a mandatory re-enrollment state).
+class Authenticator(Base):
+    __tablename__ = 'authenticators'
+    __table_args__ = {'schema': 'AI chatbot'}
+    user_id = Column(UUID(as_uuid=True), ForeignKey('AI chatbot.User_list.id', ondelete='CASCADE'), primary_key=True)
+    enabled = Column(Boolean, nullable=False, default=False, server_default=text('false'))
+    requires_enrollment = Column(Boolean, nullable=False, default=False, server_default=text('false'))
+    secret = Column(Text)
+    pending_secret = Column(Text)
+    pending_expires = Column(BigInteger)
+    generation = Column(Integer, nullable=False, default=0, server_default=text('0'))
+    last_counter = Column(BigInteger)
+    failures = Column(Integer, nullable=False, default=0, server_default=text('0'))
+    lock_until = Column(BigInteger)
+    recovery_hashes = Column(JSON, nullable=False, default=list)
+    enrolled_at = Column(BigInteger)
+    reset_sequence = Column(Integer, nullable=False, default=0, server_default=text('0'))
+
+
+# Revocable Sessions (a dedicated table avoids collisions with older auth_sessions layouts without changing legacy rows).
+class AuthSession(Base):
+    __tablename__ = 'safeway_auth_sessions'
+    __table_args__ = {'schema': 'AI chatbot'}
+    token_hash = Column(String(64), primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('AI chatbot.User_list.id', ondelete='CASCADE'), nullable=False, index=True)
+    purpose = Column(String(20), nullable=False)
+    portal_role = Column(String(20), nullable=False)
+    generation = Column(Integer, nullable=False)
+    expires_at = Column(BigInteger, nullable=False, index=True)
+    binding = Column(String(64))
+    mfa_verified = Column(Boolean, nullable=False, default=False)
+
+
+# Reset Review Queue (a partial unique index allows one pending request per account while retaining decision history).
+class MfaResetRequest(Base):
+    __tablename__ = 'mfa_reset_requests'
+    __table_args__ = (Index('one_pending_mfa_reset_per_user', 'user_id', unique=True,
+                           postgresql_where=text("status = 'pending'"), sqlite_where=text("status = 'pending'")),
+                      {'schema': 'AI chatbot'})
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('AI chatbot.User_list.id', ondelete='CASCADE'), nullable=False, index=True)
+    status = Column(String(20), nullable=False)
+    reason = Column(Text, nullable=False)
+    request_number = Column(Integer, nullable=False)
+    generation = Column(Integer, nullable=False)
+    created_at = Column(BigInteger, nullable=False)
+    reviewed_at = Column(BigInteger)
+    reviewer_id = Column(UUID(as_uuid=True), ForeignKey('AI chatbot.User_list.id', ondelete='SET NULL'))
+    review_note = Column(Text)
+
+
+# Shared Throttling (request buckets survive deploys and are independent of browser sessions or challenge tokens).
+class AuthRateLimit(Base):
+    __tablename__ = 'auth_rate_limits'
+    __table_args__ = {'schema': 'AI chatbot'}
+    key = Column(String(64), primary_key=True)
+    count = Column(Integer, nullable=False)
+    window_start = Column(BigInteger, nullable=False, index=True)
+
+
+# Security Audit (records lifecycle events without passwords, QR data, verification codes, or session tokens).
+class SecurityEvent(Base):
+    __tablename__ = 'security_events'
+    __table_args__ = {'schema': 'AI chatbot'}
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    event = Column(String(50), nullable=False)
+    subject_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    actor_id = Column(UUID(as_uuid=True), nullable=False)
+    occurred_at = Column(BigInteger, nullable=False)
+    details = Column(JSON, nullable=False, default=dict)

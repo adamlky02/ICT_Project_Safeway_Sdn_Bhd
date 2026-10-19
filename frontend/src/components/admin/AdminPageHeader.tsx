@@ -13,7 +13,7 @@ interface AdminPageHeaderProps {
 // Admin Page Header (labels the active panel and links to chat and profile pages)
 export function AdminPageHeader({ tab, t, onOpenChat, onOpenProfile }: AdminPageHeaderProps) {
     // Active Panel Title (maps the selected dashboard tab to localized copy)
-    const title = tab === 'staff'
+    const title = tab === 'authenticator' ? 'Authenticator' : tab === 'staff'
         ? (t.accounts_mgmt || 'Accounts Management')
         : tab === 'docs'
             ? (t.docs_repo || 'Document Repository')
@@ -21,7 +21,7 @@ export function AdminPageHeader({ tab, t, onOpenChat, onOpenProfile }: AdminPage
                 ? (t.ai_settings || 'AI Model Settings')
                 : 'System Analytics & Health';
 
-    const context = tab === 'staff'
+    const context = tab === 'authenticator' ? 'Account protection' : tab === 'staff'
         ? (t.tab_accounts || 'Accounts')
         : tab === 'docs'
             ? (t.tab_docs || 'Documents')

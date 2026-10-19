@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getStoredUser } from '../api/client';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Loader2 } from 'lucide-react';
@@ -34,11 +33,10 @@ function escapeHtml(value: string): string {
 
 // Smart PDF Viewer (renders every PDF page and highlights lines matching retrieved text)
 const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
-    const accessToken = getStoredUser()?.access_token;
     const file = useMemo(() => ({
         url: fileUrl,
-        httpHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-    }), [fileUrl, accessToken]);
+        withCredentials: true,
+    }), [fileUrl]);
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [pageWidth, setPageWidth] = useState(700);

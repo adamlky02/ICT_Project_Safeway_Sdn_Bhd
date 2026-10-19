@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, getStoredUser, readJson, storeUser } from '../api/client';
+import { API_URL, authenticatedFetch, logout, getStoredUser, readJson, storeUser } from '../api/client';
+import { AuthenticatorSettings } from '../components/authenticator/AuthenticatorSettings';
 import { ProfileForm } from '../components/profile/ProfileForm';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';
@@ -52,8 +53,8 @@ const ProfilePage = () => {
     }, [navigate]);
 
     // Profile Logout (clears the browser session and returns to the landing page)
-    const handleLogout = () => {
-        localStorage.clear();
+    const handleLogout = async () => {
+        try { await logout(); } catch { /* Local sign-out still completes if the server is unavailable. */ }
         navigate('/');
     };
 
@@ -80,7 +81,7 @@ const ProfilePage = () => {
             const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ full_name: form.full_name, password: form.password || null }),
+                body: JSON.stringify({ full_name: form.full_name, password: form.password || null, current_password: form.currentPassword, mfa_code: form.mfaCode || '' }),
             });
             const data = await readJson<UserProfile & ApiErrorBody>(response);
             if (!response.ok) {
@@ -151,6 +152,7 @@ const ProfilePage = () => {
                     }}
                     onClearPasswordError={() => setPasswordError('')}
                 />
+                <AuthenticatorSettings />
             </main>
         </div>
     );

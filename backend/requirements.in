@@ -12,3 +12,6 @@ pymupdf==1.27.2.3
 google-generativeai==0.8.6
 cryptography==50.0.1
 requests==2.34.2
+
+# RFC 6238 authenticator codes (no additional transitive dependencies).
+pyotp==2.9.0

@@ -1,13 +1,13 @@
-import bcrypt
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
 try:
-    from ..general import models
-    from ..general.auth import create_developer_mode_token, require_developer
+    from ..general import models, database
+    from ..general.auth import create_developer_mode_token, require_developer, password_matches
 except ImportError:
-    from general import models
-    from general.auth import create_developer_mode_token, require_developer
+    from general import models, database
+    from general.auth import create_developer_mode_token, require_developer, password_matches
 
 router = APIRouter(prefix="/api/developer", tags=["developer"])
 
@@ -22,8 +22,9 @@ class DeveloperUnlockRequest(BaseModel):
 def unlock_developer_mode(
     req: DeveloperUnlockRequest,
     developer: models.User = Depends(require_developer),
+    db: Session = Depends(database.get_db),
 ):
-    if not bcrypt.checkpw(req.password.encode("utf-8"), developer.password_hash.encode("utf-8")):
+    if not password_matches(req.password, developer.password_hash):
         raise HTTPException(status_code=401, detail="The password is incorrect.")
-    developer_token, expires_in = create_developer_mode_token(developer)
+    developer_token, expires_in = create_developer_mode_token(developer, db)
     return {"developer_token": developer_token, "expires_in": expires_in}

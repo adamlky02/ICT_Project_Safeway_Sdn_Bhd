@@ -1,5 +1,5 @@
 import { m } from 'motion/react';
-import { Activity, Bot, Code2, FileText, Globe, LockKeyhole, LogOut, Moon, Sun, Users } from 'lucide-react';
+import { Activity, Bot, Code2, FileText, Globe, LockKeyhole, LogOut, Moon, ShieldCheck, Sun, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Translation } from '../../translations';
 import type { AdminTab, Language } from '../../types';
@@ -42,6 +42,7 @@ export function AdminNavigation({
     const items: NavigationItem[] = [
         { id: 'analytics', icon: Activity, label: t.tab_analytics || 'Analytics' },
         { id: 'staff', icon: Users, label: t.tab_accounts || 'Accounts' },
+        { id: 'authenticator', icon: ShieldCheck, label: 'Authenticator' },
         { id: 'docs', icon: FileText, label: t.tab_docs || 'Documents' },
         ...(isDeveloper && developerModeUnlocked
             ? [{ id: 'ai' as const, icon: Bot, label: t.tab_ai || 'AI Model' }]

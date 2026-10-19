@@ -2,14 +2,15 @@ import { useState, type FormEvent } from 'react';
 import { ArrowLeft, Loader2, LockKeyhole, LogIn } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API_URL, readJson, STAFF_EMAIL_DOMAIN, storeUser } from '../api/client';
+import { API_URL, apiErrorMessage, readJson, STAFF_EMAIL_DOMAIN, storeUser } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { PageControls } from '../components/PageControls';
 import { LoginLoadingOverlay } from '../components/login/LoginLoadingOverlay';
 import { fadeUp } from '../components/motion/presets';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import type { ApiErrorBody, PortalRole, StoredUser } from '../types';
+import { buttonClass, FactorField, fieldClass, RecoveryReceipt, secondaryClass, SecurityDialog, SetupForm } from '../components/authenticator/AuthenticatorForms';
+import type { ApiErrorBody, MfaChallenge, MfaLoginResult, PortalRole, StoredUser } from '../types';
 
 // Login Navigation State (carries the portal role selected on the landing page)
 interface LoginLocationState {
@@ -28,6 +29,13 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [challenge, setChallenge] = useState<MfaChallenge | null>(null);
+    const [code, setCode] = useState('');
+    const [reason, setReason] = useState('');
+    const [requestOpen, setRequestOpen] = useState(false);
+    const [requestSent, setRequestSent] = useState(false);
+    const [notice, setNotice] = useState('');
+    const [completed, setCompleted] = useState<MfaLoginResult | null>(null);
 
     // Completed Login (stores the issued session and opens the workspace selected by the response role)
     const finishLogin = (user: StoredUser) => {
@@ -44,23 +52,54 @@ const LoginPage = () => {
         try {
             const response = await fetch(`${API_URL}/api/login`, {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, role }),
             });
 
             if (response.ok) {
-                finishLogin(await readJson<StoredUser>(response));
+                const result = await readJson<StoredUser | MfaChallenge>(response);
+                setPassword(''); setCode(''); setNotice('');
+                if ('mfa_required' in result) setChallenge(result);
+                else finishLogin(result);
                 return;
             }
 
             const responseError = await readJson<ApiErrorBody>(response);
-            setError(responseError.detail || 'Login failed');
+            setError(apiErrorMessage(responseError, 'Login failed'));
         } catch {
             setError(lang === 'en' ? 'Network error: Could not reach server.' : 'Ralat Rangkaian / 网络错误');
         } finally {
             setIsLoading(false);
         }
     };
+
+    // Restricted Login Actions (only verification completes login; a reset submission never grants access).
+    const verify = async (value: string) => {
+        if (!challenge) return;
+        setIsLoading(true); setError('');
+        try {
+            const path = challenge.setup_required ? '/api/mfa/enroll/confirm' : '/api/login/mfa/verify';
+            const response = await fetch(`${API_URL}${path}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: value, setup_token: challenge.setup_token, challenge_token: challenge.challenge_token }) });
+            const result = await readJson<MfaLoginResult & ApiErrorBody>(response);
+            if (!response.ok) throw new Error(apiErrorMessage(result, 'Authenticator verification failed.'));
+            if (result.recovery_codes?.length) { setCompleted(result); setChallenge(null); }
+            else finishLogin(result);
+        } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to verify your code.'); }
+        finally { setIsLoading(false); }
+    };
+    const sendReset = async (event: FormEvent) => {
+        event.preventDefault(); setIsLoading(true); setError('');
+        try {
+            const response = await fetch(`${API_URL}/api/login/mfa/reset-request`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ challenge_token: challenge?.challenge_token, reason }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(apiErrorMessage(result, 'Unable to submit your request.'));
+            setNotice(result.message); setRequestOpen(false); setRequestSent(true);
+            setChallenge((previous) => previous ? { ...previous, reset_request: result.reset_request } : null);
+        } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to submit your request.'); }
+        finally { setIsLoading(false); }
+    };
+    const back = () => { setChallenge(null); setCode(''); setError(''); setNotice(''); setPassword(''); };
 
     return (
         <div className="min-h-[100svh] min-h-[100dvh] flex items-start sm:items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-x-hidden overflow-y-auto font-sans px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,env(safe-area-inset-top))] sm:px-6 sm:py-16 transition-colors duration-700">
@@ -135,7 +174,15 @@ const LoginPage = () => {
                 </AnimatePresence>
 
                 {/* Login Form (collects account credentials for the selected portal) */}
-                <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
+                {notice && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">{notice}</p>}
+                {completed?.recovery_codes ? <RecoveryReceipt codes={completed.recovery_codes} onDone={() => finishLogin(completed)} /> : challenge?.setup_required ? <SetupForm setup={challenge} busy={isLoading} onConfirm={(value) => void verify(value)} onCancel={back} /> : challenge ? <form onSubmit={(event) => { event.preventDefault(); void verify(code); }} className="space-y-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">Enter a code from your authenticator app or an unused recovery code to finish signing in.</p>
+                    <FactorField value={code} onChange={setCode} disabled={isLoading} />
+                    <button className={buttonClass} disabled={isLoading}>Verify and sign in</button>
+                    {challenge.reset_request && <div className="rounded-xl bg-slate-100 p-3 text-sm dark:bg-slate-950"><p>Reset request: <strong className="capitalize">{challenge.reset_request.status}</strong></p>{challenge.reset_request.review_note && <p>{challenge.reset_request.review_note}</p>}</div>}
+                    <button type="button" className={secondaryClass} disabled={isLoading || challenge.reset_request?.status === 'pending'} onClick={() => { setReason(''); setError(''); setRequestOpen(true); }}>{challenge.reset_request?.status === 'pending' ? 'Reset awaiting approval' : 'I want to reset my authenticator'}</button>
+                    <button type="button" className="block min-h-11 text-sm font-semibold underline" disabled={isLoading} onClick={back}>Back to password / check approval</button>
+                </form> : <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     <div className="space-y-1.5">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
                         <input
@@ -172,8 +219,9 @@ const LoginPage = () => {
                             : <LogIn size={18} className="text-white dark:text-slate-900" />}
                         {isLoading ? t.btn_loading : t.btn_login}
                     </button>
-                </form>
-
+                </form>}
+                {requestOpen && <SecurityDialog title="Request an authenticator reset" onClose={() => { if (!isLoading) setRequestOpen(false); }}><form onSubmit={(event) => void sendReset(event)} className="space-y-4"><p className="text-sm">Your password was verified. An administrator or developer must approve your request before you can register a new device.</p><label className="block space-y-2 text-sm font-semibold">Reason<textarea className={fieldClass} value={reason} onChange={(event) => setReason(event.target.value)} minLength={3} maxLength={500} required disabled={isLoading} /></label>{error && <p role="alert" className="text-sm text-red-600">{error}</p>}<button className={buttonClass} disabled={isLoading}>Send reset request</button></form></SecurityDialog>}
+                {requestSent && <SecurityDialog title="Reset request sent" onClose={() => setRequestSent(false)}><p role="status" className="mb-5">{notice}</p><button className={buttonClass} type="button" onClick={() => setRequestSent(false)}>Done</button></SecurityDialog>}
             </m.div>
         </div>
     );

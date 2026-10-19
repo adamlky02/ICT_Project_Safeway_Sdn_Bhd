@@ -24,65 +24,83 @@ Department-level or per-document permissions are not introduced by this change.
 Direct cloud-object exposure must be controlled separately by the storage bucket
 configuration; these changes protect the application's routes.
 
-## Login and hosted backend configuration
+## Login and optional authenticator protection
 
-All staff, administrator, and developer accounts sign in with their email and
-password through `POST /api/login`. A successful login immediately returns the
-account's portal identity and signed access token. Inactive accounts, incorrect
-passwords, and unauthorized portal roles remain rejected. Management accounts
-may enter the staff portal while retaining their stored permissions. Developer
-Mode still requires a recent confirmation of the same account password.
+All roles start with MFA disabled. Management accounts receive an enable-MFA
+reminder, including when entering the staff portal. MFA is enforced on every
+login once an account enrolls. QR enrollment requires the current password and
+a valid six-digit authenticator code; merely scanning a QR does not enable MFA.
 
-Configure these backend settings in the hosting platform's environment or
-managed secret store:
+`POST /api/login` returns either an authenticated identity or a restricted
+five-minute `mfa_login`/`setup` challenge. Restricted tokens cannot access chat,
+history, files, profiles, or administration. Factor verification uses PyOTP
+(RFC 6238), a 30-second interval, at most one adjacent interval of tolerance,
+database-locked replay counters, a five-failure/15-minute cooldown, and shared
+request limits. Recovery codes are random, hashed, shown once, and single-use.
 
-| Setting | Purpose |
+Browser sessions use an HttpOnly cookie and a database-persisted opaque token
+hash. Browser local storage contains identity metadata and a non-credential
+`cookie` marker. API clients can use the returned opaque bearer token instead.
+Signed tokens from older releases are no longer accepted as access sessions.
+Role and account status are always read from the database. Cookie mutations
+require `X-Safeway-Request: 1` and an approved Origin; CORS allows credentials
+only for the configured frontend origins. Logout, credential changes, and MFA
+changes invalidate server sessions. Developer Mode unlock tokens are also bound
+to the account's credential fingerprint and authenticator generation.
+
+## Authenticator routes
+
+| Route | Access and purpose |
 | --- | --- |
-| `APP_ENV=production` | Validate stable authentication settings at startup; Render is also detected automatically. |
-| `SECRET_KEY` | A random, stable secret of at least 32 characters for signing login tokens. |
-| `DATABASE_URL` | The shared database containing accounts and application data. |
-| `ALLOWED_ORIGINS` | The deployed frontend's HTTPS origin(s). |
+| `GET /api/mfa/status` | Own enrollment metadata and most recent request. |
+| `POST /api/mfa/enroll` | Signed-in user plus current password; begin pending setup. |
+| `POST /api/mfa/enroll/confirm` | Current setup token plus TOTP; activate MFA and return recovery codes once. |
+| `POST /api/login/mfa/verify` | Current login challenge plus TOTP/recovery code; issue full session. |
+| `POST /api/mfa/disable` | Current session, password, and existing factor; disable intentionally. |
+| `POST /api/mfa/reset-requests` | Own current session and password; request lost-device recovery. |
+| `POST /api/login/mfa/reset-request` | Password-verified login challenge; request recovery without application access. |
+| `GET /api/admin/authenticators` | Administrator/developer directory with enrollment and latest request metadata. |
+| `POST /api/admin/authenticators/reset-requests/{id}/decision` | Another administrator/developer, current password, their own factor if enabled, and a review note. |
+| `POST /api/logout` | Revoke the current access session and expire the cookie. |
 
-Use the same signing key on every backend worker and retain it across restarts
-and redeployments. Keep backend secrets out of `VITE_*`, Git, and browser code.
-The frontend's `VITE_API_URL` must point to the public HTTPS backend URL at build
-time. AI configuration encryption remains separate and unchanged.
+Approval deletes the active authenticator and recovery codes, revokes all of
+the subject's sessions/challenges, and requires replacement enrollment. The
+next password login returns a new QR setup instead of access. Approval never
+creates an unrestricted password-only recovery session. Rejection leaves the
+existing factor and sessions active. Requests are idempotent while pending,
+bound to the enrollment generation, and cannot be self-approved. Reviewers
+must verify identity through the company's operational procedure. Both admin
+and developer roles may review requests for every role. No email is sent by
+this implementation; notifications and decision notes appear in the UI.
 
-### Deploying the password-only login
+MFA records, sessions, request limits, review history, and audit events persist
+in PostgreSQL and are shared by workers. No user secrets, passwords, recovery
+codes, or tokens are logged or returned in the management directory.
 
-Deploy the updated backend and rebuild/redeploy the frontend together. The
-authenticator enrollment and verification endpoint has been removed. Previously
-enrolled or locked accounts now use the same password-only login as other
-accounts; saved authenticator state is no longer read or required. The backend
-no longer requires `MFA_ENCRYPTION_KEY` or `MFA_ENCRYPTION_PREVIOUS_KEYS`; remove
-those obsolete settings from the hosting environment.
+## Render and Neon deployment
 
-After every backend instance has been updated, run
-`backend/migrations/20261019_remove_mfa.sql` against the deployed PostgreSQL
-database to permanently delete the old enrollment, replay, and lockout columns.
-This idempotent cleanup is separate from application startup to avoid breaking
-older instances during a rolling deployment. Take a database backup first if
-you need to retain a rollback option. Fresh databases omit these columns.
+See [Authenticator deployment](authenticator_deployment.md) for the same-origin
+Render build, environment settings, additive Neon schema, and smoke checks.
+The dedicated MFA encryption key belongs in the Render backend dashboard. It
+is never generated on startup and never falls back to an AI or session key.
+An unavailable key blocks affected enrollment/verification operations with 503;
+it does not silently disable MFA or prevent unenrolled accounts from logging in.
 
 ## Verification
 
 From the repository root in an installed backend environment:
 
 ```sh
-python -m pip install -r backend/requirements-test.txt
+python -m pip install -r backend/requirements.txt -r backend/requirements-test.txt
+python -m compileall -q backend
 python -m unittest discover -s backend/tests -v
 ```
 
-The suite uses an in-memory SQLite database and mocked storage/AI services. It
-does not load local environment credentials or call company services. It checks
-missing/invalid/expired/wrong-scope tokens, disabled accounts, identity spoofing,
-cross-user reads and mutations, owner access, and cloud/local file downloads.
-Login regressions cover all account roles and portals, previously enrolled
-accounts, credential failures, removed endpoints, and stable signing configuration.
-CI runs the suite after installing the locked backend dependencies.
+The suite uses SQLite and mocked storage/AI services, not company credentials
+or Neon. It covers all account roles/portals, restricted challenge scopes,
+enrollment, encrypted storage, QR expiry, replay and recovery-code rejection,
+cooldown, lost-device requests, review permissions, self-approval rejection,
+approval/rejection, forced replacement enrollment, session revocation, key loss,
+CSRF, worker restarts, password changes, and existing per-user data boundaries.
 
-For a deployment smoke test, sign in, send a message, reopen/rename/delete your
-own history, and open a source PDF. Repeat protected requests without a token
-(expect 401) and with another test account's conversation ID (expect 404).
-This smoke test requires an authorized test environment and is not simulated
-by the automated suite.
+Frontend checks: `npm run typecheck` and `npm run build` in `frontend/`.

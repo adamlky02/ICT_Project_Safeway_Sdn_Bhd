@@ -22,8 +22,9 @@ from sqlalchemy.pool import StaticPool
 
 # Do not load local credentials or construct a real cloud storage client.
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345", "GOOGLE_API_KEY": "test-only"}), patch('dotenv.load_dotenv'), patch('boto3.client'):
-    from backend.general import auth, database, models, chat_history
+    from backend.general import auth, database, models, chat_history, mfa
     from backend.route import authentication, chat, documents
+    from backend.route import mfa as mfa_routes
 
 
 class ProtectedRouteTests(unittest.TestCase):
@@ -35,7 +36,7 @@ class ProtectedRouteTests(unittest.TestCase):
             connection.create_function('now', 0, lambda: datetime.now(timezone.utc).isoformat())
             connection.create_function('gen_random_uuid', 0, lambda: uuid4().hex)
         tables = [models.User.__table__, models.KnowledgeBase.__table__, chat_history.ChatSession.__table__, chat_history.ChatMessageRecord.__table__]
-        database.Base.metadata.create_all(self.engine, tables=tables)
+        database.Base.metadata.create_all(self.engine)
         self.db = sessionmaker(bind=self.engine, expire_on_commit=False)()
         self.a = models.User(id=uuid4(), email='a@example.test', password_hash='unused', role='staff', is_active=True)
         self.b = models.User(id=uuid4(), email='b@example.test', password_hash='unused', role='staff', is_active=True)
@@ -45,6 +46,7 @@ class ProtectedRouteTests(unittest.TestCase):
         chat_history.save_chat_turn(self.db, self.session.id, 'Private question', 'Private answer', [])
         self.app = FastAPI()
         self.app.include_router(authentication.router)
+        self.app.include_router(mfa_routes.router)
         self.app.include_router(chat.router)
         self.app.include_router(documents.router)
         self.app.include_router(chat_history.chat_history_router)
@@ -58,7 +60,7 @@ class ProtectedRouteTests(unittest.TestCase):
         self.client.close(); self.storage_patch.stop(); self.db.close(); self.engine.dispose()
 
     def headers(self, user=None):
-        return {'Authorization': 'Bearer ' + auth.create_access_token(user or self.a)}
+        return {'Authorization': 'Bearer ' + auth.create_access_token(user or self.a, self.db)}
 
     def routes(self):
         sid = str(self.session.id)
@@ -74,8 +76,8 @@ class ProtectedRouteTests(unittest.TestCase):
         ]
 
     def test_all_routes_reject_missing_invalid_expired_and_wrong_scope_tokens(self):
-        invalid_tokens = [None, 'malformed', auth.create_access_token(self.a) + 'x', auth._create_signed_token({'sub': str(self.a.id), 'scope': 'access', 'exp': int(time.time())-1}),
-                          auth.create_developer_mode_token(self.a)[0],
+        invalid_tokens = [None, 'malformed', auth.create_access_token(self.a, self.db) + 'x', auth._create_signed_token({'sub': str(self.a.id), 'scope': 'access', 'exp': int(time.time())-1}),
+                          auth.create_developer_mode_token(self.a, self.db)[0],
                           auth._create_signed_token({'sub': 'not-a-uuid', 'scope': 'access', 'exp': int(time.time())+60})]
         with patch.object(chat, 'get_embedding') as embed:
             for token in invalid_tokens:
@@ -135,7 +137,10 @@ class ProtectedRouteTests(unittest.TestCase):
     def test_authenticated_chat_uses_verified_identity(self):
         fake_db = MagicMock()
         fake_db.query.return_value.filter.return_value.first.return_value = self.a
-        fake_db.execute.return_value.fetchall.return_value = []
+        empty_result = MagicMock()
+        empty_result.fetchall.return_value = []
+        fake_db.execute.side_effect = lambda query, *args, **kwargs: self.db.execute(query, *args, **kwargs) if any(name in str(query) for name in ('auth_sessions', 'authenticators')) else empty_result
+        fake_db.get.side_effect = self.db.get
         self.app.dependency_overrides[database.get_db] = lambda: fake_db
         with patch.object(chat, 'get_or_create_session', return_value=SimpleNamespace(id=uuid4())) as resolve, patch.object(chat, 'save_chat_turn'), patch.object(chat, 'get_embedding', return_value=[0.1]):
             response = self.client.post('/api/chat', json={'message':'Hello', 'user_id':str(self.b.id)}, headers=self.headers())
@@ -229,9 +234,9 @@ class ProtectedRouteTests(unittest.TestCase):
                 self.assertEqual(set(result), {'id', 'email', 'role', 'name', 'access_token'})
                 self.assertEqual(result['id'], str(user.id))
                 self.assertEqual(result['role'], response_role)
-                payload = auth._verify_signed_token(result['access_token'], 'Invalid token')
-                self.assertEqual(payload['scope'], 'access')
-                self.assertEqual(payload['role'], user.role)
+                session, resolved, _ = mfa.resolve_session(self.db, result['access_token'], {'access'})
+                self.assertEqual(session.purpose, 'access')
+                self.assertEqual(resolved.role, user.role)
                 headers = {'Authorization': 'Bearer ' + result['access_token']}
                 self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 200)
 
@@ -273,7 +278,7 @@ class ProtectedRouteTests(unittest.TestCase):
                     self.assertEqual(response.status_code, 200, response.text)
                     self.assertIn('access_token', response.json())
 
-    def test_removed_authenticator_endpoint_and_old_challenges_cannot_issue_access(self):
+    def test_old_authenticator_endpoint_and_legacy_signed_challenges_cannot_issue_access(self):
         response = self.client.post('/api/login/mfa', json={'mfa_token': 'obsolete', 'code': '123456'})
         self.assertEqual(response.status_code, 404, response.text)
         for scope in ('mfa_setup', 'mfa_login'):

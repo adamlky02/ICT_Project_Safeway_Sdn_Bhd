@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 .venv/
+.venv*/
 venv/
 backend/venv/
 .pytest_cache/
@@ -41,3 +42,7 @@ frontend/.env
 uploads/
 backend/uploads/
 *.log
+
+# One-off document generation and local scratch artifacts
+/tmp/
+/output/

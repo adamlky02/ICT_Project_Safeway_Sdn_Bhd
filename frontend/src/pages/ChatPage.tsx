@@ -1,4 +1,3 @@
-import { MfaReminder } from '../components/authenticator/MfaReminder';
 import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -337,7 +336,6 @@ const ChatPage = () => {
                 onToggleSidebar={handleSidebarToggle}
                 onNewChat={handleNewChat}
             />
-            <MfaReminder />
 
             {/* Workspace Main (History Sidebar + Conversation Workspace) */}
             <div className="relative flex flex-1 w-full min-h-0 overflow-hidden">
@@ -354,7 +352,7 @@ const ChatPage = () => {
                     isLoading={isLoadingSessions}
                 />
 
-                <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden pt-20">
+                <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
                     {/* Conversation Feed (shows messages, sources, and request progress) */}
                     <ChatMessages
                         messages={messages}

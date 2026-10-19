@@ -44,7 +44,7 @@ export function ChatHeader({
     const iconButtonClass = 'flex min-h-10 min-w-7 items-center justify-center rounded-full sm:min-w-10 text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-amber-400';
 
     return (
-        <header className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-20 justify-center">
+        <header className="pointer-events-none relative z-50 flex h-20 shrink-0 justify-center">
             <FloatingNavigationDock
                 isDarkMode={isDarkMode}
                 ariaLabel="Chat navigation"

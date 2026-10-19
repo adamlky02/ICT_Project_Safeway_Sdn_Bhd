@@ -114,7 +114,7 @@ export function ChatHistorySidebar({
                 onPointerDown={onEngage}
                 onFocusCapture={onEngage}
                 className={`
-                    fixed inset-y-0 left-0 z-40 flex w-72 md:w-80 flex-col
+                    fixed bottom-0 left-0 top-20 z-40 flex w-72 md:w-80 flex-col
                     border-r border-slate-200/80 bg-white/95 shadow-xl backdrop-blur-2xl
                     transition-all duration-300 ease-in-out
                     dark:border-white/10 dark:bg-slate-900/95

@@ -74,13 +74,30 @@ class ChatFailureTests(unittest.TestCase):
         self.assertIn("status=503", logs.output[0])
         self.assertNotIn("private-configuration-detail", str(result) + str(logs.output))
 
-    def test_provider_failure_keeps_safe_status_details_in_server_log(self):
+    def test_provider_failure_exposes_safe_status_details_in_chat_and_server_log(self):
         self.generate_ai_response.side_effect = chat.ProviderError("The AI provider request failed (HTTP 429).")
         with self.assertLogs(chat.logger, level="ERROR") as logs:
             result = self.request()
-        self.assertEqual(result["error_code"], "chat_generation_failed")
+        self.assertEqual(result["error_code"], "generation_provider_error")
         self.assertIn("HTTP 429", logs.output[0])
-        self.assertNotIn("HTTP 429", result["message"])
+        self.assertEqual(result["message"], "The AI provider request failed (HTTP 429).")
+        self.save_chat_turn.assert_not_called()
+
+    def test_empty_safe_provider_error_retains_a_readable_fallback_message(self):
+        self.generate_ai_response.side_effect = chat.ProviderError("")
+        with self.assertLogs(chat.logger, level="ERROR"):
+            result = self.request()
+        self.assertEqual(result["error_code"], "generation_provider_error")
+        self.assertTrue(result["message"])
+
+    def test_exhausted_503_reports_temporary_outage_with_the_numeric_status_in_logs(self):
+        self.generate_ai_response.side_effect = chat.ProviderError("Safe provider failure", status_code=503)
+        with self.assertLogs(chat.logger, level="ERROR") as logs:
+            result = self.request()
+        self.assertEqual(result["error_code"], "generation_service_unavailable")
+        self.assertIn("temporarily unavailable (HTTP 503)", result["message"])
+        self.assertIn("status=503", logs.output[0])
+        self.save_chat_turn.assert_not_called()
 
     def test_timeout_is_reported_explicitly_without_saving_a_failed_answer(self):
         self.generate_ai_response.side_effect = chat.ProviderTimeoutError("Safe timeout detail")

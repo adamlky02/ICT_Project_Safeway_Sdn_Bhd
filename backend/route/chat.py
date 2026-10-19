@@ -116,6 +116,16 @@ def chat_with_ai(req: ChatRequest, db: Session = Depends(database.get_db), curre
         elif isinstance(exc, ProviderTimeoutError):
             error_code = "generation_timeout"
             message = "The AI response provider took too long to respond. Please try again later."
+        elif stage == "generation" and isinstance(exc, ProviderError):
+            # ProviderError contains only application-authored, sanitized diagnostics.
+            error_code = "generation_provider_error"
+            message = str(exc) or message
+            if exc.status_code in {502, 503, 504}:
+                error_code = "generation_service_unavailable"
+                message = (
+                    f"The AI response service is temporarily unavailable (HTTP {exc.status_code}). "
+                    "Please try again shortly."
+                )
         elif stage == "generation" and isinstance(exc, HTTPException):
             error_code = "generation_configuration_error"
             message = "The AI response provider is not configured correctly. Please contact an administrator."

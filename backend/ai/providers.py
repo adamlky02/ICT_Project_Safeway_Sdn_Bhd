@@ -3,9 +3,11 @@ import hashlib
 import ipaddress
 import logging
 import os
+import random
 import socket
 import time
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from functools import lru_cache
 from typing import Any
 from urllib.parse import quote, urlparse
@@ -27,11 +29,17 @@ DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = os.getenv("GOOGLE_GENERATION_MODEL", "gemini-3.1-flash-lite")
 DEFAULT_TEST_PROMPT = "Reply with exactly: CONNECTED"
 PROVIDER_CONNECT_TIMEOUT_SECONDS = 10
+PROVIDER_MAX_ATTEMPTS = 3
+PROVIDER_RETRYABLE_STATUSES = frozenset({502, 503, 504})
 logger = logging.getLogger(__name__)
 
 
 class ProviderError(RuntimeError):
     """Safe provider error that never contains an API key or full remote response."""
+
+    def __init__(self, message: str, *, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class ProviderTimeoutError(ProviderError):
@@ -42,6 +50,50 @@ def _request_timeout(profile: dict[str, Any]) -> tuple[float, float]:
     # Fail unreachable connections promptly while retaining the model's response allowance.
     response_timeout = float(profile["timeout_seconds"])
     return min(PROVIDER_CONNECT_TIMEOUT_SECONDS, response_timeout), response_timeout
+
+
+def _post_with_transient_retries(
+    profile: dict[str, Any], endpoint: str, headers: dict[str, str], body: dict[str, Any],
+) -> requests.Response:
+    """Retry explicit transient HTTP failures, within the remaining response allowance.
+
+    Network timeouts are not retried: the provider may already be generating an answer.
+    Requests timeouts limit network inactivity rather than total wall-clock duration.
+    """
+    connect_timeout, response_timeout = _request_timeout(profile)
+    deadline = time.monotonic() + response_timeout
+    remaining = response_timeout
+    for attempt in range(PROVIDER_MAX_ATTEMPTS):
+        response = requests.post(
+            endpoint, headers=headers, json=body,
+            timeout=(min(connect_timeout, remaining), remaining),
+        )
+        if response.status_code not in PROVIDER_RETRYABLE_STATUSES or attempt == PROVIDER_MAX_ATTEMPTS - 1:
+            return response
+        delay = 2 ** attempt + random.uniform(0, 0.25)
+        # Do not shorten a server-requested pause; leave long pauses for a later user request.
+        try:
+            delay = max(delay, float(response.headers.get("Retry-After", "0")))
+        except (TypeError, ValueError):
+            try:
+                retry_at = parsedate_to_datetime(response.headers.get("Retry-After", ""))
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=timezone.utc)
+                delay = max(delay, (retry_at - datetime.now(timezone.utc)).total_seconds())
+            except (TypeError, ValueError, OverflowError):
+                pass
+        if delay > 5 or time.monotonic() + delay >= deadline:
+            return response
+        logger.warning(
+            "AI Provider Retry: status=%s next_attempt=%s delay_seconds=%.2f",
+            response.status_code, attempt + 2, delay,
+        )
+        response.close()
+        time.sleep(delay)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return response
+    return response
 
 
 def _log_provider_failure(attempt: str, exc: Exception) -> None:
@@ -324,11 +376,9 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
         },
     }
     try:
-        response = requests.post(
-            endpoint,
-            headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
-            json=body,
-            timeout=_request_timeout(profile),
+        response = _post_with_transient_retries(
+            profile, endpoint,
+            {"Content-Type": "application/json", "x-goog-api-key": api_key}, body,
         )
         response.raise_for_status()
         data = response.json()
@@ -349,7 +399,7 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
     except requests.RequestException as exc:
         status_code = exc.response.status_code if exc.response is not None else None
         suffix = f" (HTTP {status_code})" if status_code else ""
-        raise ProviderError(f"The Gemini provider request failed{suffix}.")
+        raise ProviderError(f"The Gemini provider request failed{suffix}.", status_code=status_code) from None
     except (KeyError, IndexError, TypeError, ValueError):
         raise ProviderError("The Gemini provider returned an unsupported response format.")
 
@@ -373,11 +423,9 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
         body["reasoning"] = {"enabled": profile.get("thinking_mode", "disabled") == "enabled"}
 
     try:
-        response = requests.post(
-            endpoint,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-            json=body,
-            timeout=_request_timeout(profile),
+        response = _post_with_transient_retries(
+            profile, endpoint,
+            {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}, body,
         )
         response.raise_for_status()
         data = response.json()
@@ -409,7 +457,7 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
     except requests.RequestException as exc:
         status_code = exc.response.status_code if exc.response is not None else None
         suffix = f" (HTTP {status_code})" if status_code else ""
-        raise ProviderError(f"The AI provider request failed{suffix}.")
+        raise ProviderError(f"The AI provider request failed{suffix}.", status_code=status_code) from None
     except (KeyError, IndexError, TypeError, ValueError):
         raise ProviderError("The provider returned a response that is not OpenAI-compatible.")
 

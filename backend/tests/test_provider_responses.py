@@ -32,6 +32,7 @@ class ProviderResponseTests(unittest.TestCase):
 
     def set_response(self, content, finish_reason, reasoning=None):
         response = Mock()
+        response.status_code = 200
         response.json.return_value = {"choices": [{
             "message": {"content": content, "reasoning": reasoning},
             "finish_reason": finish_reason,
@@ -144,6 +145,115 @@ class ProviderResponseTests(unittest.TestCase):
         self.assertIn("Active provider timed out", logs.output[0])
         self.assertIn("attempt=fallback", logs.output[1])
         self.assertNotIn("private-configuration-detail", str(logs.output))
+
+
+class ProviderRetryTests(unittest.TestCase):
+    def setUp(self):
+        self.profile = {
+            "base_url": providers.DEFAULT_GEMINI_BASE_URL,
+            "model": "synthetic-model",
+            "temperature": 0.4,
+            "max_tokens": 1024,
+            "timeout_seconds": 45,
+        }
+        for target, options in (
+            ("requests.post", {}),
+            ("time.sleep", {}),
+            ("time.monotonic", {"return_value": 0}),
+            ("random.uniform", {"return_value": 0}),
+            ("_resolve_api_key", {"return_value": "test-only-key"}),
+        ):
+            mocked = patch(f"{providers.__name__}.{target}", **options)
+            setattr(self, target.split(".")[-1], mocked.start())
+            self.addCleanup(mocked.stop)
+
+    def response(self, status, headers=None):
+        response = Mock(status_code=status, headers=headers or {})
+        if status >= 400:
+            response.raise_for_status.side_effect = providers.requests.HTTPError(
+                "private-provider-response", response=response,
+            )
+        response.json.return_value = {
+            "candidates": [{"content": {"parts": [{"text": "Recovered answer"}]}}],
+            "choices": [{"message": {"content": "Recovered answer"}, "finish_reason": "stop"}],
+        }
+        return response
+
+    def test_transient_failure_recovers_with_backoff_and_the_same_grounded_request(self):
+        for adapter in (providers._gemini_request, providers._openai_compatible_request):
+            for status in (502, 503, 504):
+                with self.subTest(adapter=adapter.__name__, status=status):
+                    self.post.reset_mock()
+                    self.sleep.reset_mock()
+                    first = self.response(status)
+                    second = self.response(status)
+                    self.post.side_effect = [first, second, self.response(200)]
+                    with self.assertLogs(providers.logger, level="WARNING") as logs:
+                        answer = adapter(self.profile, "Synthetic grounded prompt", test_mode=False)
+                    self.assertEqual(answer, "Recovered answer")
+                    self.assertEqual(self.post.call_count, 3)
+                    self.assertEqual([call.args[0] for call in self.sleep.call_args_list], [1, 2])
+                    self.assertEqual(self.post.call_args_list[0], self.post.call_args_list[2])
+                    first.close.assert_called_once()
+                    second.close.assert_called_once()
+                    self.assertNotIn("test-only-key", str(logs.output))
+                    self.assertNotIn("Synthetic grounded prompt", str(logs.output))
+
+    def test_repeated_503_stops_after_three_attempts_and_retains_safe_http_status(self):
+        for adapter in (providers._gemini_request, providers._openai_compatible_request):
+            with self.subTest(adapter=adapter.__name__):
+                self.post.reset_mock()
+                self.post.side_effect = [self.response(503) for _ in range(3)]
+                with self.assertLogs(providers.logger, level="WARNING"):
+                    with self.assertRaises(providers.ProviderError) as caught:
+                        adapter(self.profile, "Synthetic question", test_mode=True)
+                self.assertEqual(self.post.call_count, 3)
+                self.assertEqual(caught.exception.status_code, 503)
+                self.assertIn("HTTP 503", str(caught.exception))
+                self.assertNotIn("private-provider-response", str(caught.exception))
+
+    def test_client_and_quota_errors_are_not_retried(self):
+        for status in (400, 401, 402, 403, 404, 429):
+            with self.subTest(status=status):
+                self.post.reset_mock()
+                self.post.return_value = self.response(status)
+                with self.assertRaises(providers.ProviderError) as caught:
+                    providers._gemini_request(self.profile, "Synthetic question", test_mode=True)
+                self.assertEqual(caught.exception.status_code, status)
+                self.post.assert_called_once()
+        self.sleep.assert_not_called()
+
+    def test_response_allowance_is_reduced_for_retry_and_not_restarted(self):
+        self.monotonic.side_effect = [0, 1, 2]
+        self.post.side_effect = [self.response(503), self.response(200)]
+        with self.assertLogs(providers.logger, level="WARNING"):
+            providers._gemini_request(self.profile, "Synthetic question", test_mode=False)
+        self.assertEqual(self.post.call_args_list[0].kwargs["timeout"], (10, 45))
+        self.assertEqual(self.post.call_args_list[1].kwargs["timeout"], (10, 43))
+
+    def test_retry_stops_if_response_allowance_is_already_spent(self):
+        self.monotonic.side_effect = [0, 45]
+        self.post.return_value = self.response(503)
+        with self.assertRaises(providers.ProviderError):
+            providers._gemini_request(self.profile, "Synthetic question", test_mode=False)
+        self.post.assert_called_once()
+        self.sleep.assert_not_called()
+
+    def test_retry_after_is_respected_and_long_pauses_do_not_hold_the_request(self):
+        for pause, calls in (("3", 2), ("120", 1), ("Thu, 01 Jan 2099 00:00:00 GMT", 1)):
+            with self.subTest(pause=pause):
+                self.post.reset_mock()
+                self.sleep.reset_mock()
+                self.post.side_effect = [self.response(503, {"Retry-After": pause}), self.response(200)]
+                if calls == 2:
+                    with self.assertLogs(providers.logger, level="WARNING"):
+                        providers._gemini_request(self.profile, "Synthetic question", test_mode=False)
+                    self.sleep.assert_called_once_with(3)
+                else:
+                    with self.assertRaises(providers.ProviderError):
+                        providers._gemini_request(self.profile, "Synthetic question", test_mode=False)
+                    self.sleep.assert_not_called()
+                self.assertEqual(self.post.call_count, calls)
 
 
 if __name__ == "__main__":

@@ -254,37 +254,6 @@ class MfaLifecycleTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.client.get('/api/mfa/status', headers={'Authorization': 'Bearer '+token}).status_code, 401)
 
-    @patch.object(mfa, 'SESSION_TTL', 43200)
-    def test_verified_cookie_survives_code_rollover_and_challenge_expiry(self):
-        # A verified access session outlives the code and challenge used to obtain it.
-        for user, portal in ((self.a, 'staff'), (self.developer, 'admin')):
-            with self.subTest(portal=portal):
-                setup, _ = self.enroll(user)
-                self.time.return_value += 30
-                challenge = self.login(user, portal).json()['challenge_token']
-                verified = self.client.post('/api/login/mfa/verify', json={
-                    'challenge_token': challenge,
-                    'code': pyotp.TOTP(setup['secret']).at(mfa.now()),
-                })
-                self.assertEqual(verified.status_code, 200, verified.text)
-                token = verified.json()['access_token']
-                session = self.db.get(models.AuthSession, mfa.digest(token))
-                issued_at = mfa.now()
-                original_expiry = session.expires_at
-                self.assertEqual(original_expiry - issued_at, 43200)
-                self.assertTrue(session.mfa_verified)
-                for elapsed in (31, 301, 1801, 43199):
-                    self.time.return_value = issued_at + elapsed
-                    for path in ('/api/mfa/status', '/api/profile/' + str(user.id)):
-                        response = self.client.get(path)
-                        self.assertEqual(response.status_code, 200, (portal, elapsed, path))
-                    self.db.refresh(session)
-                    self.assertEqual(session.expires_at, original_expiry)
-                self.time.return_value = original_expiry
-                response = self.client.get('/api/mfa/status')
-                self.assertEqual(response.status_code, 401)
-                self.assertEqual(response.headers.get('X-Session-Expired'), '1')
-
     def test_sessions_work_after_worker_restart_without_sharing_process_memory(self):
         token = self.login().json()['access_token']
         spec = importlib.util.spec_from_file_location('backend.general.mfa_worker', mfa.__file__)

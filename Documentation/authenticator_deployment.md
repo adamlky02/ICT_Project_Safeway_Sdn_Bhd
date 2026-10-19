@@ -66,55 +66,7 @@ Render Hobby still requires runtime credentials. This implementation removes
 the need to commit secret files, but does not claim to eliminate cloud secrets
 or guarantee availability during Render, Neon, or network outages.
 
-## Keep a Render static frontend with a same-origin API rewrite
 
-The existing static frontend can keep its public URL while forwarding API
-requests to the backend. This avoids browser third-party-cookie restrictions
-without changing MFA or reducing cookie protection.
-
-In the static site's Redirects/Rewrites settings, put this API rule before the
-existing SPA fallback, replacing the example backend with the trusted API:
-
-| Source | Destination | Action |
-| --- | --- | --- |
-| `/api/*` | `https://YOUR-BACKEND.onrender.com/api/*` | Rewrite |
-| `/*` | `/index.html` | Rewrite |
-
-Leave `VITE_API_URL` empty or set it to the static frontend's own HTTPS origin,
-then rebuild the frontend. The old backend URL is embedded in existing builds,
-so saving a runtime setting without rebuilding will not update that client.
-Keep the backend `SESSION_COOKIE_SECURE=true`, `SESSION_COOKIE_SAMESITE=lax`,
-and `ALLOWED_ORIGINS` equal to the public frontend HTTPS origin. Preserve all
-database and encryption settings.
-
-Add a static-site response-header rule for `/api/*` with
-`Cache-Control: private, no-store`. Verify the actual proxied response headers
-too: external rewrites may preserve the upstream API's cache policy. Private
-API responses must bypass CDN caching; a saved dashboard header rule alone
-does not prove that. The API must return JSON/status codes through the rewrite
-rather than the SPA document, for both GET and POST requests.
-
-Verify that browser requests use the frontend origin, that sign-in sets an
-HttpOnly/Secure session cookie there, and that protected requests still work
-after reload and several authenticator-code changes. A successful password or
-MFA response alone does not prove the browser accepted the cookie.
-
-If retaining direct cross-site API requests, they require
-`SESSION_COOKIE_SAMESITE=none` with `SESSION_COOKIE_SECURE=true` and exact
-`ALLOWED_ORIGINS`; browser privacy settings can still block the cookie.
-Same-origin hosting or the rewrite above avoids that dependency.
-
-## A changing authenticator number does not expire an access session
-
-Authenticator codes change every 30 seconds. Login/setup challenges expire
-after five minutes. Completed access sessions default to 12 hours through
-`ACCESS_TOKEN_TTL_SECONDS=43200`; these are separate lifetimes.
-
-When an apparent logout occurs soon after sign-in, first inspect the failed
-protected request and whether its session cookie was sent. Distinct
-`*.onrender.com` frontend and backend sites with a `SameSite=Lax` cookie do not
-send that cookie on cross-site fetches. Do not fix this by extending TOTP code
-validity, disabling MFA, or putting bearer tokens in browser local storage.
 
 ## Additive Neon schema and rollout
 

@@ -1,0 +1,1960 @@
+[
+  {
+    "question": "Three monthly tables have matching schemas and contain 12, 18 and 20 rows. Assuming no filtering or deduplication, how many rows result from their union?",
+    "correct": "50",
+    "explanation": "A union appends rows vertically, so the count is 12 + 18 + 20 = 50.",
+    "pages": [
+      181,
+      184
+    ],
+    "number": 1,
+    "options": [
+      "50",
+      "12",
+      "4320",
+      "20"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "An imported spreadsheet contains titles, notes, empty cells and several embedded tables. Which Tableau feature can help identify the actual data before further reshaping?",
+    "correct": "Data Interpreter",
+    "explanation": "Data Interpreter detects non-data content and tables, but its results should still be checked.",
+    "pages": [
+      190
+    ],
+    "number": 2,
+    "options": [
+      "Swap",
+      "Data Interpreter",
+      "Fix Axes",
+      "Show Mark Labels"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which three characteristics distinguish big data in the notes?",
+    "correct": "Volume, variety and velocity",
+    "explanation": "The notes use the three Vs: volume, variety and velocity.",
+    "pages": [
+      65
+    ],
+    "number": 3,
+    "options": [
+      "Volume, variety and velocity",
+      "Validity, visibility and viability",
+      "Volume, version and visualization",
+      "Vision, value and verification"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which description best fits a Business Intelligence Competency Center (BICC)?",
+    "correct": "A relatively permanent cross-functional team supporting effective BI use",
+    "explanation": "A BICC coordinates expertise, tools, best practices and other support across the organization.",
+    "pages": [
+      120,
+      121
+    ],
+    "number": 4,
+    "options": [
+      "A vendor's score for completeness of vision",
+      "A database table containing transaction records",
+      "A temporary chart used only for a single meeting",
+      "A relatively permanent cross-functional team supporting effective BI use"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "An Orders table has two rows for CustomerID 7, with Sales of 100 and 200. A second table has three matching rows for CustomerID 7. After an inner join on CustomerID, what is SUM(Sales) over the joined rows?",
+    "correct": "900",
+    "explanation": "The join produces 2 times 3 = 6 rows. Each order's Sales appears three times, so the sum is (100 + 200) times 3 = 900; this illustrates duplication when joining at the wrong level of detail.",
+    "pages": [
+      183,
+      184,
+      166
+    ],
+    "number": 5,
+    "options": [
+      "900",
+      "1500",
+      "600",
+      "300"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Two compatible tables contain monthly values for 4 and 2 different employees, respectively. Each has one employee row and three month columns, all populated. You union the tables, then pivot all three month columns while retaining employee identity. How many result rows appear?",
+    "correct": "18",
+    "explanation": "Union gives 4 + 2 = 6 employee rows. Pivoting three populated month columns produces 6 times 3 = 18 employee-month rows, with original month names and values in the generated fields.",
+    "pages": [
+      181,
+      192,
+      193
+    ],
+    "number": 6,
+    "options": [
+      "24",
+      "9",
+      "6",
+      "18"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A retailer has accurate historical records and a readable dashboard, but no forecasts and no current market inputs. It wants anticipative decisions. Which pair of improvements best addresses these gaps?",
+    "correct": "Integrate current market information and create predictive insights",
+    "explanation": "Anticipative decisions use the latest information and predictions. Information integration supplies current content, and insight creation supports prediction.",
+    "pages": [
+      34,
+      50,
+      56
+    ],
+    "number": 7,
+    "options": [
+      "Add more dashboard colors and keep using historical totals alone",
+      "Standardize hardware and remove external information",
+      "Replace historical storage with individual presentation preferences",
+      "Integrate current market information and create predictive insights"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which BI application supports cross-selling or up-selling in the notes?",
+    "correct": "Using customer history and characteristics to identify additional products to offer",
+    "explanation": "Customer history and characteristics can help identify additional products suitable for each customer.",
+    "pages": [
+      104
+    ],
+    "number": 8,
+    "options": [
+      "Replacing customer segmentation with identical offers",
+      "Counting only the number of database tables",
+      "Using customer history and characteristics to identify additional products to offer",
+      "Ignoring previous customer interactions"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "After merging Products with Total Sales, a column contains links to related tables. What should you do to add Year and Total Sales as ordinary result columns?",
+    "correct": "Expand the related-table column and select Year and Total Sales",
+    "explanation": "The merge supplies a related-table column; expansion adds the desired fields to the primary table.",
+    "pages": [
+      153
+    ],
+    "number": 9,
+    "options": [
+      "Group by the column name only",
+      "Rename the query without expanding anything",
+      "Sort the links alphabetically",
+      "Expand the related-table column and select Year and Total Sales"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A policy specifies which committee can approve BI investments. Which governance component most directly allocates that authority?",
+    "correct": "Decision areas and decision rights",
+    "explanation": "Decision rights allocate authority for identified types of decisions to decision-making bodies.",
+    "pages": [
+      118,
+      119
+    ],
+    "number": 10,
+    "options": [
+      "Presentation preferences",
+      "Decision areas and decision rights",
+      "Data-source filters",
+      "Guiding principles only"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A system stores history, integrates current sources, discovers trends and displays results for users. Which sequence best matches these activities?",
+    "correct": "Organizational memory, information integration, insight creation, presentation",
+    "explanation": "The four capabilities connect accumulated content, synthesis, insights and user-facing outputs.",
+    "pages": [
+      43,
+      61
+    ],
+    "number": 11,
+    "options": [
+      "Organizational memory, information integration, insight creation, presentation",
+      "Insight creation, organizational memory, presentation, information integration",
+      "Presentation, insight creation, organizational memory, information integration",
+      "Information integration, presentation, organizational memory, insight creation"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Employees distrust BI and prefer intuition. Which response best follows the notes?",
+    "correct": "Use a solid business case, a small initial success, champions and early user involvement",
+    "explanation": "Incremental results, champions and user involvement build and sustain support.",
+    "pages": [
+      106,
+      107
+    ],
+    "number": 12,
+    "options": [
+      "Use a solid business case, a small initial success, champions and early user involvement",
+      "Purchase more hardware without addressing expectations",
+      "Require immediate company-wide deployment with no user input",
+      "Delay all education until every BI project is finished"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A team asks whether stakeholders are satisfied and which parts of the solution should improve. Which step is this?",
+    "correct": "Review",
+    "explanation": "Review evaluates the solution and identifies what works and what needs improvement.",
+    "pages": [
+      81
+    ],
+    "number": 13,
+    "options": [
+      "Plan",
+      "Build",
+      "Design",
+      "Review"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Executives regularly ask for facts and analyses before deciding. What effect is most consistent with the notes?",
+    "correct": "They help establish an organizational culture conducive to BI",
+    "explanation": "Senior executives can model the norms of an analytics culture; technology and culture together support BI success.",
+    "pages": [
+      115
+    ],
+    "number": 14,
+    "options": [
+      "They make all report development decentralized",
+      "They remove the need for ongoing BI education",
+      "They help establish an organizational culture conducive to BI",
+      "They eliminate the need for data infrastructure"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which BI capability represents the organization's accumulated history?",
+    "correct": "Organizational memory",
+    "explanation": "Organizational memory includes accumulated data, information and explicit knowledge.",
+    "pages": [
+      46
+    ],
+    "number": 15,
+    "options": [
+      "Organizational memory",
+      "Presentation",
+      "Information integration",
+      "Insight creation"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A vendor has strong ability to execute but limited completeness of vision. Which classification applies?",
+    "correct": "Challenger",
+    "explanation": "Challengers are strong in execution but limited in vision.",
+    "pages": [
+      91
+    ],
+    "number": 16,
+    "options": [
+      "Niche player",
+      "Visionary",
+      "Leader",
+      "Challenger"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which BI capability develops new patterns, trends and relationships to improve decisions?",
+    "correct": "Insight creation",
+    "explanation": "Insight creation develops useful insights for short-term or long-term decisions.",
+    "pages": [
+      55
+    ],
+    "number": 17,
+    "options": [
+      "Insight creation",
+      "Presentation",
+      "Data-source connection management",
+      "Organizational memory"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which item is the clearest example of explicit knowledge?",
+    "correct": "A procedure recorded in a manual",
+    "explanation": "Explicit knowledge is documented or encoded and can be stored or transmitted.",
+    "pages": [
+      24
+    ],
+    "number": 18,
+    "options": [
+      "An employee's undocumented instinct",
+      "An unspoken ability to identify a problem",
+      "A procedure recorded in a manual",
+      "A manager's private intuition about a deadline"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which property means a BI solution fits business strategy, processes and context?",
+    "correct": "Alignment",
+    "explanation": "Alignment concerns the fit between the BI solution and its business setting.",
+    "pages": [
+      72
+    ],
+    "number": 19,
+    "options": [
+      "Alignment",
+      "Portability",
+      "Scalability",
+      "Connectivity"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "What is the main purpose of Power Query / Get & Transform in the lab?",
+    "correct": "Gather, combine, refine and reshape data for analysis",
+    "explanation": "The lab presents Get & Transform as a tool for gathering and shaping data from sources.",
+    "pages": [
+      146
+    ],
+    "number": 20,
+    "options": [
+      "Create only presentation slides",
+      "Gather, combine, refine and reshape data for analysis",
+      "Replace all database relationships with text labels",
+      "Assign BI governance decision rights"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A BI strategy team identifies key information consumers, critical subject areas and future organizational challenges. Which area is it addressing?",
+    "correct": "Stakeholder management",
+    "explanation": "Stakeholder management requires understanding who needs information and what matters to the business.",
+    "pages": [
+      133
+    ],
+    "number": 21,
+    "options": [
+      "Report sorting",
+      "Data validity testing",
+      "Stakeholder management",
+      "Implementation planning"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A Tableau field is a discrete measure. Which statement must be true?",
+    "correct": "It is represented in blue because it is discrete",
+    "explanation": "The notes allow discrete measures and continuous dimensions. Blue indicates discrete behavior.",
+    "pages": [
+      166,
+      167
+    ],
+    "number": 22,
+    "options": [
+      "It is represented in blue because it is discrete",
+      "It is automatically a dimension because it is discrete",
+      "It must create a continuous axis",
+      "It cannot be numeric because it is blue"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "How does BI education differ from a one-time tool-training session?",
+    "correct": "It is broader and ongoing, promoting the value and use of data and analysis",
+    "explanation": "Education includes continued communication, collaboration and cultivating appreciation for data and analysis.",
+    "pages": [
+      108,
+      109
+    ],
+    "number": 23,
+    "options": [
+      "It applies only to developers and excludes information consumers",
+      "It concerns only the location of toolbar buttons",
+      "It ends as soon as users complete initial training",
+      "It is broader and ongoing, promoting the value and use of data and analysis"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which development helps explain exploding organizational data volumes in the notes?",
+    "correct": "Cheaper storage and more electronic connections",
+    "explanation": "Lower storage costs and expanding internet and intranet connections increase collected and stored data.",
+    "pages": [
+      17
+    ],
+    "number": 24,
+    "options": [
+      "Fewer transaction systems and less internet use",
+      "Cheaper storage and more electronic connections",
+      "A universal decline in regulatory requirements",
+      "The elimination of electronic documents"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which comparison agrees with the notes?",
+    "correct": "Waterfall emphasizes planning; Agile emphasizes flexibility",
+    "explanation": "The comparison associates Waterfall with planning and Agile with flexibility.",
+    "pages": [
+      80
+    ],
+    "number": 25,
+    "options": [
+      "Waterfall emphasizes people; Agile emphasizes process",
+      "Waterfall emphasizes collaboration; Agile emphasizes contracts",
+      "Waterfall emphasizes planning; Agile emphasizes flexibility",
+      "Waterfall avoids documentation; Agile requires every step to be strictly documented"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "An organization buys visualization software, combines it with its data sources and deploys a decision-support application. Which statement is most accurate?",
+    "correct": "The software is a BI tool and the deployed application is a BI solution",
+    "explanation": "A BI solution uses tools and organizational data to support the BI process.",
+    "pages": [
+      13,
+      41
+    ],
+    "number": 26,
+    "options": [
+      "The software is a BI tool and the deployed application is a BI solution",
+      "The application is the BI product and can contain no tools",
+      "The software is a BI strategy and the application is raw data",
+      "The software and application are both only data warehouses"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which customization policy is recommended for organizational-memory tools?",
+    "correct": "Standardize them",
+    "explanation": "The notes recommend standardization for organizational memory.",
+    "pages": [
+      88,
+      89
+    ],
+    "number": 27,
+    "options": [
+      "Customize them for every task and individual",
+      "Allow every department to define unrelated historical records",
+      "Customize them for each individual",
+      "Standardize them"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which technology is listed under presentation capability?",
+    "correct": "Online analytical processing (OLAP)",
+    "explanation": "The presentation technologies include OLAP, visualization, dashboards, scorecards and business performance management.",
+    "pages": [
+      60
+    ],
+    "number": 28,
+    "options": [
+      "Online analytical processing (OLAP)",
+      "Enterprise resource planning",
+      "Text mining",
+      "Radio-frequency identification"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "The left table contains unique IDs 1, 2 and 3; the right contains unique IDs 2, 3 and 4. Which IDs appear in an inner join on ID?",
+    "correct": "2 and 3 only",
+    "explanation": "An inner join retains only IDs with matches in both tables.",
+    "pages": [
+      184
+    ],
+    "number": 29,
+    "options": [
+      "1, 2 and 3 only",
+      "2, 3 and 4 only",
+      "2 and 3 only",
+      "1, 2, 3 and 4"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "According to the notes, how does analytics relate to BI?",
+    "correct": "Analytics is a subset of BI",
+    "explanation": "Analytics includes statistical analyses, forecasts, models and simulations within the broader BI scope.",
+    "pages": [
+      66
+    ],
+    "number": 30,
+    "options": [
+      "Analytics concerns only data storage",
+      "Analytics excludes forecasts and simulations",
+      "Analytics is a subset of BI",
+      "BI is a subset of spreadsheet formatting"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A string field contains a location code and employee ID separated consistently by a delimiter. Which operation best creates separate Location and EmployeeID fields?",
+    "correct": "Split or custom split",
+    "explanation": "Splitting separates multiple units of information in a string using a separator or repeated pattern.",
+    "pages": [
+      189,
+      193
+    ],
+    "number": 31,
+    "options": [
+      "Percent of Total",
+      "Split or custom split",
+      "Full outer join",
+      "Continuous-axis conversion"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A team delivers working BI features in small chunks and repeatedly builds on them. Which methodology best fits?",
+    "correct": "Agile",
+    "explanation": "Agile repeats a development sequence in smaller increments.",
+    "pages": [
+      77
+    ],
+    "number": 32,
+    "options": [
+      "Complete outsourcing",
+      "Waterfall",
+      "Vendor standardization",
+      "Agile"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A company develops its BI solution internally using tools purchased from vendors. Which sourcing approach matches the notes?",
+    "correct": "In-house development using acquired vendor tools",
+    "explanation": "Tool sourcing and solution development are separate choices; external tools can support internal development.",
+    "pages": [
+      73,
+      74
+    ],
+    "number": 33,
+    "options": [
+      "In-house development using acquired vendor tools",
+      "Completely in-house development of both tools and solution",
+      "Complete outsourcing",
+      "Outsourced development using only internal tools"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A product has three order lines: in 2025, price 10 with quantity 3 and price 8 with quantity 5; in 2026, price 12 with quantity 2. After the lab's calculations and grouping by ProductID and Year, what totals should appear?",
+    "correct": "2025: 70; 2026: 24",
+    "explanation": "Line totals are 30, 40 and 24. Summing within each product-year gives 70 for 2025 and 24 for 2026.",
+    "pages": [
+      150,
+      151
+    ],
+    "number": 34,
+    "options": [
+      "2025: 94; 2026: 94",
+      "2025: 70; 2026: 24",
+      "2025: 18; 2026: 12",
+      "2025: 144; 2026: 24"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A BI team tests the current iteration, trains users and rolls out the solution. Which step is this?",
+    "correct": "Deploy",
+    "explanation": "The deployment step includes testing the iteration, training and rollout.",
+    "pages": [
+      81
+    ],
+    "number": 35,
+    "options": [
+      "Review",
+      "Design",
+      "Deploy",
+      "Analyse"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "The lab calculates Line Total as UnitPrice multiplied by Quantity. For a unit price of 12.50 and quantity of 8, what is Line Total?",
+    "correct": "100.00",
+    "explanation": "Using the lab's formula, 12.50 multiplied by 8 equals 100.00.",
+    "pages": [
+      150
+    ],
+    "number": 36,
+    "options": [
+      "1.5625",
+      "1250.00",
+      "100.00",
+      "20.50"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which combination best describes a BI roadmap?",
+    "correct": "Define scope and exclusions, and align BI provision with corporate strategy",
+    "explanation": "The roadmap clarifies what is covered and checks alignment with business strategy.",
+    "pages": [
+      131
+    ],
+    "number": 37,
+    "options": [
+      "List only vendors with strong execution scores",
+      "Specify only hardware purchases and no business direction",
+      "Define scope and exclusions, and align BI provision with corporate strategy",
+      "Choose chart colors and ignore business objectives"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "What is a data warehouse according to the notes?",
+    "correct": "A single logical repository for an organization's data",
+    "explanation": "The notes define a warehouse as a single logical data repository.",
+    "pages": [
+      28
+    ],
+    "number": 38,
+    "options": [
+      "A policy assigning rights to approve BI investments",
+      "A chart that compares performance with a target",
+      "A method for converting intuition into explicit knowledge",
+      "A single logical repository for an organization's data"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A product has Line Total 30 in 2024 and Line Total 40 in 2025. You need sales per product per year. Which grouping correctly preserves that requirement?",
+    "correct": "Group by ProductID and Year, then sum Line Total",
+    "explanation": "Using both ProductID and Year keeps separate yearly totals for each product; grouping only by product combines years.",
+    "pages": [
+      151
+    ],
+    "number": 39,
+    "options": [
+      "Group only by Year, then count ProductID",
+      "Group only by ProductID, then sum Line Total",
+      "Group by ProductID and Year, then sum Line Total",
+      "Group by UnitPrice, then average Year"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which BI capability links structured and unstructured content from multiple sources?",
+    "correct": "Information integration",
+    "explanation": "Integration synthesizes diverse content before it is used to produce insights.",
+    "pages": [
+      50
+    ],
+    "number": 40,
+    "options": [
+      "Organizational memory alone",
+      "Presentation",
+      "Business governance",
+      "Information integration"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "In a Tableau treemap, Sales is assigned to Size and Profit to Color. Two categories have equal total sales but different profits. What should you expect?",
+    "correct": "Equal rectangle areas but potentially different colors",
+    "explanation": "Sales controls size, while Profit independently controls color.",
+    "pages": [
+      176,
+      177
+    ],
+    "number": 41,
+    "options": [
+      "Rectangle areas determined by the number of letters in category names",
+      "Different areas determined only by profit",
+      "Equal rectangle areas but potentially different colors",
+      "Identical colors because sales is equal"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "SUM(Sales) is continuous and placed on Tableau's Columns shelf. What does it create?",
+    "correct": "A horizontal axis",
+    "explanation": "A continuous field creates an axis; placement on Columns makes it horizontal.",
+    "pages": [
+      167
+    ],
+    "number": 42,
+    "options": [
+      "A data-source filter",
+      "Only row headers",
+      "A vertical axis",
+      "A horizontal axis"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A BI application can be expanded as its user base and data volume grow. Which characteristic is being demonstrated?",
+    "correct": "Scalability",
+    "explanation": "Scalability is the ability to expand with more users and more data.",
+    "pages": [
+      72
+    ],
+    "number": 43,
+    "options": [
+      "Scalability",
+      "Portability",
+      "Usability",
+      "Accuracy"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Why can a quantitative ROI estimate for BI be difficult?",
+    "correct": "Some payoffs are long term and hard to compute",
+    "explanation": "Long-term benefits can be difficult to quantify, so the fundamental value proposition may also matter.",
+    "pages": [
+      105
+    ],
+    "number": 44,
+    "options": [
+      "BI investments have no costs",
+      "Every benefit must occur before deployment",
+      "Some payoffs are long term and hard to compute",
+      "BI never produces business benefits"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which user category mainly consumes information and lacks BI expertise?",
+    "correct": "Business users",
+    "explanation": "Business users are described as information consumers without BI expertise.",
+    "pages": [
+      86
+    ],
+    "number": 45,
+    "options": [
+      "Business users",
+      "Middle-class users at all times",
+      "Powerful users",
+      "BI developers by definition"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A dataset is accurate and complete, but its contents do not support the business objective being analysed. Which dimension is deficient?",
+    "correct": "Relevance",
+    "explanation": "Relevance asks whether the available data is appropriate for the business objectives.",
+    "pages": [
+      114
+    ],
+    "number": 46,
+    "options": [
+      "Consistency",
+      "Existence",
+      "Validity",
+      "Relevance"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which pair is listed as enabling information integration?",
+    "correct": "Text mining and web mining",
+    "explanation": "Text and web mining help bring unstructured and external content into integrated information.",
+    "pages": [
+      52,
+      62
+    ],
+    "number": 47,
+    "options": [
+      "Data warehousing and ERP",
+      "Scorecards and digital dashboards",
+      "Business analytics and data mining",
+      "Text mining and web mining"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A firm stores past practices and lessons learned in a repository. Which development explains this organizational-memory need?",
+    "correct": "Knowledge is increasingly stored in explicit form",
+    "explanation": "Explicit repositories, including lessons-learned systems, increase the content available to organizational memory.",
+    "pages": [
+      48
+    ],
+    "number": 48,
+    "options": [
+      "External information has disappeared",
+      "Knowledge is increasingly stored in explicit form",
+      "All knowledge has become tacit",
+      "Presentation is no longer needed"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A firm's warehouse preserves historical sales, and an analyst can discover patterns, but current customer comments and competitor reports never reach the analysis. Which change most directly enables better insights without merely altering the dashboard?",
+    "correct": "Integrate the current unstructured and external sources before analysis",
+    "explanation": "The missing step is information integration: insight creation needs synthesized historical and current content, including external and unstructured sources.",
+    "pages": [
+      43,
+      50,
+      54
+    ],
+    "number": 49,
+    "options": [
+      "Integrate the current unstructured and external sources before analysis",
+      "Increase historical storage without adding current sources",
+      "Move all reports into a single worksheet without combining their sources",
+      "Customize only the dashboard's colors for each manager"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which chart in the notes is a line chart with the area between the line and axis shaded, often used for accumulated totals over time?",
+    "correct": "Area chart",
+    "explanation": "An area chart shades the area under a line and is commonly used for totals over time.",
+    "pages": [
+      167
+    ],
+    "number": 50,
+    "options": [
+      "Histogram",
+      "Bullet graph",
+      "Treemap",
+      "Area chart"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Tesco's redemption rate is about 20%, compared with an industry norm of about 2%. Approximately how many times the norm is Tesco's rate?",
+    "correct": "10 times",
+    "explanation": "Divide 20% by 2% to obtain a factor of 10. These are the figures reported in the case.",
+    "pages": [
+      15
+    ],
+    "number": 51,
+    "options": [
+      "100 times",
+      "2 times",
+      "18 times",
+      "10 times"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A list contains 161.2, 175.3 and 166.4 with no description. What does this list best represent?",
+    "correct": "Data",
+    "explanation": "The values become information when context, such as student heights, is added.",
+    "pages": [
+      8
+    ],
+    "number": 52,
+    "options": [
+      "Knowledge",
+      "Data",
+      "A BI strategy",
+      "Information"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A BI improvement plan must address untrained staff, unsuitable software and aging hardware. Which order and scope best follow the notes?",
+    "correct": "Assess staff skills and resourcing, investigate software fit, then build hardware architecture around that fit",
+    "explanation": "Capability improvement includes people and infrastructure. The notes advise investigating suitable software before shaping hardware around it.",
+    "pages": [
+      137
+    ],
+    "number": 53,
+    "options": [
+      "Buy hardware first, postpone software choice, and assume users need no development",
+      "Assess staff skills and resourcing, investigate software fit, then build hardware architecture around that fit",
+      "Change only report ownership because infrastructure cannot affect delivery",
+      "Replace all people considerations with a larger historical archive"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "In the St. Joseph Medical Center case, what did analysing patterns of high glucose readings help the organization do?",
+    "correct": "Identify potential problems earlier and support timely care",
+    "explanation": "The case illustrates earlier identification of potential problems and useful information for authorized healthcare staff.",
+    "pages": [
+      142
+    ],
+    "number": 54,
+    "options": [
+      "Replace authorized access with public patient dashboards",
+      "Focus exclusively on the hospital's bed count",
+      "Identify potential problems earlier and support timely care",
+      "Eliminate the need for patient reports"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A stacked histogram label uses Percent of Total, but you want segment percentages within each individual bar. What adjustment does the lab specify?",
+    "correct": "Edit the table calculation and set Compute Using to Cell",
+    "explanation": "The lab changes Compute Using to Cell to obtain percentages on a per-bar basis.",
+    "pages": [
+      175,
+      176
+    ],
+    "number": 55,
+    "options": [
+      "Convert every dimension to a continuous measure",
+      "Sort the rows by the source filename",
+      "Replace the histogram with a union",
+      "Edit the table calculation and set Compute Using to Cell"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A firm faces global competition and must consider both structured sales records and unstructured market reports. Which BI driver is most directly illustrated?",
+    "correct": "Increasingly complicated decisions",
+    "explanation": "More diverse factors and sources make decisions more complex.",
+    "pages": [
+      18
+    ],
+    "number": 56,
+    "options": [
+      "Reduced data availability",
+      "A preference for identical dashboards",
+      "A decreasing need for integration",
+      "Increasingly complicated decisions"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which pair primarily enables insight creation in the notes?",
+    "correct": "Data mining and business analytics",
+    "explanation": "Data mining, business analytics and real-time decision support enable insight creation.",
+    "pages": [
+      57
+    ],
+    "number": 57,
+    "options": [
+      "Environmental scanning and RFID",
+      "Data mining and business analytics",
+      "Document management and knowledge repositories",
+      "Visualization and scorecards"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Analysts spend most of their time programming data extraction rather than interpreting results. Which BI strategy problem does this illustrate?",
+    "correct": "Analyst programming rather than analysts analysing",
+    "explanation": "The notes identify extraction programming that displaces analysis as a reason to develop a BI strategy.",
+    "pages": [
+      128
+    ],
+    "number": 58,
+    "options": [
+      "Too much organizational alignment",
+      "A lack of continuous green fields",
+      "Analyst programming rather than analysts analysing",
+      "Excessive customer retention"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "You need to show the shape of the distribution of quantities per order by grouping numeric values into bins. Which chart is most appropriate?",
+    "correct": "Histogram",
+    "explanation": "A histogram displays a distribution by grouping a continuous measure into ranges or bins.",
+    "pages": [
+      173
+    ],
+    "number": 59,
+    "options": [
+      "Treemap",
+      "A bar chart grouped only by product category",
+      "Bullet graph",
+      "Histogram"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "From a BI perspective, how should big data be viewed?",
+    "correct": "Another source of data and digital content for analysis",
+    "explanation": "Big data can supply content for BI rather than replacing its capabilities.",
+    "pages": [
+      67
+    ],
+    "number": 60,
+    "options": [
+      "A replacement for every BI capability",
+      "Another source of data and digital content for analysis",
+      "A guarantee that data quality problems disappear",
+      "A source that can never include unstructured information"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which risk is associated with excessive tool customization?",
+    "correct": "Users may spend time on tools rather than business tasks",
+    "explanation": "Customization can waste time and produce queries that are not useful to everyone; excessive standardization can be restrictive.",
+    "pages": [
+      87
+    ],
+    "number": 61,
+    "options": [
+      "Data automatically becomes more accurate",
+      "Users may spend time on tools rather than business tasks",
+      "Every user is forced to see identical reports",
+      "All tools lose the ability to create queries"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Managers receive useful patterns, but cannot interpret the technical reports. Which action best addresses the immediate bottleneck?",
+    "correct": "Present the insights in a form suited to their roles and tasks",
+    "explanation": "Useful insights require an appropriate presentation to reach decision makers effectively.",
+    "pages": [
+      58,
+      59
+    ],
+    "number": 62,
+    "options": [
+      "Present the insights in a form suited to their roles and tasks",
+      "Stop combining external information",
+      "Increase the number of historical records without changing reports",
+      "Replace predictive analysis with additional storage"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "The left table has unique IDs 1 and 2; the right has unique IDs 2 and 3. How many rows result from a full outer join, and how many have unmatched fields on one side?",
+    "correct": "3 rows, with 2 rows having unmatched fields",
+    "explanation": "ID 2 matches; IDs 1 and 3 are both retained with nulls on their missing side.",
+    "pages": [
+      184
+    ],
+    "number": 63,
+    "options": [
+      "1 row, with no unmatched fields",
+      "3 rows, with 2 rows having unmatched fields",
+      "2 rows, with 1 row having unmatched fields",
+      "4 rows, with all rows fully matched"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A hotel manager has only minutes to accept or reject an online room bid. Which BI driver is most directly illustrated?",
+    "correct": "Need for quick reflexes",
+    "explanation": "A rapidly closing decision window requires timely, actionable information.",
+    "pages": [
+      19,
+      21
+    ],
+    "number": 64,
+    "options": [
+      "Need for comprehensive documentation",
+      "Need for quick reflexes",
+      "Need for standardized report ownership",
+      "Need for tacit knowledge conversion"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A team identifies scope, deliverables, staffing and cost-benefit considerations. Which primary BI development step is this?",
+    "correct": "Plan",
+    "explanation": "These items are listed as planning responsibilities.",
+    "pages": [
+      81
+    ],
+    "number": 65,
+    "options": [
+      "Design",
+      "Plan",
+      "Review",
+      "Analyse"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which pair constitutes BI infrastructure in the notes?",
+    "correct": "Data infrastructure and organizational culture",
+    "explanation": "Both the available data and the organization's culture affect BI success.",
+    "pages": [
+      112
+    ],
+    "number": 66,
+    "options": [
+      "Data infrastructure and organizational culture",
+      "Development and sourcing",
+      "Governance and centralization",
+      "Roadmap and release schedules"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which set contains all three delays that effective BI can help reduce?",
+    "correct": "Converting data, integrating information and delivering results to decision makers",
+    "explanation": "The notes identify conversion, integration and availability of results as constraints on quick responses.",
+    "pages": [
+      20
+    ],
+    "number": 67,
+    "options": [
+      "Planning, design and long-term budgeting",
+      "Recruiting staff, purchasing buildings and auditing payroll",
+      "Converting data, integrating information and delivering results to decision makers",
+      "Creating knowledge, forgetting knowledge and deleting knowledge"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which factor belongs to ability to execute rather than completeness of vision in the classification criteria?",
+    "correct": "Customer experience",
+    "explanation": "Customer experience is an execution criterion; the other options are vision criteria.",
+    "pages": [
+      92,
+      93
+    ],
+    "number": 68,
+    "options": [
+      "Market understanding",
+      "Innovation",
+      "Geographic strategy",
+      "Customer experience"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "What does the Applied Steps list in Power Query record?",
+    "correct": "The successive query activities and transformations",
+    "explanation": "The lab states that each query activity creates a step listed under Applied Steps.",
+    "pages": [
+      149
+    ],
+    "number": 69,
+    "options": [
+      "The successive query activities and transformations",
+      "Only the final worksheet's formatting choices",
+      "Only the source's original column names",
+      "Only rows rejected by data filters"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Departments publish different revenue figures and also use the same label for different calculations. Which pair of strategy issues is most directly illustrated?",
+    "correct": "Multiple versions of the truth and unclear business logic",
+    "explanation": "Conflicting figures concern versions of the truth; inconsistent term definitions concern business logic.",
+    "pages": [
+      127
+    ],
+    "number": 70,
+    "options": [
+      "Personnel overhead and hardware portability",
+      "Low data velocity and excess visualization",
+      "Lack of dashboard colors and report pinning",
+      "Multiple versions of the truth and unclear business logic"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Order records refer to customer identifiers that are absent from the customer dataset. Which dimension is most directly affected?",
+    "correct": "Integrity",
+    "explanation": "Integrity concerns complete relationships between data elements and across datasets.",
+    "pages": [
+      114
+    ],
+    "number": 71,
+    "options": [
+      "Existence of the entire order dataset",
+      "Integrity",
+      "Validity of the order-date format",
+      "Relevance of sales analysis"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A mobile operator analyses usage patterns to identify customers likely to switch carriers. What is the most direct objective?",
+    "correct": "Improve customer retention",
+    "explanation": "The example uses BI to identify likely defections and target retention efforts.",
+    "pages": [
+      36
+    ],
+    "number": 72,
+    "options": [
+      "Improve customer retention",
+      "Standardize the operating systems of all customers",
+      "Reduce the number of data sources by ignoring usage",
+      "Replace customer history with random offers"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "In Power Query, you select Year, Winners and Score and choose Remove Other Columns. What remains?",
+    "correct": "Only Year, Winners and Score",
+    "explanation": "Remove Other Columns retains the selected columns and removes the unselected ones.",
+    "pages": [
+      147
+    ],
+    "number": 73,
+    "options": [
+      "Only the first selected column",
+      "Only Year, Winners and Score",
+      "Every column except Year, Winners and Score",
+      "Only rows with non-null scores"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A company uses externally sourced BI tools and an external developer for the solution. Which sourcing approach fits?",
+    "correct": "Complete outsourcing",
+    "explanation": "The complete-outsourcing category uses external development and external tools.",
+    "pages": [
+      74
+    ],
+    "number": 74,
+    "options": [
+      "Internal development using vendor tools",
+      "Joint development with internal tools only",
+      "Completely in-house development",
+      "Complete outsourcing"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A BI review reports only planned benefits and ignores unexpected costs and user feedback. Which improvement best follows the notes?",
+    "correct": "Compare progress with the business case and include unexpected effects and user input",
+    "explanation": "Evaluation should revisit expectations, account for unexpected benefits and costs, and use user feedback.",
+    "pages": [
+      110
+    ],
+    "number": 75,
+    "options": [
+      "Compare progress with the business case and include unexpected effects and user input",
+      "Evaluate only the number of dashboards created",
+      "Ignore effects on customers and suppliers",
+      "Discard the business-case baseline"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Two systems both record a delivery as 5 October, but it actually happened on 6 October. Which assessment is correct?",
+    "correct": "The records are consistent with each other but inaccurate",
+    "explanation": "Consistency across copies does not guarantee that the data correctly describes the real object or event.",
+    "pages": [
+      114
+    ],
+    "number": 76,
+    "options": [
+      "The records are consistent with each other but inaccurate",
+      "The records are accurate but inconsistent",
+      "The matching dates prove all quality dimensions are satisfied",
+      "The records necessarily violate existence but satisfy accuracy"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Why is a business case important for BI?",
+    "correct": "It justifies investment and helps obtain continuing resources",
+    "explanation": "BI needs resources; a business case explains its organizational benefits and investment value.",
+    "pages": [
+      103,
+      105
+    ],
+    "number": 77,
+    "options": [
+      "It guarantees that every benefit has a precise short-term monetary value",
+      "It justifies investment and helps obtain continuing resources",
+      "It proves that data quality is irrelevant",
+      "It removes the need for organizational support"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A vendor has limited ability to execute but strong completeness of vision. Which classification applies?",
+    "correct": "Visionary",
+    "explanation": "Visionaries have strong vision but limited execution. Leaders are strong on both dimensions.",
+    "pages": [
+      91
+    ],
+    "number": 78,
+    "options": [
+      "Niche player",
+      "Leader",
+      "Visionary",
+      "Challenger"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A slow operational database is under heavy query load. Immediate updates are not required for the analysis. Which connection choice best fits the guidance?",
+    "correct": "Use an extract to improve analytical performance and reduce source query load",
+    "explanation": "An extract can help with slow databases and take query load off critical systems; live is useful for current source changes.",
+    "pages": [
+      188
+    ],
+    "number": 79,
+    "options": [
+      "Use a field split to obtain real-time updates",
+      "Use an extract to improve analytical performance and reduce source query load",
+      "Use a union to eliminate all query load",
+      "Use live solely because live can never be slow"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which statement correctly describes the relationship between BI and knowledge management (KM)?",
+    "correct": "BI results can become useful inputs to KM",
+    "explanation": "BI relies critically on data; its results can feed knowledge management.",
+    "pages": [
+      25
+    ],
+    "number": 80,
+    "options": [
+      "BI results can become useful inputs to KM",
+      "KM excludes information and knowledge",
+      "BI depends only on tacit knowledge",
+      "KM and BI have exactly the same inputs and processes"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A required dataset has never been collected. Which data-quality dimension is most directly affected?",
+    "correct": "Existence",
+    "explanation": "Existence asks whether the organization has the data.",
+    "pages": [
+      114
+    ],
+    "number": 81,
+    "options": [
+      "Consistency",
+      "Validity",
+      "Existence",
+      "Accuracy"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Why did PhoneWorks add LucidEra's sales analytics solution to its existing Salesforce use?",
+    "correct": "It needed historical analysis and stage-by-stage sales-cycle insight",
+    "explanation": "Its static current reports did not adequately support historical trends or visibility into sales-cycle bottlenecks.",
+    "pages": [
+      144
+    ],
+    "number": 82,
+    "options": [
+      "It had no current business reports of any kind",
+      "It wanted to measure only the total number of employees",
+      "It needed historical analysis and stage-by-stage sales-cycle insight",
+      "It wanted to stop tracking sales metrics"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which Tableau pairing is correct according to the notes?",
+    "correct": "Discrete fields are blue and create headers; continuous fields are green and create axes",
+    "explanation": "The color distinction denotes discrete versus continuous behavior, rather than an absolute dimension-versus-measure distinction.",
+    "pages": [
+      166,
+      167
+    ],
+    "number": 83,
+    "options": [
+      "Both discrete and continuous fields always create headers",
+      "Discrete fields are green and create axes; continuous fields are blue and create headers",
+      "Blue always means dimension and green always means measure",
+      "Discrete fields are blue and create headers; continuous fields are green and create axes"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "In the lab, which fields are used to match Products with Total Sales during a merge?",
+    "correct": "Products.ProductID and Total Sales.Order_Details.ProductID",
+    "explanation": "The merge matches the product identifier in each query.",
+    "pages": [
+      152
+    ],
+    "number": 84,
+    "options": [
+      "ProductName and Year",
+      "Products.ProductID and Total Sales.Order_Details.ProductID",
+      "CategoryID and Line Total",
+      "QuantityPerUnit and Total Sales"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "You have daily transactional data and quarterly data from a source that does not allow joins. Which combining method is most appropriate according to the notes?",
+    "correct": "Data blending",
+    "explanation": "Blending is useful when joins are unavailable and when sources have different levels of detail.",
+    "pages": [
+      186
+    ],
+    "number": 85,
+    "options": [
+      "An inner join that the source does not support",
+      "Union solely because both sources contain dates",
+      "Data blending",
+      "A metadata rename that appends the records"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which sequence matches the primary BI development steps in the notes?",
+    "correct": "Plan, Analyse, Design, Build, Deploy, Review",
+    "explanation": "The six primary stages appear in this order; iterative work can revisit them.",
+    "pages": [
+      81,
+      82
+    ],
+    "number": 86,
+    "options": [
+      "Design, Plan, Build, Analyse, Review, Deploy",
+      "Plan, Analyse, Design, Build, Deploy, Review",
+      "Plan, Design, Review, Analyse, Deploy, Build",
+      "Analyse, Build, Plan, Review, Design, Deploy"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which pair of technologies primarily enables organizational memory?",
+    "correct": "Data warehousing and knowledge repositories",
+    "explanation": "Warehouses and knowledge repositories preserve organizational content and history.",
+    "pages": [
+      49
+    ],
+    "number": 87,
+    "options": [
+      "Visualization and scorecards",
+      "Text mining and environmental scanning",
+      "Data warehousing and knowledge repositories",
+      "Business analytics and real-time decision support"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A dashboard needs to compare a primary performance measure with one or more comparison measures. Which chart is specifically described for this purpose?",
+    "correct": "Bullet graph",
+    "explanation": "The bullet graph is a bar-graph variation used to compare a primary measure with other measures.",
+    "pages": [
+      172
+    ],
+    "number": 88,
+    "options": [
+      "Treemap",
+      "Area chart",
+      "Histogram",
+      "Bullet graph"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A firm standardizes its historical repositories, customizes integration by role, insight tools by role and task, and presentation by role, task and individual. How does this compare with the notes?",
+    "correct": "It matches all four customization recommendations",
+    "explanation": "The recommended extent of customization increases across the four capabilities in precisely this pattern.",
+    "pages": [
+      88,
+      89
+    ],
+    "number": 89,
+    "options": [
+      "It matches all four customization recommendations",
+      "Integration should instead be customized for every individual",
+      "Only the organizational-memory policy matches",
+      "Presentation should have no customization"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A field accepts only values 1 to 5, but a record contains 9. Which data-quality dimension is most directly violated?",
+    "correct": "Validity",
+    "explanation": "Validity concerns whether values fall within an acceptable range or domain.",
+    "pages": [
+      114
+    ],
+    "number": 90,
+    "options": [
+      "Existence",
+      "Consistency",
+      "Relevance",
+      "Validity"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "The same customer's postcode differs between two systems. Which dimension is most directly affected?",
+    "correct": "Consistency",
+    "explanation": "Consistency asks whether the same data stored in different places has the same values.",
+    "pages": [
+      114
+    ],
+    "number": 91,
+    "options": [
+      "Integrity",
+      "Consistency",
+      "Relevance",
+      "Existence"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A manager uses daily burger sales and bread inventory to decide how much bread to order. What does this best demonstrate?",
+    "correct": "Knowledge",
+    "explanation": "The manager applies an understood relationship between sales, inventory and ordering.",
+    "pages": [
+      9
+    ],
+    "number": 92,
+    "options": [
+      "Uncontextualized data",
+      "A presentation preference",
+      "Knowledge",
+      "Data storage alone"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which activity best exemplifies data mining?",
+    "correct": "Discovering hidden patterns in electronically stored data",
+    "explanation": "Data mining discovers hidden patterns; the other activities concern preparation or presentation.",
+    "pages": [
+      28
+    ],
+    "number": 93,
+    "options": [
+      "Appending rows from identical monthly tables",
+      "Discovering hidden patterns in electronically stored data",
+      "Displaying a saved workbook thumbnail",
+      "Assigning a geographic role to a column"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A dashboard displays the same valid information to every employee, but executives and support staff find it unsuitable for their different jobs. Which capability most directly needs improvement?",
+    "correct": "Presentation",
+    "explanation": "Presentation should adapt information to users' roles, tasks and preferences.",
+    "pages": [
+      58,
+      59
+    ],
+    "number": 94,
+    "options": [
+      "Information integration",
+      "Data storage",
+      "Organizational memory",
+      "Presentation"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A BI solution can be changed quickly when the business context changes. Which characteristic is most directly illustrated?",
+    "correct": "Flexibility",
+    "explanation": "Flexibility is ease and speed of adapting to changing business conditions.",
+    "pages": [
+      72
+    ],
+    "number": 95,
+    "options": [
+      "Accuracy",
+      "Flexibility",
+      "Scalability",
+      "Portability"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A left table contains two rows for ID 1, one for ID 2 and one for ID 3. The right table has three rows for ID 2, two for ID 3 and one for ID 4. A left join matches on ID. How many result rows appear, and how many have null right-side fields?",
+    "correct": "7 rows; 2 with null right-side fields",
+    "explanation": "The two ID 1 rows are retained unmatched. ID 2 produces 3 matches and ID 3 produces 2: 2 + 3 + 2 = 7. ID 4 is not retained by this left join.",
+    "pages": [
+      183,
+      184
+    ],
+    "number": 96,
+    "options": [
+      "6 rows; 1 with null right-side fields",
+      "7 rows; 2 with null right-side fields",
+      "8 rows; 3 with null right-side fields",
+      "4 rows; 2 with null right-side fields"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "According to the notes, what is the central purpose of business intelligence?",
+    "correct": "Provide decision makers with useful information and knowledge",
+    "explanation": "BI draws on varied data and information sources to support decisions.",
+    "pages": [
+      11
+    ],
+    "number": 97,
+    "options": [
+      "Provide decision makers with useful information and knowledge",
+      "Replace every operational system with a dashboard",
+      "Store only external numerical data",
+      "Convert every business decision into an automatic rule"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "You rename and hide fields in Tableau's metadata area. What happens to the underlying source data according to the notes?",
+    "correct": "It is not modified by those metadata changes",
+    "explanation": "These metadata changes alter Tableau's data-source representation, without changing the underlying data.",
+    "pages": [
+      188
+    ],
+    "number": 98,
+    "options": [
+      "It is not modified by those metadata changes",
+      "Its original column names are permanently overwritten",
+      "All hidden columns are deleted from the database",
+      "Every row is automatically aggregated"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "An archive contains database records, emails, videos and presentation slides. Which conclusion follows from the notes?",
+    "correct": "Organizational memory can contain more than structured database records",
+    "explanation": "The organizational-memory examples include many structured and unstructured electronic formats.",
+    "pages": [
+      46,
+      47
+    ],
+    "number": 99,
+    "options": [
+      "Only videos qualify as explicit knowledge",
+      "Organizational memory can contain more than structured database records",
+      "Archived emails automatically constitute new insights",
+      "Organizational memory must exclude electronic documents"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "An oil and gas company delivers on time but sends invoices a week late. Which BI benefit does detecting this problem most directly support?",
+    "correct": "Improvement in operational performance",
+    "explanation": "Identifying delayed invoicing reveals an operational problem that can be corrected.",
+    "pages": [
+      35
+    ],
+    "number": 100,
+    "options": [
+      "Complete outsourcing of BI",
+      "Conversion of all tacit knowledge",
+      "Improvement in operational performance",
+      "Increased report decentralization"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "According to the notes, decision support systems use data together with what to create rules guiding decisions?",
+    "correct": "Prior knowledge",
+    "explanation": "DSS combines data and prior knowledge to form rules for decisions.",
+    "pages": [
+      28
+    ],
+    "number": 101,
+    "options": [
+      "Prior knowledge",
+      "Only storage-cost estimates",
+      "Only dashboard colors",
+      "Only external web pages"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "In the Tesco case, which activity belongs to the broader BI process described in the notes?",
+    "correct": "Tracking redemption rates in detail",
+    "explanation": "The case explicitly includes detailed tracking of redemption rates in the BI process.",
+    "pages": [
+      15
+    ],
+    "number": 102,
+    "options": [
+      "Replacing all sales transactions with intuition",
+      "Removing customer categories from analysis",
+      "Tracking redemption rates in detail",
+      "Manufacturing rewards cards"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "In Tableau, which field would normally be used as a dimension for categorizing sales?",
+    "correct": "Product category",
+    "explanation": "Dimensions contain qualitative values and categorize or segment data; measures contain quantitative values.",
+    "pages": [
+      166
+    ],
+    "number": 103,
+    "options": [
+      "Quantity sold as an aggregated measure",
+      "Sales amount",
+      "Profit amount",
+      "Product category"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "An organization collects large amounts of video, geospatial data and machine logs. Which big-data characteristic is most clearly illustrated by the different formats?",
+    "correct": "Variety",
+    "explanation": "Different content types illustrate variety; the speed of generation would illustrate velocity.",
+    "pages": [
+      64,
+      65
+    ],
+    "number": 104,
+    "options": [
+      "Consistency",
+      "Velocity",
+      "Variety",
+      "Centralization"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "BI solutions focus on individual departments, but their reports are centrally provided as standard solution components. Which conclusion is best?",
+    "correct": "Solution focus is more decentralized, while report development is more centralized",
+    "explanation": "The notes distinguish enterprise versus departmental focus from centralized versus user-developed reports.",
+    "pages": [
+      122
+    ],
+    "number": 105,
+    "options": [
+      "Both dimensions are necessarily fully decentralized",
+      "Solution focus is more decentralized, while report development is more centralized",
+      "Both dimensions are necessarily fully centralized",
+      "Centralization cannot be assessed separately for solutions and reports"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "Which set contains the three interacting aspects of BI management?",
+    "correct": "Processes, infrastructure and structures",
+    "explanation": "The management framework comprises processes, infrastructure and structures.",
+    "pages": [
+      101
+    ],
+    "number": 106,
+    "options": [
+      "Planning, hardware and chart colors",
+      "Volume, variety and velocity",
+      "Processes, infrastructure and structures",
+      "Data, information and knowledge"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which vendor-selection choice best describes strategic buying?",
+    "correct": "Establishing long-term relationships with a few preferred vendors",
+    "explanation": "Strategic buying emphasizes long-term preferred relationships; tactical buying selects options for particular needs.",
+    "pages": [
+      75
+    ],
+    "number": 107,
+    "options": [
+      "Establishing long-term relationships with a few preferred vendors",
+      "Choosing a vendor independently for every particular need",
+      "Purchasing only visualization tools",
+      "Letting each employee buy tools without coordination"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A BI pilot has an extensive archive and can display reports. Its recommendations remain outdated because staff analyse only historical records, even though current competitor information is available. Which diagnosis best fits?",
+    "correct": "Organizational memory is present, but current-source integration must improve to support timely insight creation",
+    "explanation": "Memory supplies accumulated history; integration must synthesize current and external content so insights can reflect ongoing events.",
+    "pages": [
+      43,
+      50,
+      55
+    ],
+    "number": 108,
+    "options": [
+      "Presentation alone will create the missing external information",
+      "Organizational memory is present, but current-source integration must improve to support timely insight creation",
+      "The archive proves all four capabilities are effective",
+      "Organizational memory should be eliminated because integration uses only external data"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A team creates detailed specifications for all four BI capabilities. Which step is this?",
+    "correct": "Design",
+    "explanation": "Design produces detailed specifications for the capabilities.",
+    "pages": [
+      81
+    ],
+    "number": 109,
+    "options": [
+      "Design",
+      "Review",
+      "Build",
+      "Deploy"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which pairing correctly distinguishes architectural blueprint from implementation planning?",
+    "correct": "Blueprint defines BI structure, funding and reporting; planning defines release schedules and documentation expectations",
+    "explanation": "The blueprint concerns how BI is organized; implementation planning concerns carrying out the agreed strategy.",
+    "pages": [
+      135,
+      138
+    ],
+    "number": 110,
+    "options": [
+      "Blueprint sets release schedules; planning determines only customer categories",
+      "Blueprint defines BI structure, funding and reporting; planning defines release schedules and documentation expectations",
+      "Blueprint handles only data accuracy; planning handles only vendor innovation",
+      "Blueprint calculates line totals; planning assigns continuous field colors"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A BI solution works on several software and hardware platforms. Which characteristic is most directly illustrated?",
+    "correct": "Portability",
+    "explanation": "Portability concerns operation across different platforms.",
+    "pages": [
+      72
+    ],
+    "number": 111,
+    "options": [
+      "Flexibility",
+      "Connectivity",
+      "Intelligence",
+      "Portability"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which pair correctly distinguishes BI as a product from BI as a process?",
+    "correct": "Useful information and knowledge; obtaining, analysing and distributing them",
+    "explanation": "The product is the useful output; the process produces and distributes it.",
+    "pages": [
+      13
+    ],
+    "number": 112,
+    "options": [
+      "Raw transaction records; deleting obsolete records",
+      "Software licensing; purchasing hardware",
+      "Useful information and knowledge; obtaining, analysing and distributing them",
+      "A database server; installing that server"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A user usually consumes reports but occasionally creates queries and performs extra analysis. Which category best fits?",
+    "correct": "Middle class",
+    "explanation": "The middle class usually behaves like business users but sometimes designs reports, queries or additional analyses.",
+    "pages": [
+      86
+    ],
+    "number": 113,
+    "options": [
+      "Business users who never design reports",
+      "Middle class",
+      "Powerful users only",
+      "External vendors"
+    ],
+    "answer": "B"
+  },
+  {
+    "question": "A solution runs on multiple platforms but cannot exchange data effectively with the firm's ERP system. Which characteristic is most clearly deficient?",
+    "correct": "Connectivity",
+    "explanation": "Connectivity concerns effective interfaces with other information technologies; portability is already present.",
+    "pages": [
+      72
+    ],
+    "number": 114,
+    "options": [
+      "Scalability",
+      "Intelligence",
+      "Connectivity",
+      "Portability"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "Which situation most directly creates a need for information integration?",
+    "correct": "Relevant records reside in disconnected, incompatible systems",
+    "explanation": "Disconnected transactional systems are one of the listed reasons for integration.",
+    "pages": [
+      51
+    ],
+    "number": 115,
+    "options": [
+      "Relevant records reside in disconnected, incompatible systems",
+      "All information is already unified and complete",
+      "Users only want a different font size",
+      "A workbook has too many pinned thumbnails"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "Which pairing correctly links a BI solution feature to its supporting capability?",
+    "correct": "Convenience - presentation",
+    "explanation": "Convenience concerns outputs in an appropriate, user-friendly form and is linked to presentation.",
+    "pages": [
+      44
+    ],
+    "number": 116,
+    "options": [
+      "Benchmarking - presentation",
+      "Convenience - organizational memory",
+      "Intelligence - organizational memory alone",
+      "Convenience - presentation"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "A team models business processes, develops metrics and assesses organizational readiness. Which step is this?",
+    "correct": "Analyse",
+    "explanation": "Process models, metrics, user involvement and readiness assessment belong to analysis.",
+    "pages": [
+      81
+    ],
+    "number": 117,
+    "options": [
+      "Plan",
+      "Build",
+      "Analyse",
+      "Deploy"
+    ],
+    "answer": "C"
+  },
+  {
+    "question": "A team finishes one development stage before beginning the next in a strictly sequential process. Which methodology is it using?",
+    "correct": "Waterfall",
+    "explanation": "Waterfall follows stages sequentially, completing each before moving on.",
+    "pages": [
+      77
+    ],
+    "number": 118,
+    "options": [
+      "Waterfall",
+      "Data blending",
+      "Agile",
+      "Environmental scanning"
+    ],
+    "answer": "A"
+  },
+  {
+    "question": "A retailer combines ERP records with competitor web information and customer comments. Which capability is doing the combining?",
+    "correct": "Information integration",
+    "explanation": "The combining stage links structured internal records with external and unstructured content.",
+    "pages": [
+      50,
+      54
+    ],
+    "number": 119,
+    "options": [
+      "Presentation",
+      "Organizational memory alone",
+      "Insight creation alone",
+      "Information integration"
+    ],
+    "answer": "D"
+  },
+  {
+    "question": "Which item is the clearest example of tacit knowledge?",
+    "correct": "An experienced manager estimates work using intuition",
+    "explanation": "Tacit knowledge is undocumented and often rests on experience or intuition.",
+    "pages": [
+      24
+    ],
+    "number": 120,
+    "options": [
+      "A written incident report",
+      "A procedure documented in a manual",
+      "An experienced manager estimates work using intuition",
+      "A published financial statement"
+    ],
+    "answer": "C"
+  }
+]

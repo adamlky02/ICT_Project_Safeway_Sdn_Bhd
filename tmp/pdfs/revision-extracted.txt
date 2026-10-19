@@ -1,0 +1,2411 @@
+
+--- PDF PAGE 1 ---
+COS10082
+Applied Analytics in Business
+Unit Overview
+--- PDF PAGE 2 ---
+Why are you taking this unit?
+Why is this unit offered?
+Source: https://www.betterbuys.com/bi/business-intelligence-stats/
+--- PDF PAGE 3 ---
+Unit Learning Outcomes
+By the end of this unit, you should be able to:
+1. Describe the concept of database systems and their tools.
+2. Recognize the role of business intelligence in organizations.
+3. Explain the concept of data warehousing and online analytical processing OLAP.
+4. Identify the benefits, risks and issues related to the implementation of a business
+intelligence system in an organization.
+5. Identify the current Business Intelligence applications in the market.
+6. Analyse and develop an organization’s Business Intelligence strategy that is aligned with
+business and IT strategies.
+--- PDF PAGE 4 ---
+Plagiarism ( DO NOT DO IT!)
+Plagiarism is the action or practice of taking and submitting or
+presenting the thoughts, writings or other work of someone else as
+though it is your own work. Plagiarism includes any of the following,
+without full and appropriate acknowledgment to the original source(s):
+1. The use of the whole or part of a computer program written by
+another person;
+2. the use, in essays or other assessable work, of the whole or part
+of a written work from any source including but not limited to a
+book, journal, newspaper article, set of lecture notes, current or
+past student’s work, any other person’s work, a website or
+database;
+3. the paraphrasing of another’s work;
+4. the use of musical composition, audio, visual, graphic and
+photographic models,
+5. The use of realia, that is, objects, artefacts, costumes, models and
+the like.
+--- PDF PAGE 5 ---
+Any Questions on
+Unit Overview?
+--- PDF PAGE 6 ---
+Week 1: Business Intelligence
+and Its Impacts
+COS10082 Applied Analytics in Business
+--- PDF PAGE 7 ---
+Lecture 1: Outline
+• Data, Information, and Knowledge
+• What is Business Intelligence (BI)?
+• Factors that drive BI
+• BI and Related Technologies
+• BI in contemporary organizations
+--- PDF PAGE 8 ---
+Data, Information, and Knowledge
+• Consider the following:
+Data
+161.2, 175.3, 166.4, 164.7, 169.3
+• What if I provide a context?
+Data + Meaning
+The values refer to students’ heights = Information
+• Can you use the above information to come up
+Information +
+with something to use/apply?
+application or use =
+Knowledge
+--- PDF PAGE 9 ---
+Data, Information, and Knowledge
+• Data
+• May or may not be correct
+• Eg. Sales order at a restaurant included a large burger, medium
+fries and milkshake
+• Information
+• Subset of data
+• Data possessing context, relevance, and purpose
+• Eg. The numbers indicating the daily sales (in dollars, quantity,
+etc.) of burgers, fries, vanilla milkshakes
+• Knowledge
+• Justified beliefs about relationships among concepts
+• Eg. The relationship between the quantity of bread that should be
+ordered, the quantity of bread in inventory, and the daily sales of
+burgers and other products that use bread.
+--- PDF PAGE 10 ---
+Data, Information, and Knowledge
+--- PDF PAGE 11 ---
+What is Business Intelligence (BI)?
+• BI is defined as providing decision makers with valuable information and
+knowledge by leveraging a variety of data sources as well as structured
+and unstructured information (Sabherwal 2007, 2008).
+• BI utilizes:
+• Data (obtained from various sources external or internal to the
+organization);
+• Information which could be quantitative or qualitative.
+• BI output is KNOWLEDGE.
+--- PDF PAGE 12 ---
+What is Business Intelligence (BI)?
+Example of clickstream data
+--- PDF PAGE 13 ---
+What is Business Intelligence (BI)?
+• BI has been used in two different ways:
+• Product or the information and knowledge that are useful to
+organizations for their business activities and decisions.
+• Process, where an organization obtains, analyzes and distributes
+such information or knowledge.
+• BI Tools vs BI Solutions
+• BI tools: used in BI solutions developed by BI vendors
+• BI solutions: support the BI process deployed within organization.
+• BI solutions utilize the BI tools acquired by the organization, and
+draw upon the vast amounts of data from existing data warehouses
+and transaction processing systems, as well as structured and
+unstructured information from these and other sources to provide
+information and knowledge that facilitate decision making.
+--- PDF PAGE 14 ---
+What is Business Intelligence (BI)?
+BI Product, Process, Solution, and Tools
+--- PDF PAGE 15 ---
+# Engagement 1: BI Product, Process, Solution
+and Tools
+Case Study:
+Tesco, a grocery chain in the UK, employs BI tools for effective data access
+and analytics. It collects detailed data on purchases by using customer-
+rewards cards, and then uses a BI solution to categorize customers and to
+develop knowledge on how offers should be customized. The BI process
+thus benefits from the BI solution, but it is broader in nature, and includes
+Tesco's tracking redemption rates in detail. This application of BI to
+generate useful information (about customer categories) and knowledge
+(about potentially beneficial changes in internal processes) has enabled
+Tesco to modify its business processes to obtain better response from
+customers. Consequently, Tesco has been able to raise the redemption rate
+for its direct-marketing initiatives to about 20%, which is much greater
+than the industry norms of about 2%, and has thereby increased its sales.
+--- PDF PAGE 16 ---
+Factors that drive BI
+1. Exploding data volumes
+2. Increasingly complicated decisions
+3. Need for quick reflexes
+4. Technological Progress
+--- PDF PAGE 17 ---
+Factors that drive BI
+1. Exploding data volumes
+The confluence of technological progress (improved data storage capabilities as well as the
+tremendous increase in electronic connections through the Internet and intranet) and regulatory
+changes has led to a dramatic increase in the data collected and stored by organization.
+• Cheaper storage
+• More electronic connections (Internet, intranet,…)
+• Regulatory changes (the Sarbanes Oxley Act of 2002, which requires senior executives in
+publicly traded firms to be actively involved in their firm’s information assets)
+BI solutions provide managers the ability to more effectively utilize these larger data volumes.
+--- PDF PAGE 18 ---
+Factors that drive BI
+2. Increasingly complicated decisions
+With increasing competition from across industries and across countries, decision making in
+organizations has become increasingly complicated, at least in terms of the variety of factors that
+need to be considered.
+• Multi-industry, global competition
+• Decisions from structured and unstructured data
+BI solutions provide managers the ability to make decisions that incorporate all the important factors
+and are based on integration across the structured and unstructured sources of information.
+--- PDF PAGE 19 ---
+Factors that drive BI
+3. Need for quick reflexes
+The pace of change, or volatility, within each market domain has increased rapidly in the past
+decade.
+For example, market and environmental influences can result in overnight changes in an
+organization.
+Due to the acceleration in the pace at which the global economy operates, the time available for
+organizations to respond to market and environmental changes has been decreasing.
+This makes it critical that managers be able to quickly access actionable information, so that
+decisions can be made and implemented before the window opportunity closes.
+--- PDF PAGE 20 ---
+Factors that drive BI
+3. Need for quick reflexes
+Three kinds of delays constrain such quick reflexes:
+• Converting data from variety of sources;
+• Integrating information across sources;
+• Making the results available to the decision maker.
+Effective BI solutions help address each of the three types of delays.
+Decision must be made and implemented quickly – otherwise the window of opportunity closes.
+--- PDF PAGE 21 ---
+Factors that drive BI
+For example: Hotel Booking Business
+• Old time…low-tech…
+• Customer makes a request
+• Individual sales representatives return to the office
+• Discuss the opportunity with their manager
+• Draft a proposal
+• Mail the proposal to the client
+• Client accepts or reject the offer
+• Today…with online auctioning/bidding market
+• Hotel manager: “should I book a $200 room for a bid offer of $80 and fill the room, or
+risk not accepting the bid hoping to get a walk-in customer that will pay the $200?”
+• Manager only has minutes after a bid offer to make the decision!
+--- PDF PAGE 22 ---
+Factors that drive BI
+4. Technological Progress
+The utilization of BI in organization is made possible by the developments of:
+• Decision Support Systems (DSS)
+• Enterprise Resource Planning Systems (ERPS)
+• Data warehousing
+• Data mining
+• Text mining
+As a result of these developments, BI vendors have the necessary inputs for developing effective BI
+tools, and organizations adopting them have the platform to make BI solutions most effective.
+--- PDF PAGE 23 ---
+BI and Related Technologies (BI is not KM)
+• Knowledge Management (KM) • Business Intelligence (BI)
+• Inputs • Inputs
+• Information • Data
+• Knowledge • Information
+• Output • Output
+• Creation of new knowledge (from • Information presented in a friendly
+other forms of knowledge). fashion, such as through scorecards
+and dashboards.
+• Conversion to another form of
+knowledge (from tacit to explicit or • New knowledge or insight, obtained
+vice versa). by revealing previously unknown
+connections or patterns.
+• Application of knowledge in making a
+decision.
+--- PDF PAGE 24 ---
+BI and Related Technologies (Tacit vs. Explicit
+Knowledge)
+TACIT KNOWLEDGE EXPLICIT KNOWLEDGE
+Undocumented knowledge Documented or encoded
+knowledge
+Hard to store/transmit Can be stored/transmitted
+Examples: Examples:
+• Knowing how to identify the key • Procedures listed in a
+issues necessary to solve a manual
+problem • Books and articles
+• Applying similar experiences from • News reports and financial
+past situations statements
+• Estimating work required based on • Information left over from
+intuition and experience past projects
+• Deciding on an appropriate course
+of action
+--- PDF PAGE 25 ---
+BI and Related Technologies
+Roles of Data, Information, and Knowledge in Business Intelligence
+• Knowledge Management (KM) is not directly concerned with data for the most part (with
+the exception of knowledge discovery, which focuses on discovering knowledge from data
+and information using techniques such as data mining, and which represents an area of
+overlap between KM and BI), unlike BI, for which data is critical.
+• However, the results of BI can be, and often are, useful inputs to KM.
+--- PDF PAGE 26 ---
+BI and Related Technologies
+Roles of Data, Information, and Knowledge in Business Intelligence
+Knowledge
+Creation
+--- PDF PAGE 27 ---
+BI and Related Technologies
+Roles of Data, Information, and Knowledge in Knowledge Management
+Knowledge
+Creation
+Knowledge
+Capture,
+Sharing and
+Application
+--- PDF PAGE 28 ---
+BI and Related Technologies
+BI is not data warehousing, data mining nor decision support systems.
+• Data warehouse
+• A single logical repository for an organizations data
+• Data mining
+• The process of discovering hidden patterns from data stored electronically (ex. in a
+data warehouse)
+• Decision support systems
+• Use data as input along with prior knowledge to create rules that guide decisions
+• Business Intelligence
+• Presents information to individuals with little technical expertise
+--- PDF PAGE 29 ---
+BI and Related Technologies
+Roles of Data, Information, and Knowledge in Data Warehousing
+--- PDF PAGE 30 ---
+BI and Related Technologies
+Roles of Data, Information, and Knowledge in Data Mining
+--- PDF PAGE 31 ---
+BI and Related Technologies
+Roles of Data, Information, and Knowledge in Decision Support
+Systems
+Prior Knowledge
+--- PDF PAGE 32 ---
+BI and Related Technologies
+--- PDF PAGE 33 ---
+BI in contemporary organizations
+Contemporary organizations operate in environments that are in a continual state of flux.
+Sales patterns change over time Suppliers change prices Currency valuations vary
+and from one place to another. and delivery schedules. over time.
+Products evolve over time as competitors Customers become more demanding as they
+innovate and add new features. become accustomed to current offerings.
+In such environments, managers need to make a variety of decisions to improve
+performance in the short term as well as the long term.
+Should the organizations increase or How should the organization serve its customers
+decrease the size of its workforce? to maximize their satisfaction?
+What kind of individuals What kind of products or markets
+should be hired or fired? should the organization focus on?
+--- PDF PAGE 34 ---
+BI in contemporary organizations
+Four Contributions of BI:
+1. Dissemination of user-friendly, real-time information
+2. Creation of new knowledge based on the past
+3. Responsive and anticipative when making decisions that are:
+• Based more closely on all the latest information, and
+• Incorporate predictions regarding the future
+4. Improved planning for the future through:
+• More effective use of information
+• Use of past data for predictions about the future
+• Development of knowledge based on information about the past
+--- PDF PAGE 35 ---
+BI in contemporary organizations
+Three Benefits of BI to Organizational Success:
+1. Improvement in operational performance
+• Provide real-time information on how the organization is performing.
+• Help managers to identify aspects that need improvement.
+For example, BI tools helped an oil and gas company, which was facing cash
+flow problems, to recognize that although it was delivering gas to customers
+on time, it was sending the invoices a week too late. Identification of this
+underlying problem led to the company taking measures to institute a new
+rule requiring invoicing within a day of delivery (Howson, 2008).
+2. Improvement in customer service
+• Improve quality of customer service provided
+• Identify problems and potential solutions quickly
+• Reduce customer concerns and improve retention
+--- PDF PAGE 36 ---
+BI in contemporary organizations
+Three Benefits of BI to Organizational Success:
+For example, mobile operators could use BI solutions to identify customers
+that are likely to move to another carrier, by analyzing their airtime usage
+patterns and other behaviours, and target these customers for efforts
+intended to prevent them from defecting (Howson, 2008).
+3. Identification of new opportunities
+• Facilitate new insights through discover of unknown patterns
+• Track innovative projects more effectively
+For example, faced with increasing competition and rising consumer needs,
+better understand the preferences and needs of its high-value customers (i.e.
+the 27% customers who generated 80% of its income), and improve
+customer service by targeting their specific needs (Rogalski, 2005).
+--- PDF PAGE 37 ---
+BI in contemporary organizations
+Impacts of Business Intelligence
+--- PDF PAGE 38 ---
+Review Questions
+• Distinguish between information and knowledge
+• What is BI? What are the benefits of BI?
+• Distinguish between KM and BI
+• How BI differs from data warehousing, data mining and DSS
+• Factors that have led to the increasing importance of BI
+References Sabherwal, R & Becerra-Fernandez, I 2011, Business
+intelligence: practices, technologies, and management, Wiley
+--- PDF PAGE 39 ---
+Week 2: Business Intelligence
+Capabilities
+COS10082 Applied Analytics in Business
+--- PDF PAGE 40 ---
+Previously in Lecture 1
+Impacts of Business Intelligence
+--- PDF PAGE 41 ---
+Previously in Lecture 1
+BI Product, Process, Solution, and Tools
+BI Tools include application software that enables BI by facilitating access and analysis of data and presentation of results.
+BI Solutions utilize the BI tools acquired by the organization, and draw upon the vast amounts of data from existing data
+warehouses and transaction processing systems, as well as structured and unstructured information from these and other
+sources to provide information and knowledge that facilitate decision making.
+--- PDF PAGE 42 ---
+Previously in Lecture 1
+A BI solution has 4 BI capabilities
+BI Product
+Presentation
+Data and Information Information (that leads to
+(External & Internal; BI Process knowledge and/or
+Structured & Unstructured) enables decision making)
+Insight Creation
+BI Solution
+Information Integration
+Other Technologies
+(e.g., Data Warehouse,
+BI Tools Data Mining)
+Organizational Memory
+--- PDF PAGE 43 ---
+BI Capabilities: An Overview
+Users
+Information presented in
+user-friendly fashion and in
+ways most appropriate for
+the specific role, task, and
+situation
+Roles, tasks, and users’
+inputs regarding preferred Presentation New insights and
+nature of presentation information to support
+learning and real-time
+decision making
+Users’ inputs about the
+analyses that may be Insight Creation
+Synthesized information
+appropriate
+about the past and present
+(structured and
+unstructured, external and
+internal)
+Real-time data,
+Unstructured Information, Information Integration
+External Information
+Historical information and
+explicit knowledge
+accumulated over time
+(mainly structured and
+Data, information, explicit
+internal)
+knowledge (mainly Organizational Memory
+internal, structured) stored
+in systems as events occur
+--- PDF PAGE 44 ---
+Features Of BI Solutions
+BI capabilities support features of BI solutions which are classified into 3 broad categories
+related to capabilities:
+1. (Organizational Memory)  Benchmarking
+• Competitive analysis to understand company’s performance and uncover industry
+trends
+2. (Information integration and insight creation)  Intelligence
+• The use of data from disparate sources for the development of new insights
+3. (Presentation)  Convenience
+• Providing BI outputs in an appropriate and user-friendly fashion
+--- PDF PAGE 45 ---
+BI Capabilities
+Four key capabilities of BI solutions
+• Organizational Memory Capability
+• Information Integration
+• Insight Creation
+• Presentation
+We will discuss:
+• What?
+Each capability
+o
+• Why?
+Factors necessitating each capability
+o
+• How?
+Technologies enabling each capability
+o
+--- PDF PAGE 46 ---
+BI Capabilities: Organizational Memory
+It is the foundational BI capability.
+It represents the organizational accumulated history, including:
+• Data,
+• Information, and
+• Explicit knowledge
+Database Email messages
+records Audio records
+Videos files
+Web sites
+Presentation slides
+Memos
+--- PDF PAGE 47 ---
+BI Capabilities: Organizational Memory
+Factors necessitating Organizational Memory:
+1. Technological progress and plummeting data storage cost.
+• This led to increased data volumes.
+• Large data and information exist in transactional systems, enterprise resource
+planning, and databases and data warehouses.
+2. Unstructured information and explicit knowledge are stored in electronic
+form. This is caused by:
+• Pervasiveness of computers for creating and modifying documents.
+• The increased use of mail and other electronic communication media (i.e.
+chats, posts on Facebook…etc.).
+--- PDF PAGE 48 ---
+BI Capabilities: Organizational Memory
+Factors necessitating Organizational Memory:
+3. Organizational knowledge is being stored in explicit form in knowledge
+repositories.
+• This includes past practices databases, lesson-learned systems, and incident
+report databases.
+• This factor is occurring due to the improvements in knowledge management
+technologies.
+--- PDF PAGE 49 ---
+BI Capabilities: Organizational Memory
+Technologies Enabling Organizational Memory
+• Data Warehousing
+• Enterprise Resource Planning
+• Knowledge Repositories
+Organizational Memory
+• Digital Content Management Systems
+• Document Management Systems
+--- PDF PAGE 50 ---
+BI Capabilities: Information Integration
+• Organizational memory focuses on the past.
+• However, BI depends on the latest data, information, and knowledge based on the
+ongoing current events.
+• Therefore, content from diverse sources need to be synthesized before using it to
+produce insights.
+• Information integration capability represents the ability to link structured and
+unstructured data from a variety of sources. This includes the integration of:
+• Structured information and knowledge from ERP, transactional system and
+knowledge repositories,
+• External information and knowledge from environmental scanning and Web mining;
+• Unstructured information and knowledge from text mining.
+--- PDF PAGE 51 ---
+BI Capabilities: Information Integration
+• Factors necessitating Information Integration Capability:
+1. Mutually disconnected, incompatible transactional systems exist within an
+organization.
+2. Data exists outside of transactional systems such as e-mail, audio and video files,
+etc.
+3. A lot of relevant external data is available, such as web sites, industry reports,
+expert opinions.
+4. More complex decision making due to an increase in the diversity of factors to
+consider
+--- PDF PAGE 52 ---
+BI Capabilities: Information Integration
+Technologies Enabling Information Integration
+• Environmental Scanning
+• Text Mining
+• Web Mining
+Information Integration
+• Radio Frequency Identification Devices
+--- PDF PAGE 53 ---
+BI Capabilities: Information Integration
+--- PDF PAGE 54 ---
+BI Capabilities: Information Integration
+Structured Unstructured
+lanretxE
+lanretnI
+Nature of Content
+tnetnoC
+fo
+ecruoS
+External information and knowledge from
+environmental scanning and web mining
+Unstructured
+information and
+knowledge from text
+mining, web mining
+and digital content
+management systems
+Both past content
+as well as
+emergent, real-
+time content
+needs to be
+integrated in each
+situation
+Structured information and explicit
+knowledge from ERP systems,
+transactional systems, and
+knowledgerepositories
+--- PDF PAGE 55 ---
+BI Capabilities: Insight Creation
+It is the ability to develop new insights and use them, in the short term or long
+term, to make better decisions.
+It helps managers by identifying patterns, trends, relationships and so on to make
+decisions.
+Factors necessitating Insight Creation Capability:
+1. Need quick reflexes
+Decisions must be made quickly to be competitive
+o
+2. Domain complexity is increasing
+Must consider information from diverse arenas
+o
+--- PDF PAGE 56 ---
+BI Capabilities: Insight Creation
+ro
+noitaerc
+thgisnI
+emit-laeR
+gninraeL
+gnikaM
+noisiceD
+Describe What Understand What Predict What Will
+Happened Happened Happen
+Outputs of Insight Creation Capability
+ytilibapaC
+noitaerC
+thgisnI
+fo
+stcapmI
+Note: The relative sizes of the boxes in the above cells represent the relative magnitudes of impacts of insight
+creation capability on real-time decision making and insight creation or learning.
+--- PDF PAGE 57 ---
+BI Capabilities: Insight Creation
+Technologies Enabling Insight Creation
+• Data Mining
+• Business Analytics
+Creation of Insights • Real-time Decision Support
+--- PDF PAGE 58 ---
+BI Capabilities: Presentation
+• It is the point of contact between the BI solution and the user.
+• It focuses on presenting appropriate information in a user-friendly
+fashion based on the user’s role, the specific task and the user’s
+inputs regarding the nature of the presentation.
+• Factors affecting presentation:
+--- PDF PAGE 59 ---
+BI Capabilities: Presentation
+• Factors necessitating Presentation Capability:
+• Content and format needs differ, based on:
+• Role
+• Ex. Top executive interest in firm-level performance vs. customer-
+support personnel interest in aids that support real-time responses to
+customers
+• Task
+• Ex. Customer-support specialist uses different information for each task
+• Preference
+• Ex. Individuals differ: Big picture view vs details first
+--- PDF PAGE 60 ---
+BI Capabilities: Presentation
+Technologies Enabling Presentation
+• OLAP
+• Visualization
+• Digital Dashboards
+Presentation • Scorecards
+• Business Performance Management
+--- PDF PAGE 61 ---
+Summary: BI Capabilities
+Users
+Information presented in
+user-friendly fashion and in
+ways most appropriate for
+the specific role, task, and
+situation
+Roles, tasks, and users’
+inputs regarding preferred Presentation New insights and
+nature of presentation information to support
+learning and real-time
+decision making
+Users’ inputs about the
+analyses that may be Insight Creation
+Synthesized information
+appropriate
+about the past and present
+(structured and
+unstructured, external and
+internal)
+Real-time data,
+Unstructured Information, Information Integration
+External Information
+Historical information and
+explicit knowledge
+accumulated over time
+(mainly structured and
+Data, information, explicit
+internal)
+knowledge (mainly Organizational Memory
+internal, structured) stored
+in systems as events occur
+--- PDF PAGE 62 ---
+Summary: Technologies Enabling BI Capabilities
+• OLAP
+• Visualization
+• Digital Dashboards
+• Scorecards
+Presentation
+• Business Performance Management
+• Data Mining
+• Business Analytics
+Creation of Insights • Real-time Decision Support
+• Environmental Scanning
+• Text Mining
+• Web Mining
+Information Integration
+• Radio Frequency Identification Devices
+• Data Warehousing
+• Enterprise Resource Planning
+• Knowledge Repositories
+Organizational Memory
+• Digital Content Management Systems
+• Document Management Systems
+--- PDF PAGE 63 ---
+Business Intelligence in the
+Big Data Era
+--- PDF PAGE 64 ---
+What is Big Data?
+• Large amounts of rapidly generated pictures, video clips, location
+(geospatial) data, sensor data, text messages, document images, web
+logs, and machine data traditionally captured and used by social
+media and Internet-based businesses and more recently being
+leveraged by early adopter mainstream businesses.
+--- PDF PAGE 65 ---
+Big Data to Businesses
+The most widely communicated concept of big data, among business,
+holds that it differs from traditional data in its volume, variety, and
+velocity.
+Image: source:https://whatis.techtarget.com/definition/3Vs
+--- PDF PAGE 66 ---
+Big Data Analytics
+• Analytics: A subset of BI and an umbrella term that
+encompasses provision of relevant statistical
+analyses, forecasts, models, and/or simulations to
+business users for use in increasing revenues,
+reducing costs, or both.
+• Big data analytics: Analysis of stored big data
+content of various kinds to supplement BI and
+traditional analytics for use in increasing revenues,
+reducing costs, or both. Also useful for non-business
+uses, such as public safety and national defence.
+--- PDF PAGE 67 ---
+Big Data to BI
+From BI perspective, big data is another source of data and
+digital contents that could be useful for analytical purpose.
+Image source: https://globaldatastrategy.files.wordpress.com/2015/09/bigdata_bi.png
+--- PDF PAGE 68 ---
+References
+• Sabherwal, R & Becerra-Fernandez, I 2011, Business intelligence:
+practices, technologies, and management, Wiley
+• Williams, S., 2016. Business intelligence strategy and Big Data analytics:
+a general management perspective. Morgan Kaufmann
+--- PDF PAGE 69 ---
+Week 3: Development of
+Business Intelligence
+COS10082 Applied Analytics in Business
+--- PDF PAGE 70 ---
+Outline
+• Development of Business Intelligence
+• Characteristics of Good BI Solutions
+• Sourcing of BI Solutions and tools
+• Methodology for Developing BI Solutions
+• Steps in the Development of the BI solution
+• Business Intelligence tools and vendors
+--- PDF PAGE 71 ---
+BI Solutions
+• The four BI capabilities come together in a BI solution, which are developed for,
+and deployed within, a client organization.
+• A BI solution utilizes the BI tools to deliver the information and knowledge that
+facilitate decision-making.
+• An organization could adopt multiple BI solutions.
+--- PDF PAGE 72 ---
+Characteristics of Good BI Solutions
+Characteristic essential in both short and long term
+Alignment Fit with business strategy, processes and context
+Intelligence Provide new and valuable insight
+Usability Should be easy to use
+Accuracy Based on clean and accurate data
+Connectivity Effective interfaces with other ITs
+Flexibility Should be easily and quickly modified to adapt to the changing
+business context.
+Portability Should work on different software and hardware platforms
+Scalability Should be expandable as users and volume of data increase
+--- PDF PAGE 73 ---
+Sourcing of BI Solutions
+Two major aspects:
+ Source of tools and technologies
+ How the BI solution is developed
+Internal External
+Sources of BI Tools and Technologies
+noituloS
+IB
+fo
+tnempoleveD
+External
+Joint
+ Three possibilities each
+Internal
+Internal & External
+--- PDF PAGE 74 ---
+Sourcing of BI Solutions
+Internal External
+Sources of BI Tools and Technologies
+noituloS
+IB
+fo
+tnempoleveD
+Broad BI Approaches to Sourcing of BI Solutions
+External
+IV. Outsourced
+V. Complete
+Development
+Outsourcing
+With Some
+Internal BI Tools
+III. Utilization of Tools Acquired from
+Joint Vendors (possibly with some internal tools)
+in Joint Development
+I. Completely II. Utilization of Tools Acquired from
+In-house Vendors (possibly with some internal tools)
+Development in In-house Development
+Internal
+Internal & External
+--- PDF PAGE 75 ---
+Sourcing of BI Solutions
+Three major decisions in the selection of vendors and tools as part of the
+development of BI solution.
+1. Strategic or Tactical Buying – establish long-term strategic relationships with
+few preferred vendors or select vendors with best options for a particular need.
+2. Mega-Vendors or Independent BI Vendors – both have advantages and
+disadvantages. What are they?
+3. Standardization or Multiple Options - extent of standardization depends on
+factors such as prior experience with BI, competence of the internal IT staff, and
+available resources (see figure on next slide)
+--- PDF PAGE 76 ---
+Sourcing of BI Solutions
+Selection of One or Multiple Vendors for BI Tools and Technologies
+Mixing niche vendors becomes more useful
+Focusing on one large vendor becomes more useful
+BI Organizational Information
+Insight Creation Presentation
+Memory Integration
+Capabilities
+• Data Warehousing • Text Mining tools • Business • OLAP tools
+• ERP • Web Mining tools Analytics tools • Visualization
+• Knowledge • Environmental • Data Mining tools
+Repositories Scanning • Real-time Decision • Digital
+BI Tools and
+• Digital Content • RFID Support Dashboards
+Technologies Management • Scorecarding
+tools tools
+• Document • BPM tools
+Management
+tools
+Note: The highlighted tools have emerged along with development of BI, whereas the others have
+been adapted from other technologies to support BI.
+--- PDF PAGE 77 ---
+Methodology for Developing BI Solutions
+Two distinct approaches to software development are relevant in the context of
+development of BI solutions:
+1. Waterfall development
+• Strictly sequential process – follow the steps
+• Finish one step before moving to the next
+2. Agile development
+• Iterative process – repeat the sequence of steps multiple times
+• Break the task into smaller chunks – make them work and build upon them
+--- PDF PAGE 78 ---
+Methodology for Developing BI Solutions:
+Waterfall development
+--- PDF PAGE 79 ---
+Methodology for Developing BI Solutions: Agile
+development
+--- PDF PAGE 80 ---
+Methodology for Developing BI Solutions:
+Differences
+Waterfall Agile
+Emphasizes comprehensive Seeks quick development of a
+documentations working software
+Focus on contract Emphasize on collaboration
+Focus on planning Emphasize on flexibility
+Focus on process Emphasize people
+Described as “Heavy” Described as “thin”/ “light”
+Each step must be strictly More flexible.
+documented.
+--- PDF PAGE 81 ---
+Steps in the Development of the BI Solution
+• Primary Development Steps:
+Plan Objectives, alignment, scope, deliverables, cost-benefit analysis, infrastructure,
+staffing, and organizational involvement
+Analyse Model processes, develop metrics, get users involved, and assess organizational
+readiness
+Design Create detailed design specifications pertaining to organizational memory,
+information integration, insight creation, and presentation capabilities
+Build Create the solution (or a pilot version) using the design specifications
+Deploy Test the current iteration, train users and support staff, roll-out the BI solution
+Review Evaluate the BI solution. Are stakeholders satisfied? What works? What doesn’t
+work? What can be improved?...
+--- PDF PAGE 82 ---
+Steps in the Development of the BI Solution
+PRIMARY DEVELOPMENT STEPS
+Plan Analyze Design Build Deploy Review
+Management of BI
+Iterate
+--- PDF PAGE 83 ---
+Business Intelligence Tools &
+Vendors
+--- PDF PAGE 84 ---
+BI Tools
+BI
+Product
+Data and Information Information (that
+BI Process
+(External & Internal; leads to knowledge
+Structured & and/or enables
+Unstructured) decision making)
+BI Solution
+Organizational Information Insight
+BI Capabilities Presentation
+Memory Integration Creation
+Other Technologies (e.g., Data
+Warehouse, Data Mining)
+BI Tools
+--- PDF PAGE 85 ---
+BI Tools
+• Application software which enables BI
+• Facilitates access, analysis of data and
+presentation of results
+• Complement traditional ITs (DW, data
+mining, transaction processing systems)
+to enable the 4 BI capabilities
+--- PDF PAGE 86 ---
+BI Tools: Customization vs Standardization
+• An organization may have different type of users:
+• Powerful users: analysts and others with a good understanding of BI
+tools.
+• Business users: information consumers who lacks BI expertise
+• Middle class: generally behave like business users but occasionally
+design reports and queries or perform additional analysis.
+--- PDF PAGE 87 ---
+BI Tools: Customization vs Standardization
+• Customization
+• Could lead to wasting time on tools rather than business tasks
+• Could lead to creating queries that are not useful to all
+• Standardization
+• Could be overly restrictive
+• Could inhibit some of the major benefits from BI
+--- PDF PAGE 88 ---
+BI Tools: Customization vs Standardization
+- Recommendations
+• Tools supporting organizational memory capability should be
+standardized
+• Tools supporting information integration should be customized only with
+respect to roles
+• Tools supporting insight creation capabilities should be customized with
+respect to roles and tasks
+• Tools supporting presentation capability should be customized with
+respect to roles, tasks, and individuals
+--- PDF PAGE 89 ---
+BI Tools: Customization vs Standardization
+Standardization becomes more important
+Customization for users/situations becomes more important
+Customization for Customization for Customization for roles,
+No customization roles roles and tasks tasks, and individuals
+BI
+Organizational Information
+Insight Creation Presentation
+Capabilities Memory Integration
+• Data Warehousing • Text Mining tools • Business • OLAP tools
+• ERP • Web Mining tools Analytics tools • Visualization
+• Knowledge • Environmental • Data Mining tools
+Repositories Scanning • Real-time Decision • Digital
+BI Tools and • Digital Content • RFID Support Dashboards
+Technologies Management • Scorecarding
+tools tools
+• Document • BPM tools
+Management
+tools
+Note: The highlighted tools have emerged along with development of BI, whereas the
+others have been adapted from other technologies to support BI.
+--- PDF PAGE 90 ---
+BI Mega-Vendors
+Oracle (including Hyperion)
+SAP (including Business Objects)
+IBM (including Cognos and SPSS)
+Microsoft
+BI Other
+BI Major Independent
+Notable Vendors
+Vendors
+• Teradata
+• Tableau
+• HP
+• SAS
+• arcplan
+• Micro Strategy
+• Board International
+• Information Builders
+• Panorama Software
+• TIBCO (including Spotfire)
+• Qlik
+• Actuate
+--- PDF PAGE 91 ---
+BI Vendors: Classification
+• Basis of classification
+• Ability to execute (ATE)
+• Completeness of vision (COV)
+• Four types
+• Leaders (strong in ATE, strong in COV)
+• Challengers (strong in ATE, limited in COV)
+• Visionaries (limited in ATE, strong in COV)
+• Niche Players (limited in ATE, limited in COV)
+--- PDF PAGE 92 ---
+BI Vendors: Classification
+Basis of classification ATE includes the following criteria *:
+1. Ability to execute (ATE):  Product/Service
+Summarizes factors such as the  Overall Viability
+vendor's financial viability, market
+ Sales Execution/Pricing
+responsiveness, product
+ Market Responsiveness and
+development, sales channels and
+Track Record
+customer base.*
+ Marketing Execution
+ Customer Experience
+ Operations
+--- PDF PAGE 93 ---
+BI Vendors: Classification
+Basis of classification • COV includes the following criteria *:
+2. Completeness of vision (COV):  Market Understanding
+Reflects the vendor's innovation,  Marketing Strategy
+whether the vendor drives or
+ Sales Strategy
+follows the market, and whether the
+ Offering (Product) Strategy
+vendor's view of how the market
+ Business Model
+will develop matches Gartner's
+perspective.*  Vertical/Industry Strategy
+ Innovation
+ Geographic Strategy
+--- PDF PAGE 94 ---
+BI Vendors: Classification
+Gartner Magic Quadrants
+Four types
+--- PDF PAGE 95 ---
+BI Vendors: Classification
+--- PDF PAGE 96 ---
+BI Tools (Software) most popular
+--- PDF PAGE 97 ---
+BI Tools (Software) most popular
+--- PDF PAGE 98 ---
+References
+• Sabherwal, R & Becerra-Fernandez, I 2011, Business intelligence: practices,
+technologies, and management, Wiley
+• Gartner, Inc., 2013 How Gartner Evaluates Vendors and Markets in Magic
+Quadrants and MarketScopes
+(available at:
+https://www.gartner.com/doc/2560415/gartner-evaluates-vendors-
+markets-magic) this is a must read for this week.
+• Business Intelligence Software
+https://www.capterra.com/business-intelligence-software/#infographic
+--- PDF PAGE 99 ---
+Week 4: Management of
+Business Intelligence
+COS10082 Applied Analytics in Business
+--- PDF PAGE 100 ---
+Outline
+• Processes
+– Building the business case for BI
+– Building organizational support
+– Education
+– Evaluation
+– Development (Covered in Week 3)
+– Sourcing (Covered in Week 3)
+• Infrastructure
+– Data Infrastructure
+– Organizational Culture
+• Structures
+– Business Intelligence Governance
+– Business Intelligence Competency Center
+– Degree of Centralization of BI
+--- PDF PAGE 101 ---
+Management of BI
+• The three aspects mutually affect each other.
+Processes
+•Creating a businesscase
+•Building organizationalsupport
+•Education
+•Evaluation
+•Development
+•Sourcing
+Infrastructure
+•Datainfrastructure
+•Organizationalculture
+Structures
+•Governance
+•Competencycenter
+•Degree ofcentralization
+--- PDF PAGE 102 ---
+Processes
+--- PDF PAGE 103 ---
+Building the Business Case for BI
+• BI efforts need resources.
+• To get resources (and continue getting them) we need:
+• A business case justifying investments in BI.
+• A business case may highlight organizational benefits from BI
+efforts.
+--- PDF PAGE 104 ---
+Building the Business Case for BI
+• Can you list some of the benefits of BI that can be highlighted?
+• BI can help a company to avoid falling behind competitors who are investing in
+BI.
+• BI can improve cross-selling and up-selling by helping identify the additional
+products that an organization might be able to sell to each of its customers, based
+on customer’s history and characteristics.
+• BI can help maximize customer satisfaction based on the aggregated information
+about the customer’s interactions with the company across various contact points
+over time.
+• BI can help a company identifying which of its current customers it might lose.
+• BI can help an organization produce faster and more accurate compliance and
+regulatory reporting.
+--- PDF PAGE 105 ---
+Building the Business Case for BI
+• May be difficult to calculate ROI in quantitative terms. (Why?)
+• – BI often have long-term payoff that are difficult to compute
+• May instead focus on the fundamental value proposition of BI (examples?)
+--- PDF PAGE 106 ---
+Building Organizational Support
+• Build, and maintain, organizational support for BI as people:
+– might be skeptical of the benefits from BI
+– might feel threatened
+– may prefer making intuition or gut-feeling based decisions rather than
+decisions based on information and analysis
+– be just resistant to change
+--- PDF PAGE 107 ---
+Building Organizational Support
+• But how to build and sustain organizational support?
+– Start with a solid business case (might also show importance of BI
+to users)
+– Follow an incremental approach
+• Start with small investment, use the result to build support for future BI efforts.
+– Redefine roles to show individuals how they would benefit from BI
+– Recruit or assign "champions”
+• Assign some people the responsibility of building the organizational
+support for BI
+– Manage expectations by getting users involved from the onset
+--- PDF PAGE 108 ---
+Education
+• For continued success of BI keep current and potential users of BI educated about
+its potential benefits, functionality, and use of BI solutions and tools.
+• Training certainly helps but education about BI is broader than training and is
+ongoing.
+• Keep updating the trained users’ BI knowledge by:
+– Frequent communication
+– Making education collaborative (e.g. web based sessions)
+– Leveraging the BI competency centre
+--- PDF PAGE 109 ---
+Education
+• Both inform about and inculcate the value of data and analysis beyond
+mere training on use of BI tools and solutions.
+• Remember it takes time and considerable learning to become proficient with BI
+but the payoffs could be high.
+--- PDF PAGE 110 ---
+Education
+• Periodically revisit the expectations as per the business case and utilize them as
+the baseline to determine if BI initiatives are progressing as expected.
+• Be sure to include unexpected benefits and costs as well.
+• Both solicited (e.g. via a survey) and unsolicited input from users about the
+value of information from BI may be useful in evaluation.
+• The extent to which the BI projects are aligned with the business strategy
+is a potentially useful criterion for evaluation.
+• Lookout for implications of BI beyond the organization (e.g. implications for
+customers and suppliers).
+--- PDF PAGE 111 ---
+Infrastructure
+--- PDF PAGE 112 ---
+Infrastructure
+• Two aspects
+1. Data infrastructure – success of BI depends
+considerably on the data available in an organization
+2. Organizational culture – some organizational cultures
+are more conducive to BI than others
+• Both have considerable effects on:
+– The impacts of BI tools and solutions
+– The structure and processes associated with
+the management of BI
+--- PDF PAGE 113 ---
+Infrastructure: Data Infrastructure
+• Data drives BI:
+– Reports generated from a BI solution are directly based on the
+available data.
+– Organization’s data, including data provided by transactional
+systems, enterprise resource planning and so on as well as data
+that resides in the data warehouse should be of high quality.
+– Poor data infrastructure could be disastrous.
+--- PDF PAGE 114 ---
+Infrastructure: Data Infrastructure
+• Data quality is one of the most important technical factors for
+successful BI. Data quality dimensions that organizations should
+consider are
+Whether the organization has the data
+Existence
+Whether the data values fall within an acceptable range or
+Validity
+domain
+Whether the same piece of data stored in multiple locations
+Consistency
+contains the same values
+The completeness of relationships between data elements
+Integrity
+and across data sets
+Whether the data describes the properties of the object it is
+Accuracy
+meant to model
+Relevance Whether the data is the appropriate data to support the
+business objectives
+--- PDF PAGE 115 ---
+Infrastructure: Organizational Culture
+• Organizational culture: the norms and beliefs that guide the
+behavior of the organization’s members.
+• A culture that values data and its utilization to pursue
+opportunities and make data-based decisions is more
+conducive to BI.
+• Such culture is more likely in organizations where the senior executives
+set example by constantly exhibiting the desire for facts and analysis.
+• “analytics culture”
+– Technology + Analytics Culture
+•  Successful BI
+– Analytics culture and Success with BI are
+mutually reinforcing
+--- PDF PAGE 116 ---
+Structures
+--- PDF PAGE 117 ---
+Structures
+• Three aspects:
+1. Business Intelligence Governance
+2. Business Intelligence Competency center
+3. Degree of Centralization of Business Intelligence
+• All play an important role in the management and impacts of BI.
+--- PDF PAGE 118 ---
+Structures: Business Intelligence Governance
+• Business Intelligence Governance: the guiding principles, decision-making
+bodies, decision areas & decision rights, and oversight mechanisms that are
+used to encourage desirable behavior in the management, development, and
+use of BI.
+1. Guiding principles: the overall beliefs for guiding the BI vision and goals.
+2. Decision-making bodies: identifying the individuals or groups that make the
+BI decisions, provide inputs and sponsorship, and how these the individuals
+or groups interact.
+--- PDF PAGE 119 ---
+Structures: Business Intelligence Governance
+3. Decision areas and decision rights: focus on the identification of key types
+of decisions and allocates rights for making those decisions to decision-
+making bodies.
+– Common decision areas:
+• Investments in BI solution and tools
+• BI project status
+• BI adoption and utilization
+4. Oversight mechanisms: the formalized policies and procedures for
+implementing BI governance and evaluating progress.
+--- PDF PAGE 120 ---
+Structures: Business Intelligence Competency
+Center (BICC)
+• Business Intelligence Competency Center: A cross-functional team with specific
+tasks, roles, responsibilities and processes for supporting and promoting the
+effective use of business intelligence across the organization.
+--- PDF PAGE 121 ---
+Structures: Business Intelligence Competency
+Center (BICC)
+• A relatively permanent, organized entity
+• Serves as a center for expertise related to BI
+• Provides a central location for driving and supporting a company's overall
+information delivery strategy
+• Coordinates an organization's BI solutions and tools
+• Helps share best practices across the organization
+• Helps with data stewardship
+• Helps develop a standardized set of models across the organization
+--- PDF PAGE 122 ---
+Structures: Degree of Centralization of Business
+Intelligence
+• May be viewed in two different ways:
+1. Focus of the BI solutions at the organization
+– BI solutions focused at the enterprise level: Greater Centralization
+– BI solutions focused at the departmental level: Greater Decentralization
+2. Extent to which the development of BI reports is centralized
+– Reports are a standard part of the BI solution: Greater Centralization
+– Reports are mainly user-developed: Greater Decentralization
+– A balanced approach to development of reports is
+• recommended.
+--- PDF PAGE 123 ---
+References
+• Sabherwal, R & Becerra-Fernandez, I 2011, Business intelligence: practices,
+technologies, and management, Wiley
+--- PDF PAGE 124 ---
+Week 5: Business Intelligence
+Strategy
+COS10082 Applied Analytics in Business
+--- PDF PAGE 125 ---
+Previously… (Week 1 to Week 4)
+• What is BI?
+• Benefits & contributions of BI
+• Characteristics of Good BI solution (in short and long terms)
+• BI capabilities
+• Organizational Memory
+• Information Integration
+• Insight Creation
+• Presentation
+• BI tools & Vendors
+• BI Management
+• Processes
+• Infrastructure
+• Structures
+--- PDF PAGE 126 ---
+In this lecture…
+• What is BI Strategy? Why is it important? How to utilize the previous topics in one
+strategy to achieve BI success?
+• What is a BI Strategy?
+• A Business Intelligence Strategy is a roadmap that enables businesses to measure their
+performance and seek out competitive advantages and truly "listen to their customers"
+using data mining and statistics.
+--- PDF PAGE 127 ---
+Why a BI strategy is important?
+1.Multiple Versions of the Truth:
+• In organizations different people use different data to arrive to their own conclusions.
+This leads to having multiple figures or conclusions.
+• Single Version of the Truth is needed to make reliable and effective business decision.
+2.Unclear Business Logic:
+• Sometimes, in the same organization, calculations can have different definitions or
+names. Or, same name and different definitions.
+• Examples:
+In insurance companies: claim could be related to the incident that has been
+o
+occurred. Or the treatment incurred.
+There should be a clear consistent definition of terms across the organization.
+o
+--- PDF PAGE 128 ---
+Why a BI strategy is important?
+3.Personnel Overhead:
+• Some departments in organizations may have their own BI.
+• This may lead to overhead in personnel.
+• In large corporation, Business Intelligence Competency Centre becomes
+necessary and beneficial.
+4.Analyst Programming, not Analysts Analysing:
+• Sometimes, analysts spend time in programming to extract data instead of
+analyzing and interpreting results (which is their expertise).
+--- PDF PAGE 129 ---
+Why a BI strategy is important?
+5.Data Quality Issues:
+• “Garbage in, garbage out”
+• With no clear strategy, people in organizations – with BI tools – may only
+focus on generating visualizations and insights regardless of the quality of the
+data used.
+--- PDF PAGE 130 ---
+How to develop a strategy?
+Five key areas for consideration:
+1. BI Roadmap – for use as a start-up to a BI strategy implementation project.
+2. Stakeholder Management - getting the right people involved at the right level.
+3. Architectural Blueprint - how the BI estate will look and operate.
+4. Capability Improvement - what needs upgrading, re-developing or
+decommissioning.
+5. Implementation Planning - how to approach implementing the roadmap to
+take you from here to there.
+--- PDF PAGE 131 ---
+How to develop a strategy?
+1. BI Roadmap
+A BI Roadmap should explain what is in scope and what is not covered by
+the strategy.
+The most important piece of work is to understand if your Business
+Intelligence provision is in-line with your corporate strategy (BI strategy
+should be aligned with the Business strategy)
+--- PDF PAGE 132 ---
+How to develop a strategy?
+1. BI Roadmap
+https://www.datapine.com/blog/roadmap-to-a-successful-business-intelligence-strategy/
+--- PDF PAGE 133 ---
+How to develop a strategy?
+2. Stakeholder Management
+For the BI strategy to succeed, a research into the organization is needed
+to identify who are the key information consumers, which subject areas
+are critical to the business and what challenges are in the pipeline to a
+growing organization.
+--- PDF PAGE 134 ---
+How to develop a strategy?
+2. Stakeholder Management
+https://www.quickstart.com/blog/understanding-the-5-steps-to-stakeholder-management/
+--- PDF PAGE 135 ---
+How to develop a strategy?
+3. Architectural Blueprint
+The architectural blueprint will define how the BI would be structured so
+that it can most effectively deliver the information required to the people
+who need it.
+• Development methodology should be chosen appropriately.
+• How BI team should be funded?
+• To whom should the team be reporting?
+--- PDF PAGE 136 ---
+How to develop a strategy?
+3. Architectural Blueprint
+--- PDF PAGE 137 ---
+How to develop a strategy?
+4. Capability Improvement
+The BI strategy should outline what should be done in each of the following to
+improve the capabilities of the organization:
+• People: Staff may not be skilled in the latest technologies, or indeed new
+functions may have been introduced to the business which needs
+external resourcing or employing-in.
+• Infrastructure: the hardware and software infrastructure will be required
+to support information delivery. A review of the hardware is often the
+first area to be investigated. It is worth investigating which software is
+best fit for your strategic direction first and then building the hardware
+architecture around that.
+--- PDF PAGE 138 ---
+How to develop a strategy?
+5. Implementation Planning
+Once the strategy has been defined and agreed by the key stakeholders
+the next question is how to implement the strategy?
+• Programme Management and Release Schedules should be drawn up
+• The expected levels of documentation should be determined
+• Ensure BI team is involved (internal or external team?)
+--- PDF PAGE 139 ---
+How to develop a strategy?
+5. Implementation Planning
+https://www.altexsoft.com/blog/business/complete-guide-to-business-intelligence-and-analytics-strategy-steps-processes-and-tools/
+--- PDF PAGE 140 ---
+How to develop a strategy?
+6.Additional areas for consideration:
+Data management:
+i. Companies collect increasing volumes of structured and unstructured data from internal and external
+sources.
+ii. A BI strategy should include the consideration of how to acquire, validate, store, protect and process the
+required data to ensure the accessibility, reliability and timeliness of the data for its users.
+Types of reports and the degree of centralization:
+The Degree of Centralization of BI can be viewed in two different ways (refer to Lecture 4):
+i. Whether the BI solutions at the organizations are focused at the enterprise level or at the departmental
+level.
+ii. The extent to which the development of BI reports is centralized, whether the BI report is part of the BI
+solutions (imply greater centralization) or developed by the users themselves (imply greater
+decentralization).
+--- PDF PAGE 141 ---
+Extra Readings
+• Guy Garrett, “How to create a Business Intelligence Strategy”. SAS Global Forum
+2012.https://support.sas.com/resources/papers/proceedings12/021-2012.pdf
+• https://go.christiansteven.com/bi-blog/top-5-ways-to-develop-a-successful-bi-strategy
+• https://www.slideserve.com/glenys/business-intelligence-strategy
+• https://www.gla.ac.uk/media/media_434476_en.pdf
+• https://www.educause.edu/-
+/media/files/library/2017/7/bistrategyuoftenn.pdf?la=en&hash=48AFAEBF539766D69B08834571899E858B1E678E
+• https://www.google.com/search?rlz=1C1GCEB_enMY826MY826&ei=c8WiXJ-
+sC5PWz7sP9IO9eA&q=business+intelligence+strategy+pdf+nottinghamshire&oq=business+intelligence+strategy+p
+df+nottinghamshire&gs_l=psy-ab.3...43803.47937..48143...0.0..0.100.929.9j2......0....1..gws-
+wiz.......0i71j33i22i29i30j33i21j33i160.m_bMEO94riY#
+--- PDF PAGE 142 ---
+COS10082 Lab1
+Tutorial Question on Lecture 1
+Read the following
+Source: Sabherwal & Becerra-Fernandez 2011 Book.
+1. Based on the above, Answer the following:
+a. How has BI help St. Joseph Medical Centre?
+b. Besides the points covered in the above case study, using the web, search for
+how can BI help hospitals to improve healthcare services.
+2. Differentiate between BI Solution and BI Tools
+3. How is BI different from Knowledge Management.
+4. Explain the factors that drive BI.
+Page 1 of 2
+--- PDF PAGE 143 ---
+COS10082 Lab1
+5. Consider the following figure
+Using web search, demonstrate the impact of business intelligence shown in the figure
+above by applying the components to a company of your choice, show how these
+components and their relationships apply to the company.
+Page 2 of 2
+--- PDF PAGE 144 ---
+COS10082 Tutorial 2
+BI Solution Capabilities
+Read the following case study:
+Source: Sabherwal, R & Becerra-Fernandez, I 2011, Business intelligence:
+practices, technologies, and management, Wiley
+--- PDF PAGE 145 ---
+COS10082 Tutorial 2
+1. Answer the following questions based on the case study:
+a. What was the main reason behind PhoneWorks decision to use
+LucidEra’s sales analytics solution?
+b. Identify the new insights that PhoneWorks was able to obtain after
+using LucidEra
+2. Briefly explain how does information integration capability facilitate insight
+creation capability?
+3. List two technologies that enable each of the four BI capabilities.
+4. With the use of the 4 BI capabilities, explain how Business Intelligence
+produces the benefits explained in week 1.
+5. In presentation capability, dashboard and scorecards are examples of the
+technologies that enable presentation. Search the internet for the
+differences between the two. Make sure to add pictures to support your
+answer.
+--- PDF PAGE 146 ---
+COS10082 Applied Analytics in Business Lab 2
+BI tools in Excel II
+In this lab, you will learn:
+ Power Query (Get & Transform)
+References:
+ https://support.office.com
+Get and Transform (called Power Query in Excel versions before 2016) is a
+powerful feature that allows users to easily gather and shape data. It connects,
+combine, refine data sources to meet user analysis needs.
+PART I: Introductory Exercise
+In this exercise, you will import data from a web page and transform it to a new
+shape.
+(This exercise has been adopted from MICROSOFT with modifications)
+1. Go to (https://en.wikipedia.org/wiki/UEFA_European_Championship)
+and study the information given in the webpage.
+2. Open Excel.
+3. In Excel, go to Data -> Get Data -> From Other Sources -> From web
+(as shown below)
+4. Copy and paste the above URL into the URL field in the small window
+that will appear, Click OK
+5. Several tables will be shown in the Navigator window (to check the
+contents of each table, click on the table and its information will appear
+on the right side).
+6. Select Table 3 table and click on Load
+Page 1 of 10
+--- PDF PAGE 147 ---
+COS10082 Applied Analytics in Business Lab 2
+7. The selected table will be loaded into Excel workbook.
+8. To re-shape this data using Power Query, we need to open Query Editor,
+to do that, Go to Query Tools tab -> Edit (This will open the Query Editor
+in a new window). Remove the first row and select 'Use first row as
+header' option
+Now, we are going to shape this data and clean it. For that we will focus on
+two columns, Year and Final Winners.
+9. Select the Year, Winners and Score columns (Use CTRL + Click)
+10. Right-click a column header in the Query Preview grid, and click
+Remove Other Columns to remove the unselected columns.
+Page 2 of 10
+--- PDF PAGE 148 ---
+COS10082 Applied Analytics in Business Lab 2
+Thus, you should now have three columns only (Year. Winners and Score) on the Query
+Editor window.
+11. Select the Score column.
+12. In the Query Editor click on Replace values (within the Transform Group).
+13. In the Replace Values dialog box, type 'null' in the 'Value to Find' text
+box and type '0' in the 'Replace With' text box.
+14. Click OK. (This would replace 'null' with '0').
+15. To filter rows with the values '0' in the Pts column, Click the filter drop-
+down menu arrow on the Score and Venue column. Then, clear (un-
+check) the '0' option.
+The current table that you see, provides information on Euro Cap Winners.
+Now, let’s name the Query that we just created to transform the original table
+to the current table.
+16. In the Query Settings pane, in the Name text box, enter EURO
+Winners. Then on the Query Editor tabs, Click on Close and Load.
+Page 3 of 10
+--- PDF PAGE 149 ---
+COS10082 Applied Analytics in Business Lab 2
+Part II: Combine, transform and aggregate
+In this Exercise, you will learn how to import data from different sources using
+power query, perform transformation and aggregation and combine the data
+from different sources (in this case from two sources) to produce Total Sales per
+Product per Year.
+(This exercise has been adopted from MICROSOFT with modifications)
+Import Data
+1. Open Excel
+2. Repeat the steps in part I exercise to import data from Get & Transform,
+however, this time use From File - > From Workbook.
+3. In the browser, browse to the Products.xlsx file and click OK.
+4. In the navigator, select Products and click on Load.
+5. Go to Query Tools and click on Edit (this should open the Query Editor).
+We are only interested with ProductID, ProductName, CategoryID, and
+QuantityPerUnit columns. Therefore, remove other columns (refer to Part I stepts
+9 & 10 to achieve this).
+6. Now, click on Close & Load
+Note that whatever query activity you execute, a query step is created and
+listed under Applied Steps on the Query Settings which appears on the right
+side of Query Editor window.
+7. Using the same workbook, Import data from OData feed. Use From Other
+Sources - > From OData Data Feed.
+What is OData?
+“The Open Data Protocol (OData) is an open protocol for sharing data. It is
+based on REST principles and extends the ATOM publishing model to support a
+discoverable API with embedded metadata with payloads in XML and JSON.
+It has been open sourced by Microsoft. More information can be found here:
+http://www.odata.org ” quora.com
+8. Copy and paste this URL into the URL field in the OData Feed window
+that will appear (http://services.odata.org/northwind/northwind.svc/)
+and click OK.
+9. In the navigator, select orders and click on Load.
+Note: order table which we just loaded is related to another table called
+order_detials. We need to expand the order_details table to combine the
+ProductID, UnitPrice, and Quantity columns from order_details into order table.
+The Expand operation combines columns from a related table into a subject
+Page 4 of 10
+--- PDF PAGE 150 ---
+COS10082 Applied Analytics in Business Lab 2
+table. When the query runs, rows from the related table (Order_Details) are
+combined into rows from the subject table (Orders).
+Normally, if two tables are related to each other, they are linked through a
+column that is available in both tables. For example, the student table and the
+enrolment table in a university database system will have the student_id
+column in both tables to link the two tables.
+10. Open order Query Editor (do you remember how?)
+11. In the Query Editor, you see order table columns, scroll to the right side
+and you will find one column called order_details.
+12. In the Order_Details column, click the expand icon ( ).
+13. In the drop-down menu that will appear, make sure that only the three
+columns mentioned above are selected.
+Now, we are going to remove columns that are NOT of interest to use in this
+analysis.
+14. Select ALL columns. To do this, select the first column (orderID) then, press
+on Shift + click on the last column (Shipper).
+15. Press CTRL+ click OrderDate, Order_Details.ProductID,
+Order_Details.UnitPrice, and Order_Details.Quantity columns.
+16. Right-click on a selected column header, and click Remove Columns.
+Now, we will create a new column to calculate the line total for each
+Order_Details row.
+17. In the Query Editor, click the table icon ( ) which is available at the top-
+left corner of the preview.
+18. Click add custom column.
+19. In the Insert Custom Column dialog box, in the Custom Column Formula
+textbox, enter [Order_Details.UnitPrice] * [Order_Details.Quantity].
+20. In the New column name textbox, enter Line Total. Click OK.
+Now, we will transform the OrderDate column to render the order date year.
+21. On the Query Editor, right-click the OrderDate Column, and click
+Transform -> Year -> Year.
+Page 5 of 10
+--- PDF PAGE 151 ---
+COS10082 Applied Analytics in Business Lab 2
+22. Double-click on the OrderDate header, then rename the column to
+Year.
+Now, let’s Group rows by ProductID and Year
+23.Select Year and Order_Details.ProductID columns.
+24. Right-Click one of the headers, and click Group By.
+25.In the Group by window, enter Total Sales in the New Column Name field.
+Then, select Sum in the Operation drop-down menu. Finally, select Line
+Total in the Column drop-down menu.
+26.Click OK.
+You should have the following:
+Now, let’s rename the query as Total Sales
+27. In the Query Settings pane, in the Name text box enter Total Sales.
+28. At the top left side of the window, above (Close & Load) click on the
+drop-down menu -> Options and Settings -> Query Options
+Page 6 of 10
+--- PDF PAGE 152 ---
+COS10082 Applied Analytics in Business Lab 2
+29. In the Query Options dialog box, go to Data Load, then check on Specify
+Custom Default load settings, then uncheck Load to worksheet.
+30. Click OK
+31. Now, close and load.
+You should see the following:
+Combine the Products and Total Sales queries
+32. In the Excel workbook, navigate to the Products query on Sheet2.
+33. In the Query Tool, click on Merge
+34. In the Merge dialog box, select Products as the primary table, and select
+Total Sales as the second or related query to merge. Total Sales will
+become a new expandable column.
+35. To match Total Sales to Products by ProductID, select the ProductID
+column from the Products table, and the Order_Details.ProductID
+column from the Total Sales table.
+36. In the Privacy Levels dialog box, select Organizational for your privacy
+isolation level for both data sources. Then, click Save.
+37. Click OK.
+You should see this
+Page 7 of 10
+--- PDF PAGE 153 ---
+COS10082 Applied Analytics in Business Lab 2
+After you click OK, the Merge operation creates a query. The query result
+contains all columns from the primary table (Products), and a single column
+containing a navigation link to the related table (Total Sales). An Expand
+operation adds new columns into the primary or subject table from the related
+table.
+Now, let’s expand the NewColumn column (Do you remember how?). Make
+sure you select only Year and Total Sales columns and then click OK.
+38. Rename these two columns to Year and Total Sales.
+39. Sort Descending by Total Sales to find out which products and in which
+years the products got the highest volume of sales.
+40. Rename the query to Total Sales per Product.
+You should see this
+Page 8 of 10
+--- PDF PAGE 154 ---
+COS10082 Applied Analytics in Business Lab 2
+41. 28. At the top left side of the window, above (Close & Load) click on
+the drop-down menu -> Options and Settings -> Query Options
+42. In the Query Options dialog box, go to Data Load, then check on
+Specify Custom Default load settings, then uncheck Load to worksheet
+and check Load to data model.
+43. Click on Close & Load.
+Finally, you should see this
+(for Total Sales, it is OK that it is shown connection only, ignore it)
+So, now you have created a Total Sales per Product query that combines data
+from the Products and Orders.xlsx file and Northwind OData feed.
+Now, save this file as Week2work.xlsx and keep it in a safe place.
+Page 9 of 10
+--- PDF PAGE 155 ---
+COS10082 Applied Analytics in Business Lab 2
+To load the Total Sales per Product:
+ right-click on it and click on Load to
+ check table and to new worksheet in the dialog that will appear.
+Once the data is loaded, create a PivotTable based on the data.
+Show your PivotTable to your tutor.
+Your Turn:
+using the data from OData.org
+(http://services.odata.org/northwind/northwind.svc/)
+Create a query that will show which employee (name of employee to be
+displayed) handled which order. Your query should display only two columns
+(OrderID and Employee Name)
+Show your output to your tutor.
+Page 10 of 10
+--- PDF PAGE 156 ---
+COS10082 Applied Analytics inBusiness
+Tableau Desktop: PartI
+In this lab, you willlearn:
+• Tableau Worksheets
+• Working withData
+References:
+• Tableau Website,www.tableau.com
+• https://www.betterbuys.com/
+TableauSoftware
+Tableau Softwarefocuseson businessintelligence and data analytics products
+that both liberate data and empower people. Itwas founded in2003by Chris
+Stolte,Pat Hanrahan and Christian Chabot, and it’s headquartered in Seattle.
+Tableau is consistently ranked as one of the “Leaders” in the business
+intelligence marketplace by Gartner initsannual Magic QuadrantSurvey.
+Tableau provides all types of users with intuitive business intelligence (BI) tools
+1| Pa g e
+--- PDF PAGE 157 ---
+COS10082 Applied AnalyticsinBusiness
+to enhance data discovery and understanding. With simple drag-and-drop
+features, a user can easily access and analyse key data, create innovative
+reportsand visualizations,and sharecritical insightsacross the company.
+Products
+Tableau has three main products for robustdata discovery:
+1. Desktop – Desktop is used to connect and analyse disparate data and create
+highlyinnovative reportsinjusta fewclicks.
+2. Server–Serverallows usersto securely collaborate and share critical insightsand
+information through comprehensive dashboards created in Tableau Desktop or
+directly inTableauServer.
+3. Online – Tableau Online is a cloud-hosted version of Tableau Server. It not only
+saves time and money by skipping hardware setup, Tableau Serveralso supports
+mobileaccess.
+And recently, they added Tableau prep which has been designed to help
+everyone quickly and confidently combine, shape, and clean their data for
+analysis.
+In addition to the tools above, Tableau has other products to make your BI
+effortssimpler:
+• Mobile –Tableau Mobile isa free companion app for Tableau Server or
+Tableau Online that allows for streamlined access to analytics stored in
+eithersolution.
+• Public –Tableau Public isa completely free version of Tableau Desktop
+and TableauOnline fordata intended to be sharedpublicly.
+2| Pa g e
+--- PDF PAGE 158 ---
+COS10082 Applied Analytics inBusiness
+TableauWorksheets
+TableauDesktop
+In this section, we will get to know the basics of Tableau Desktop. There are
+three main elements of Tableau Desktop:
+• StartPage,
+• Tableau Workspace,and
+• Data SourcePage
+Inthismodule, elements of the StartPage and the Tableau Workspace will be
+discussed. As for the Data Source Page, itwill be discussed in the Working with
+Data Module.
+StartPage
+Thestartpage inTableau Desktop isa central location fromwhich you can do
+thefollowing:
+• Connect toyour data
+• Open yourmostrecentlyused workbooks,and
+• Discover and explore content produced by the Tableaucommunity.
+Thestartpage consistsof three panes: Connect, Open, and Discover.
+Click the icon to
+switch between
+Start Page and
+Tableau
+Workspace
+3| P a ge
+--- PDF PAGE 159 ---
+COS10082 Applied Analytics inBusiness
+➢ Connect
+Connect to data and open saved data sources.
+On the Connect pane, you can do the following:
+• Connecttodata: Under Toa File,connect to data storedinMicrosoft
+Excel files, text files, Access files, Tableau extract files, and statistical
+files, such as SAS, SPSS, and R. Under To a Server, connect to data
+stored in databases like Microsoft SQL Server or Oracle. The server
+names listed in this section change based on which servers you
+connect to and how often.
+• Open saved data sources: Quickly open data sources that you have
+previously saved to your My Tableau Repository directory. Also, Tableau
+provides sample saved data sources that you can use to explore
+Tableau Desktop functionality. To follow along with examples in the
+Tableau Desktop documentation, you'll usually use the Sample –
+Superstore data source.
+4| P a ge
+--- PDF PAGE 160 ---
+COS10082 Applied Analytics inBusiness
+➢ Open
+Open recent workbooks,pin workbooks to the startpage, and explore
+sample workbooks.
+On the Open pane, you can do the following:
+• Open recently opened workbooks: When you open Tableau Desktop for
+the firsttime,thispane isempty.Asyou create and save new workbooks,
+the most recently opened workbooks appear here. Click the workbook
+thumbnailtoopen a workbook,orifyoudon'tseea workbook thumbnail,
+click the Open a Workbook link to find other workbooks that are saved
+to yourcomputer.
+• Pin workbooks: You can pin workbooks to the start page by clicking the
+pin icon that appears in the top-left corner of the workbook thumbnail.
+Pinnedworkbooksalwaysappear on the startpage, even iftheyweren't
+opened recently. To remove a recently opened or pinned workbook,
+hover over the workbook thumbnail, and then click the "x"that appears.
+The workbook thumbnail is removed immediately but will show again
+withyourmostrecently used workbooks the nexttime you open Tableau
+Desktop.
+• Explore sample workbooks: Open and explore sampleworkbooks.
+5| P a ge
+--- PDF PAGE 161 ---
+COS10082 Applied Analytics inBusiness
+➢ Discover
+Seepopular viewsinTableauPublic,readblogpostsand newsaboutTableau,
+and find training videos and tutorialsto help you getstarted.
+6| P a ge
+--- PDF PAGE 162 ---
+COS10082 Applied Analytics inBusiness
+TableauWorkspace
+The Tableau workspace consists of menus, a toolbar, the Data pane, cards
+and shelves, and one or more sheets. Sheetscan be worksheets, dashboards,
+orstories.
+➢ Workspacearea
+A. Workbookname.A workbook containssheets.A sheetcan be a worksheet,
+a dashboard, ora story.Formore information,see WorkbooksandSheets.
+B.Cardsand shelves-Drag fieldstothe cards and shelvesinthe workspace to
+add data to yourview.
+C. Toolbar-Usethe toolbar toaccess commandsand analysisand navigation
+tools.
+D.View -Thisisthe workspace where you create your datavisualizations.
+E.Goes to the startpage. Formore information,see StartPage.
+F.SideBar-Ina worksheet, the side bar area contains the Data pane and the
+Analyticspane.
+G.Go to the data sourcepage.
+7| P a ge
+--- PDF PAGE 163 ---
+COS10082 Applied Analytics inBusiness
+H. Status bar -Displays information about the currentview.
+I. Sheet tabs -Tabs represent each sheet in your workbook. This caninclude
+worksheets, dashboards, andstories.
+➢ Tableau Toolbar ButtonReference
+Toolb
+Description
+ar
+Button
+Tableau icon: Navigates to thestart page.
+Undo:Reversesthe mostrecent action inthe workbook.You can undo
+an unlimited number of times, back to the last time you opened the
+workbook,evenafteryouhave saved.Formoreinformation.
+Redo:Repeats the lastaction youreversed withthe Undobutton.You
+can redo an unlimited number oftimes.
+Save:Savesthe changes made totheworkbook.
+NewDataSource:Opens theConnectpane where youcan createa
+new connectionoropen a saved connection.
+PauseAutoUpdates:ControlswhetherTableauupdates theviewwhen
+changes aremade. Usethedrop-downmenuto automaticallyupdate
+theentiresheetorjustusefilters.
+RunUpdate:Runsa manual queryof the data to update the view with
+changes when automatic updates are turned off. Use the drop-down
+menutoupdate the entireworksheetorjustusefilters.
+NewWorksheet:Createsa new blankworksheet,usethe drop-down
+menutocreate a newworksheet,dashboard,orstory.
+Duplicate: Createsa new worksheetcontaining the sameviewasthe
+current sheet.
+Clear:Clears the currentworksheet.Usethe drop-down menu to clear
+specific parts of the view such as filters, formatting, sizing, and axis
+ranges.
+Swap:Moves the fieldson the Rowsshelfto the Columnsshelfand vice
+versa. The Hide Empty Rows and Hide Empty Columns settings are
+always swappedwith thisbutton.
+SortAscending: Appliesa sortinascending orderofa selectedfield
+based onthe measuresintheview.
+SortDescending:Appliesa sortindescending orderofa selectedfield
+based onthe measuresintheview.
+8| P a ge
+--- PDF PAGE 164 ---
+COS10082 Applied Analytics inBusiness
+Toolb
+Description
+ar
+Button
+Highlight:Turnonhighlighting forthe selectedsheet.Usethe optionson
+thedrop-downmenutodefine howvaluesare highlighted.
+GroupMembers:Createsa groupbycombiningselectedvalues.When
+multiple dimensions are selected, use the drop-down menu to specify
+whether togroup ona specific dimensionoracross alldimensions.
+Show Mark Labels: Switches between showing andhiding mark labels
+for the currentsheet.
+Fix Axes: switches between a locked axis that only shows a specific
+range and a dynamic axis that adjusts the range based on the
+minimumand maximumvaluesinthe view.
+Fit:Specifies how the view should be sized within the window. Select
+Standard, Fit Width, Fit Height, or Entire View. Note: This menu is not
+available ingeographic map views.
+TheCellSizecommands have differenteffects depending on the type
+of visualization.Toaccess the CellSizemenu inTableau Desktop,click
+Format>CellSize.
+Show/HideCards:Showsandhidesspecificcardsinaworksheet.Select
+each card thatyouwant tohide orshowonthedrop-downmenu.
+PresentationMode:Switchesbetweenshowingand hiding everything
+excepttheview (i.e.,shelves,toolbar, Datapane).
+Share Workbook with Others: Publish your workbook to Tableau Server
+or TableauOnline.
+ShowMe:Helpsyouchoose a viewtypebyhighlightingviewtypesthat
+work best with the field types in your data. An orange outline shows
+around the recommended chart type that is the best match for your
+data.
+➢ ShowandHidetheSideBar(Datapane)
+TheSideBarcontains the theData pane and theAnalyticspane when youare
+editing a worksheet. Different panes are visible depending on what you are
+doing inthe view (Data, Analytics,Story,Dashboard, Layout,Format).Themost
+important thing to know about the Side Bar is that you can expand and
+collapse thisarea inthe workspace.
+9| P a ge
+--- PDF PAGE 165 ---
+COS10082 Applied Analytics inBusiness
+Tohide thesidebarinTableauDesktop,clickthecollapsearrowinthesidebar.
+To show the side bar on Tableau Desktop, click the expand arrow in the
+bottom-left of the workspace (inthe statusbar).
+➢ StatusBarInformation
+The status bar is located at the bottom of the Tableau workspace. It displays
+descriptions of menu items as well as information about the current view. For
+example, the status bar below shows that the view has 143 marks shown in 3
+rows and 12columns. Italso shows that the SUM(Sales) for all the marksin the
+view is$2,297,201.
+10| P a ge
+--- PDF PAGE 166 ---
+COS10082 Applied Analytics inBusiness
+Dimensions and Measures
+When you connect to a new data source, Tableau assigns each field in the
+data source to either the Dimensions area or the Measures area of the Data
+pane, depending on the type of data the field contains. You use these fields
+to build viewsof your data.
+DataField
+Data fields are made from the columns in your data source. Each field is
+automatically assigned a data type (such as integer, string,date), and a role:
+Discrete Dimension or Continuous Measure (more common), or Continuous
+Dimension or Discrete Measure(lesscommon).
+• Dimensions contain qualitative values (such as names, dates, or
+geographical data). You can use dimensions to categorize, segment,
+and reveal the details in your data. Dimensions affect the level of detail
+intheview.
+• Measures contain numeric, quantitative values that you can measure.
+Measures can be aggregated. When you drag a measure intothe view,
+Tableau applies an aggregation to that measure (bydefault).
+Blue versus green fields
+Tableau representsdata differentlyinthe view depending on whether the field
+is discrete (blue), or continuous (green). Continuous and discrete are
+mathematical terms. Continuous means "forming an unbroken whole, without
+interruption"; discrete means "individually separate anddistinct."
+❖ Example1.1:
+Quick Guide:
+UsingSample-Superstore: Slide No. 2
+• AddQuantity to Columns
+• Add Sales toRows.
+• Click on thedrop down menuofQuantity and selectDimension.
+• ClickonthedropdownmenuofQuantityandselectDiscreteandlaterchange
+it toContinuous.
+In the example on the left (below), because the Quantity field is set to
+Continuous, it creates a horizontal axis along the bottom of the view. The
+green background and the axishelp you to see that it'sa continuous field.
+11| P a ge
+--- PDF PAGE 167 ---
+COS10082 Applied Analytics inBusiness
+In the example on the right, the Quantity field has been set to Discrete. It
+creates horizontal headers instead of an axis. The blue background and the
+horizontalheaders help you to see that it'sdiscrete.
+Inboth examples,the Salesfield issetto Continuous. Itcreates a vertical axis
+because itcontinuous and it'sbeen added to the Rowsshelf.Ifitwas on the
+Columns shelf, it would create a horizontal axis. The green background and
+aggregation function (inthiscase, SUM) help to indicate that it'sa measure.
+Theabsence of an aggregation function in the Quantity field name help to
+indicate that it's adimension.
+Common ChartTypes
+Thissection includes information about the various types of charts that can be
+built in Tableau Desktop. For explaining these charts/plots, the examples that
+will be given are based on the Sample - Superstore data which can be
+accessed from theStartPage
+➢ AreaChart
+An area chart isa linechart where the area between the line and the axisare
+shaded witha color. Thesechartsare typically used to representaccumulated
+totals over time and are the conventional way to display stacked lines. Follow
+the steps below to create an areachart.
+12| P a ge
+--- PDF PAGE 168 ---
+COS10082 Applied Analytics inBusiness
+Quick Guide:
+Slide No. 3
+Tocreate an area chart, follow the steps below:
+1. Open Tableau Desktop and connect to the Sample -Superstoredata
+source.
+2. Navigate to a new worksheet.
+3. FromtheDatapane,underDimensions,dragOrderDatetotheColumns
+shelf.
+4. On the Columns shelf,right-clickYEAR(OrderDate) and selectMonth.
+5. Fromthe Data pane, under Measures,drag Quantity to the Rowsshelf.
+6. Fromthe Date pane, underDimensions,drag ShipMode toColoronthe
+Marks card.
+7. On the Marks card, click the Mark Typedrop-down and selectArea.
+The visualization updates to thefollowing:
+13| P a ge
+--- PDF PAGE 169 ---
+COS10082 Applied Analytics inBusiness
+➢ BarChart
+Use bar charts to compare data across categories. You create a bar chartby
+placing a dimension on the Rowsshelfand a measureon the Columns shelf,or
+vice versa.
+Tocreate a bar chart that displays total sales over a four-year period, follow
+these steps:
+Quick Guide:
+Slide No. 4
+1. Connect to the Sample -Superstoredata source.
+2. Drag the Order Date dimension toColumns.
+Thedata isaggregated by year and column headers appear.
+3. Drag the Salesmeasure toRows.
+Themeasure isaggregated as a sumand an axisiscreated. The
+column headers move to the bottom of the view.
+Tableau usesLineasthe marktype because you added the date
+dimension.
+4. On the Marks card, selectBarfromthe drop-down list.
+Theview changes to a barchart.
+14| P a ge
+--- PDF PAGE 170 ---
+COS10082 Applied Analytics inBusiness
+5. Drag the ShipMode dimension to Color on the Markscard.
+Theview showshow different shipping modes have contributed to total
+salesovertime.Theratioslookconsistent fromyear to year.
+15| P a ge
+--- PDF PAGE 171 ---
+COS10082 Applied Analytics inBusiness
+6. Drag the Region dimension to Rows and drop it to the left of Sales to
+produce multiple axesforsalesbyregion.
+7. Toview data in the West region only, you can filter out the other regions.
+To do this, drag the Region dimension again, this time from the Data
+pane to the Filtersshelf.
+16| P a ge
+--- PDF PAGE 172 ---
+COS10082 Applied Analytics inBusiness
+8. IntheFilter[Region]dialogbox,clearthe Central, East,and Southcheck
+boxes,and then click OK.
+How to change the filter to focus on the Central region?
+Note:we willtalkabout filtersfurtherinother modules.
+➢ BulletGraph
+A bullet graph isa variation of a bar graph developed to replace dashboard
+gauges and meters.A bullet graph isusefulforcomparing the performance of
+a primary measure to one or more other measures. Below is a single bullet
+graph showing how TourismInbound compared to TourismOutbound.
+1. Connect to the WorldIndicatorsdata source. Quick Guide:
+Slide No. 5
+2. Navigate to a new worksheet.
+3. Hold down Shift on your keyboard and then, on the Data pane, under
+Measures > Development, select Tourism Inbound and Tourism
+Outbound.
+4. Inthe upper-rightcorner of the application, click ShowMe.
+5. InShowMe, select the BulletGraphimage.
+6. Click ShowMe again toclose it.
+17| P a ge
+--- PDF PAGE 173 ---
+COS10082 Applied Analytics inBusiness
+7. Fromthe Data pane, under Dimensions,drag Region to the Rowsshelf.
+Thegraph updates to looklike above.
+➢ Histogram
+A histogram is a chart that displays the shape of a distribution. A histogram
+looks like a bar chart but groups values for a continuous measure into ranges,
+orbins.
+Quick Guide:
+1. Connect to the Sample -Superstoredata source.
+Slide No. 6
+2. Drag Quantity toColumns.
+3. Click ShowMe on the toolbar, then selectthe histogramcharttype.
+18| P a ge
+--- PDF PAGE 174 ---
+COS10082 Applied Analytics inBusiness
+The histogram will look like thefollowing:
+The Quantity measure captures the number of items in a particular order. The
+histogramshowsthatabout 4,800orderscontained two items(thesecond bar),
+about 2,400orderscontained 4items(the thirdbar), and soon.
+Let'stake thisview one stepfurtherand add Segmentto Color to see ifwe can
+detect a relationship between the customer segment (consumer, corporate,
+orhome office)and the quantity of itemsperorder.
+4. Drag Segment to Color.
+19| P a ge
+--- PDF PAGE 175 ---
+COS10082 Applied Analytics inBusiness
+The colors don't show a clear trend. Let's show the percentage of each bar
+that belongs to each segment.
+5. Hold down the Ctrl keyand drag the CNT(Quantity)field fromthe Rows
+shelf toLabel.
+6. Right-click the CNT(Quantity)field on the Marks card and select Quick
+Table Calculation > Percent of Total.
+But,the above doesn’t show the percentage on per-bar basis.
+7. Right-click the CNT(Quantity)field on the Markscard again and
+select Edit TableCalculation.
+8. Inthe Table Calculation dialog box, change the value of the Compute
+20| Pa g e
+--- PDF PAGE 176 ---
+COS10082 Applied Analytics inBusiness
+Using field toCell.
+➢ Treemap
+Use treemaps to display data in nested rectangles. You use dimensions to
+define the structure of the treemap, and measures to define the size or color
+of the individual rectangles. Treemaps are a relatively simple data visualization
+that can provide insightina visuallyattractiveformat.
+Tocreate a treemap that shows aggregated sales totals across a range of
+product categories, follow the steps below.
+Quick Guide:
+Slide No. 7
+1. Connect to the Sample -Superstoredata source.
+2. Drag the Sub-Category dimension toColumns.
+A horizontalaxisappears, which showsproduct categories.
+3. Drag the Salesmeasure toRows.
+Tableau aggregates the measure as a sumand creates a vertical axis.
+Tableau displays a bar chart—the default chart type when there is a
+dimension on the Columns shelfand a measureon the Rowsshelf.
+4. Click ShowMe on the toolbar, then selectthe treemap charttype.
+Inthistreemap, both the sizeof the rectangles and their color are determined
+by the value of Sales—the greater the sum of sales for each category, the
+darker and largeritsbox.
+5. Drag the Ship Mode dimension to Color on the Marks card. In the
+resulting view, Ship Mode determines the color of the rectangles—and
+sortsthem into four separate areas accordingly. Salesdetermines the
+21| Pa g e
+--- PDF PAGE 177 ---
+COS10082 Applied Analytics inBusiness
+size of therectangles:
+6. Try another option to modify the treemap: click the Undo button to
+remove ShipModefrom view.
+7. Drag the Profit measure to Color on the Marks card. Now Profit
+determines the color of the rectangles, and Salesdetermines theirsize:
+Thereare also another types of charts which could be explored later.
+22| Pa g e
+--- PDF PAGE 178 ---
+COS10082 Applied Analytics inBusiness
+Quick Guide:
+❖ Exercise1.1: Slide No. 8
+Usingthe Sample –Superstoredata source,create a graph that shows the
+number of customersforeach state.
+Thedefault chart type mightbe bar chart. However,tryto usea different type
+such as the TreemapsorPacked Bubbles.
+Quick Guide:
+❖ Exercise1.2: Slide No. 9
+Usingthe Sample –Superstoredata source,answer the following question
+(using Tableauvisualization):
+Which product(s) sub-category is/are notmaking profit?
+23| Pa g e
+--- PDF PAGE 179 ---
+COS10082 Applied Analytics inBusiness
+Working withData
+ConnectingtoData
+When you launch Tableau Desktop, the data connectors that are
+available to you are listed on the Connect pane, which is the left
+pane on the Start page. File types are listed first, then common
+server types, or servers that you've recently connected to. Click
+More to see the complete listof data connectors you can use.
+For supported files and databases, Tableau provides built-in
+connectors that are built for and optimized for those types of data.
+Ifyour file or database type islisted under Connect, use thisnamed
+connector to connect to your data. Ifyour file or database type is
+not listed, you might have the option of creating your own
+connection using Other Databases (ODBC) or Web Data
+Connector. Tableau provides limited support for connections that
+you create using either of theseoptions.
+SetUpData Sources
+After you connect to your data, use the Data Source page to setup the data
+source and prepare your data for analysis. There are many optional
+configurations that you can make before you begin your analysis. The
+configurations that you make on the Data Source page creates the data
+24| Pa g e
+--- PDF PAGE 180 ---
+COS10082 Applied Analytics inBusiness
+source that Tableauusesto interpretand interact with your data.
+25| Pa g e
+--- PDF PAGE 181 ---
+COS10082 Applied Analytics inBusiness
+What is the Tableau data source?
+A Tableau data source isthe linkbetween your data and Tableau. Itcontains
+information about how to find the data, such as a file name and path, orhow
+toconnect toit,suchasa database servernameand serversign-ininformation.
+The data source also contains the names of the tables in the connection as
+well as informationabout the relationshipthe tables have with eachother.
+Ways to combine your data in Tableau
+Ingeneral,there are three methods forcombining data inTableau.
+1. Union
+Unioning is a method for appending values (that is, rows) to tables. You can
+uniontablesiftheyhave thesamecolumns.Theresultof combining data using
+a union isa virtual table that has the same columns but extends vertically by
+adding rowsofdata.
+For example, suppose you have the following customer purchase information
+stored in three tables, separated by month. The table names are "May2016,"
+"June2016," and "July2016."
+A union of these tables creates the following single table that contains all rows
+from alltables.
+26| Pa g e
+--- PDF PAGE 182 ---
+COS10082 Applied Analytics inBusiness
+Let’sdo the above inTableau Quick Guide:
+Slide No. 10
+• Connect tableau to customerpurchase excel file.
+• On the data source page, double-click New Unionto setup theunion.
+• Drag a table fromthe leftpane to the Uniondialogbox.
+27| Pa g e
+--- PDF PAGE 183 ---
+COS10082 Applied Analytics inBusiness
+• Select another table fromthe leftpane and drag itdirectly below the
+firsttable.
+• Click Apply orOK tounion.
+2. Join
+Joining is a method for combining tables related by common fields (that is,
+common columns). The result of combining data using a join isa virtual table
+that extends horizontally by adding columns of data.
+For example, suppose you are analysing data for a publisher. The publisher
+mighthave twotables.Thefirsttable containsIDnumbers,firstname,lastname,
+and publisher type. The second table contains IDnumbers, price, royalty, and
+title of published books.Therelated field between the two tables mightbe ID.
+28| Pa g e
+--- PDF PAGE 184 ---
+COS10082 Applied Analytics inBusiness
+Inorder to analyse these two tables together, you can join the tables on IDto
+answer questionslike,"Howmuch was paid inroyaltiesforauthorsfroma given
+publisher?". By combining tables using a join, you can view and use related
+data fromdifferent tables inyouranalysis.
+• Jointypes
+JoinType Result Description
+Inner When you usean innerjointo combine tables,the result
+isa tablethatcontainsvaluesthathave matchesinboth
+tables.
+Left Whenyouusea leftjointocombine tables,theresultisa
+table that contains all values from the left table and
+corresponding matchesfromthe righttable.
+When a value in the left table doesn't have a
+corresponding match in the right table, you see a null
+value inthe datagrid.
+Right When youusea rightjointo combine tables,the resultis
+a table that contains all values from the righttable and
+corresponding matchesfromthelefttable.
+When a value in the right table doesn't have a
+corresponding match in the left table, you see a null
+value inthe datagrid.
+Fullouter When you use a full outer join to combine tables, the
+resultisa table that contains allvalues fromboth tables.
+When a value from either table doesn't have a match
+withtheothertable,youseea nullvalueinthedatagrid.
+Union Though union is not a type of join, union is another
+methodforcombiningtwoormoretablesbyappending
+rows of data from one table to another. Ideally, the
+tables that you union have the same number of fields,
+and thosefieldshave matching namesand datatypes.
+Let’s jointables:
+• Connectto Sample –Superstore data
+• Select the Orderstable and drag itto the canvas (ifitisnotselected
+already)
+29| Pa g e
+--- PDF PAGE 185 ---
+COS10082 Applied Analytics inBusiness
+• Double-click ordrag another table tothe canvas (Select Returnfor
+example), and then click the joinrelationship.
+• Add one or more join conditions by selecting a field from one of the
+available tables used in the data source, a join operator, and a field
+fromthe added table. Inspect the joincondition to make sureitreflects
+how you want to connect the tables.
+For example, in a data source that has a table of order information
+and another for returns information, you could use an inner join to
+combine the two tables based on the OrderIDfield that existsinboth
+tables.
+Quick Guide:
+Slide No. 11
+• When you are finished, close the Join dialogbox.
+30| Pa g e
+--- PDF PAGE 186 ---
+COS10082 Applied Analytics inBusiness
+3. Datablending
+Data blending isalso another method that lets you combine data. When you
+use data blending to combine your data, you combine data inwhat iscalled
+a primary data source with common fields from one or more secondary data
+sources.Data blending isusefulwhen you want to joindata but the databases
+you're using don’t allow joins—for example, data in cube data sources. Data
+blending isalsousefulwhen thedata sourcesyou’reworkingwithcontain data
+that'sat differentlevelsof detail.Thismeans,when one data setcapturesdata
+using greater or lesser granularity than the other data set. For example, when
+you want to combine a data source that has daily transactional data with a
+table that contains quarterlydata.
+For an example about Data Blend, go to:
+https://www.tableau.com/learn/tutorials/on-demand/data-blending
+Manage Metadata
+Use the metadata area to quickly examine and change the structure of the
+Tableau data source. You can use the metadata area to review the columns
+in your data and their data types, do routine management tasks such as
+renaming a column, hiding a column, changing the data type of a column,
+and changing the geographical roleof the column.
+• Go to the metadataarea
+Afteryouhave setup yourdata source,click themetadata area button.Ifyou
+are connected to a cube (multidimensional)data source, the metadata area
+isshown by default. Forother data source types,such as Salesforce orTableau
+data extracts (TDE),the default view willvary.
+31| Pa g e
+--- PDF PAGE 187 ---
+COS10082 Applied Analytics inBusiness
+• Reviewmetadata
+Thecolumnsof thedata sourcearerepresentedasrowsinthemetadata area.
+Each rowshowsthe data type of the column, the column name inthe Tableau
+data source, the name of the table in the underlying data from which the
+column comes,and the name of the column inthe underlyingdata.
+32| Pa g e
+--- PDF PAGE 188 ---
+COS10082 Applied Analytics inBusiness
+• Managemetadata
+Depending on the type of data you're connected to,you can perform routine
+management tasks like hiding multiple columns at once or quickly renaming
+columns. For example, to hide multiple columns at once, press the CTRL or
+Command key, select the columns you want to hide, click the drop-
+down arrow next to a column name, and then select Hide. Changes
+that you make in the metadata area of the data source do not modify your
+underlyingdata.
+Live vs. Extract in Data Source
+Something to consider before we begin analyzing our data is if we want to
+connect live orextract.
+• Connectingliveleaves,thedata inthedatabase orsourcefile.Thisisbest
+when we want to leverage a high-performance database’s capabilities,
+or to get up-to-the-second changes in data visualized in Tableau. That
+being said, sometimes connecting live can result in a slow experience,
+depending onthe database.
+• The other option isto extract the data into Tableau's high performance
+in-memory data engine. Thiscan help when connecting to a slow
+database or to take query load off critical systems. We can also import
+only some of the data and bring in specific elements (to access those
+options,clickEdit).Fornow,we’ll connect live.
+33| Pa g e
+--- PDF PAGE 189 ---
+COS10082 Applied Analytics inBusiness
+Filter Data from Data Sources
+Youcan create filterson a data source, therebyreducing the amountof data
+in the datasource.
+Tocreate a data source filter
+• On the data source page, click Add in the Filters section in the upper-
+right corner ofthe page.
+• Tocreate a data source filteron a worksheet,right-clickthe data source
+and choose EditData SourceFilters.
+• Whether you start from the Data Source page or from a worksheet, you
+see an EditData Source Filterdialog box, listingany existingdata source
+filters.
+• Click Add to open an Add Filter dialog box listing all fields in the data
+source.
+• Clicktoselecta fieldtofilter;thenspecifyhowthefieldshouldbe filtered,
+justas you would fora field on the Filtersshelf.
+• Toadd an additional data sourcefilter,repeat thisprocedure.
+Splita FieldintoMultiple Fields
+Ifyou have string fields in your data that contain multiple units of information,
+forexample, the firstand lastname of a customer,itmight be easier to analyse
+the data ifyou splitthe values inthat field into separate fields.You can usesplit
+or custom split options in Tableau to separate the values based on a separator
+ora repeated patternofvaluespresentineach rowofthefield.Inthisexample,
+the common separator isa space character ().
+34| Pa g e
+--- PDF PAGE 190 ---
+COS10082 Applied Analytics inBusiness
+DataInterpreter
+Data Interpreter can give you a head start when cleaning your data. Itcan
+detect thingsliketitles,notes,footers,empty cells,and soon and bypass them
+to identify the actual fields and values inyour dataset.
+Itcan even detect additional tables and sub-tablessothat you can workwith
+a subsetof yourdata independently of the otherdata.
+AfterData Interpreterhasdone itsmagic, youcan check itsworkto make sure
+itcaptured the data that youwanted and identifieditcorrectly.Then,youcan
+make anynecessary adjustments.
+After you select the data that you want to work with, you might also need to
+do some additional cleaning steps like pivoting your data, splitting fields, or
+adding filters to get the data in the shape you want before starting your
+analysis.
+❖ Example2.1
+Forthisexample, we’ll be using the “Data Prep –Flights” Excel file, which you
+can find onCanvas.
+• Createanewworksheet named “Example2.1”
+• Open the file in Excel. Here we have a report in Excel, showing the
+number of resolved incidents per Employee per month. The “Ideal” tab
+showshowwewishthedata wouldbe formatted–likea database table.
+Quick Guide:
+Slide No. 12
+35| Pa g e
+--- PDF PAGE 191 ---
+COS10082 Applied Analytics inBusiness
+However, sometimes we receive data that looks more like what we see in the
+“Resolved Incidents” tab. Luckily,there are severalfeatures inTableau Desktop
+to help automatically reshape Text and Excel files to get them ready for
+analysis inTableau.
+Let’sconnect to thisExcelfileand see ifwe can workwiththat poorly formatted
+sheet.
+• InTableau Desktop, click on Excel, navigate to where you saved the file
+and clickopen.
+• Drag out the “ResolvedIncidents”sheet.
+• Although Tableau can connect to this sheet, we can see here in the
+preview that there are some issues. There are no column names, the
+headers from Excel have a lot of nulls,and so on. Tableau has also
+36| Pa g e
+--- PDF PAGE 192 ---
+COS10082 Applied Analytics inBusiness
+recognized thisand suggests the Data Interpreter (Tableau’s built-intool
+forpreparing yourdata foranalysis).
+• let’s tick on “Cleaned with DataInterpreter”
+• Now we see that identified! those headers and nullshave been stripped
+out,and our columns areproperly named.
+• Now,let’stryto transformthisdata intoa data similartothe“Ideal” sheet
+inthe excel file. Todo thiseasily, we’ll simply select all the datecolumns.
+Click on the first,scroll ifnecessary, then shiftclick on the last.We’ll open
+the drop down menu of the lastcolumn and select“Pivot”
+This pivot feature essentially merges the information from the original
+columns and rows into two new columns –Pivot field names, and Pivot
+field values.
+37| P a ge
+--- PDF PAGE 193 ---
+COS10082 Applied Analytics inBusiness
+• We can see that Pivot field names isactually our Date, double click to
+rename to Date, and Pivot field values can be renamed Resolved
+Incidents.
+• Click on Manage Metadata Grid icon to view the original/remote field
+names.
+• Click on the menu on the upper right corner of Employee field, choose
+Split.Thefield Employee isautomatically splitintotwo fields.Double click
+to rename them to Location and EmployeeID
+• Returnto the data source, you should see this:
+• Go back to the worksheet,drag Incident Resolved toColumnsshelf,and
+EmployeeID to Rowsshelf,sortitinDescending order
+38| P a ge
+--- PDF PAGE 194 ---
+COS10082 Applied Analytics inBusiness
+End ofLab
+39| P a ge
+--- PDF PAGE 195 ---
+COS10082
+Applied Analytics in
+Business
+Tutorial 4
+Tableau Desktop: Part I
+(Quick Guide)
+--- PDF PAGE 196 ---
+Example 1.1
+--- PDF PAGE 197 ---
+Area Chart
+--- PDF PAGE 198 ---
+Bar Chart
+--- PDF PAGE 199 ---
+Bullet Chart
+--- PDF PAGE 200 ---
+Histogram
+--- PDF PAGE 201 ---
+TreeMap
+--- PDF PAGE 202 ---
+Exercise 1.1
+--- PDF PAGE 203 ---
+Exercise 1.2
+--- PDF PAGE 204 ---
+Union
+--- PDF PAGE 205 ---
+Join
+--- PDF PAGE 206 ---
+Example 2.1
+--- PDF PAGE 207 ---
+Calls by Tower
+--- PDF PAGE 208 ---
+Call Heat Maps

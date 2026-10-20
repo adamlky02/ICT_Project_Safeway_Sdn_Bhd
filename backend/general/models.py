@@ -1,7 +1,6 @@
 from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, Integer, ForeignKey, JSON, BigInteger, Index
 from sqlalchemy.dialects.postgresql import UUID
 from .database import Base
-from uuid import uuid4
 
 # User Model (maps staff and administrator accounts to the user table)
 class User(Base):
@@ -15,18 +14,6 @@ class User(Base):
     role = Column(String(20), server_default="staff")
     is_active = Column(Boolean, server_default="true")
     created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
-
-class AuthSession(Base):
-    """Persistent login sessions; separate from conversation history sessions."""
-    __tablename__ = "auth_sessions"
-    __table_args__ = {"schema": "AI chatbot"}
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('AI chatbot.User_list.id', ondelete="CASCADE"), nullable=False, index=True)
-    expires_at = Column(Integer, nullable=False)
-    revoked = Column(Boolean, nullable=False, default=False, server_default=text("false"))
-    created_at = Column(TIMESTAMP(timezone=True), server_default=text("now()"))
-
 
 # Knowledge Base Model (stores uploaded document metadata used by retrieval)
 class KnowledgeBase(Base):

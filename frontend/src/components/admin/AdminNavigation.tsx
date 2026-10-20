@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { Activity, Bot, Code2, FileText, Globe, LockKeyhole, LogOut, Moon, ShieldCheck, Sun, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -39,6 +40,27 @@ export function AdminNavigation({
     onLogout,
     onDeveloperModeRequest,
 }: AdminNavigationProps) {
+    const viewportRef = useRef<HTMLDivElement>(null);
+    const desktopNavigationRef = useRef<HTMLDivElement>(null);
+    const [desktopFits, setDesktopFits] = useState(false);
+
+    // Content Fit (remeasures full labels after resizing, language changes, font loading, or unlocking developer tabs).
+    useLayoutEffect(() => {
+        const viewport = viewportRef.current;
+        const navigation = desktopNavigationRef.current;
+        if (!viewport || !navigation) return;
+
+        const updateLayout = () => {
+            const availableWidth = viewport.getBoundingClientRect().width;
+            setDesktopFits(availableWidth >= 1024 && navigation.getBoundingClientRect().width <= availableWidth - 32);
+        };
+        const observer = new ResizeObserver(updateLayout);
+        observer.observe(viewport);
+        observer.observe(navigation);
+        updateLayout();
+        return () => observer.disconnect();
+    }, []);
+
     const items: NavigationItem[] = [
         { id: 'analytics', icon: Activity, label: t.tab_analytics || 'Analytics' },
         { id: 'staff', icon: Users, label: t.tab_accounts || 'Accounts' },
@@ -56,7 +78,7 @@ export function AdminNavigation({
         <button
             key={id}
             onClick={() => onTabChange(id)}
-            className={`relative flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${tab === id ? 'text-slate-950 dark:text-white' : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white'}`}
+            className={`relative flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${tab === id ? 'text-slate-950 dark:text-white' : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white'}`}
             type="button"
             aria-current={tab === id ? 'page' : undefined}
         >
@@ -68,7 +90,7 @@ export function AdminNavigation({
                 />
             )}
             <Icon size={15} className={`relative z-10 shrink-0 ${tab === id ? 'text-amber-500 dark:text-amber-400' : ''}`} />
-            <span className="relative z-10 truncate">{label}</span>
+            <span className="relative z-10">{label}</span>
             {tab === id && <span className="absolute -bottom-1 size-1 rounded-full bg-amber-400 shadow-[0_0_9px_rgba(251,191,36,0.75)]" />}
         </button>
     );
@@ -89,19 +111,24 @@ export function AdminNavigation({
 
     return (
         <>
-            <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex h-24 justify-center">
+            <div ref={viewportRef} className="pointer-events-none fixed inset-x-0 top-0 z-50 flex h-24 justify-center">
                 <FloatingNavigationDock
                     isDarkMode={isDarkMode}
                     ariaLabel="Administrator navigation"
+                    className={desktopFits ? 'w-max max-w-[calc(100vw-2rem)]' : 'w-[calc(100vw-1.5rem)]'}
                 >
-                    {/* Desktop Controls (places primary destinations around the centered brand mark) */}
-                    <div className="hidden h-full grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] items-center px-4 lg:grid">
-                        <div className="flex min-w-0 items-center justify-end gap-1 pr-3">
+                    {/* Desktop Controls (equal intrinsic-width sides keep the logo centered without squeezing labels; the hidden layout remains measurable). */}
+                    <div
+                        ref={desktopNavigationRef}
+                        className={`grid h-full w-max grid-cols-[minmax(max-content,1fr)_7rem_minmax(max-content,1fr)] items-center px-4 ${desktopFits ? '' : 'pointer-events-none invisible absolute inset-y-0 left-0'}`}
+                        aria-hidden={!desktopFits}
+                    >
+                        <div className="flex items-center justify-end gap-1 pr-3">
                             {leftItems.map(renderDesktopTab)}
                         </div>
                         <div aria-hidden="true" />
-                        <div className="flex min-w-0 items-center justify-between gap-2 pl-3">
-                            <div className="flex min-w-0 items-center gap-1">
+                        <div className="flex items-center justify-between gap-2 pl-3">
+                            <div className="flex shrink-0 items-center gap-1">
                                 {rightItems.map(renderDesktopTab)}
                             </div>
                             <div className="flex shrink-0 items-center gap-0.5 border-l-[0.5px] border-slate-300/50 pl-2 dark:border-white/10">
@@ -121,7 +148,7 @@ export function AdminNavigation({
                     </div>
 
                     {/* Touch Controls (balances utilities around the logo when hover is unavailable) */}
-                    <div className="grid h-full grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] items-center px-2 lg:hidden">
+                    <div className={`${desktopFits ? 'hidden' : 'grid'} h-full grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)] items-center px-2`}>
                         <div className="flex items-center justify-end gap-0.5 pr-1">
                             {renderDeveloperButton()}
                             <button onClick={onLanguageToggle} className={utilityButtonClass} type="button" aria-label={`Change language. Current language: ${lang}`}>
@@ -141,9 +168,9 @@ export function AdminNavigation({
                 </FloatingNavigationDock>
             </div>
 
-            {/* Mobile Tab Island (keeps primary administration destinations within reach) */}
-            <m.nav
-                className="fixed inset-x-3 bottom-3 z-50 flex min-h-[4.25rem] items-stretch justify-around rounded-[1.45rem] border-[0.5px] border-slate-300/45 bg-white/62 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_16px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#090a0d]/68 dark:shadow-[0_18px_50px_rgba(0,0,0,0.26)] lg:hidden"
+            {/* Compact Tab Island (wraps complete labels when the desktop controls cannot fit the available viewport). */}
+            {!desktopFits && <m.nav
+                className="fixed inset-x-3 bottom-3 z-50 flex min-h-[4.25rem] items-stretch justify-around rounded-[1.45rem] border-[0.5px] border-slate-300/45 bg-white/62 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_16px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#090a0d]/68 dark:shadow-[0_18px_50px_rgba(0,0,0,0.26)]"
                 initial={{ y: 82, opacity: 0, scale: 0.96 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -159,10 +186,10 @@ export function AdminNavigation({
                     >
                         {tab === id && <m.span layoutId="admin-mobile-active-tab" className="absolute inset-0 rounded-2xl border border-amber-500/25 bg-amber-50/65 dark:border-amber-400/15 dark:bg-white/[0.07]" />}
                         <Icon size={19} className={`relative z-10 ${tab === id ? 'text-amber-500 dark:text-amber-400' : ''}`} />
-                        <span className="relative z-10 mt-1 max-w-full truncate text-[8px] font-black uppercase tracking-[0.08em]">{label}</span>
+                        <span className="relative z-10 mt-1 w-full whitespace-normal text-center text-[9px] font-black uppercase leading-snug tracking-[0.04em] [overflow-wrap:anywhere]">{label}</span>
                     </button>
                 ))}
-            </m.nav>
+            </m.nav>}
         </>
     );
 }

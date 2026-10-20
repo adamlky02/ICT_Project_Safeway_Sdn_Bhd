@@ -503,7 +503,7 @@ const AdminDashboard = () => {
             />
 
             {/* Active Dashboard Panel (renders the heading and currently selected management view) */}
-            <main className="relative z-10 w-full min-w-0 flex-1 overflow-y-auto px-3 pb-[max(6.5rem,env(safe-area-inset-bottom))] pt-24 transition-colors duration-300 custom-scrollbar sm:px-5 lg:px-8 lg:pb-12 lg:pt-28 xl:px-10">
+            <main className="relative z-10 w-full min-w-0 flex-1 overflow-y-auto px-3 pb-[max(6.5rem,env(safe-area-inset-bottom))] pt-24 transition-colors duration-300 custom-scrollbar sm:px-5 lg:px-8 lg:pt-28 xl:px-10">
                 <m.div
                     className="mx-auto min-w-0 max-w-[86rem]"
                     initial={{ opacity: 0, y: 28 }}

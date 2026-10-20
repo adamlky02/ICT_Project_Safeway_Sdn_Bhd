@@ -3,7 +3,8 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, ForeignKey, JSON
+from fastapi.responses import Response
+from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, ForeignKey, JSON, case
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, relationship
 
@@ -66,6 +67,9 @@ class SessionCreateReq(BaseModel):
 
 class SessionUpdateTitleReq(BaseModel):
     title: str = Field(min_length=1, max_length=255)
+
+class SessionSelectionReq(BaseModel):
+    session_ids: List[uuid.UUID] = Field(min_length=1)
 
 class MessageResponse(BaseModel):
     id: str
@@ -251,7 +255,8 @@ def get_session_detail(db: Session, session_id: str, user_id: Optional[str] = No
     messages = (
         db.query(ChatMessageRecord)
         .filter(ChatMessageRecord.session_id == sess_uuid)
-        .order_by(ChatMessageRecord.created_at.asc())
+        # PostgreSQL gives both messages in one saved turn the same transaction timestamp.
+        .order_by(ChatMessageRecord.created_at.asc(), case((ChatMessageRecord.sender == "user", 0), else_=1), ChatMessageRecord.id.asc())
         .all()
     )
 
@@ -351,6 +356,70 @@ def api_create_session(req: SessionCreateReq, db: Session = Depends(database.get
     }
 
 
+def _selected_sessions(db: Session, session_ids: List[uuid.UUID], user_id: uuid.UUID, *, lock=False):
+    unique_ids = list(dict.fromkeys(session_ids))
+    query = db.query(ChatSession).filter(ChatSession.id.in_(unique_ids), ChatSession.user_id == user_id)
+    if lock:
+        query = query.order_by(ChatSession.id).with_for_update()
+    sessions = {session.id: session for session in query.all()}
+    if len(sessions) != len(unique_ids):
+        raise HTTPException(status_code=404, detail="One or more conversations are no longer available.")
+    return [sessions[session_id] for session_id in unique_ids]
+
+
+def _history_text(detail: dict) -> str:
+    lines = ["Safeway Chat History", detail["title"], f"Conversation: {detail['id']}", ""]
+    for message in detail["messages"]:
+        label = "You" if message["sender"] == "user" else "Safeway Assistant"
+        timestamp = message["created_at"].isoformat() if message["created_at"] else ""
+        lines.extend([f"{label} ({timestamp})" if timestamp else label, message["content"]])
+        for source in message["sources"]:
+            if isinstance(source, dict) and source.get("title"):
+                lines.append(f"Source: {source['title']}")
+        lines.append("")
+    if not detail["messages"]:
+        lines.append("No saved messages in this conversation.")
+    return "\n".join(lines)
+
+
+def _history_attachment(content: str, filename: str) -> Response:
+    # A BOM preserves Chinese/Malay text in Windows text editors.
+    return Response(content=("\ufeff" + content).encode("utf-8"), media_type="text/plain; charset=utf-8", headers={
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
+
+
+@chat_history_router.post("/sessions/export")
+def api_export_sessions(
+    req: SessionSelectionReq,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """Export the complete selection as one TXT file after checking every owner."""
+    sessions = _selected_sessions(db, req.session_ids, current_user.id)
+    content = ("\n\n" + "=" * 60 + "\n\n").join(
+        _history_text(get_session_detail(db, str(session.id), str(current_user.id))) for session in sessions
+    )
+    return _history_attachment(content, "chat-history.txt")
+
+
+@chat_history_router.post("/sessions/delete")
+def api_delete_sessions(
+    req: SessionSelectionReq,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """Delete only a fully owned selection, with all changes in one transaction."""
+    sessions = _selected_sessions(db, req.session_ids, current_user.id, lock=True)
+    deleted_ids = [str(session.id) for session in sessions]
+    for session in sessions:
+        db.delete(session)
+    db.commit()
+    return {"message": "Conversations deleted successfully", "ids": deleted_ids}
+
+
 @chat_history_router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
 def api_get_session(
     session_id: str,
@@ -359,6 +428,17 @@ def api_get_session(
 ):
     """Retrieve full messages for a specific session."""
     return get_session_detail(db, session_id, str(current_user.id))
+
+
+@chat_history_router.get("/sessions/{session_id}/export")
+def api_export_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """Download only the signed-in user's saved messages as a UTF-8 text file."""
+    detail = get_session_detail(db, session_id, str(current_user.id))
+    return _history_attachment(_history_text(detail), f"chat-history-{detail['id']}.txt")
 
 
 @chat_history_router.patch("/sessions/{session_id}/title")

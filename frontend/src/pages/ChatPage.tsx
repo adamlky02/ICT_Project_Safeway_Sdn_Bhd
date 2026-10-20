@@ -3,7 +3,7 @@ import { m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_URL, authenticatedFetch, logout, getStoredUser, readJson } from '../api/client';
 import {
-    deleteSession,
+    deleteSessions,
     fetchSessionDetail,
     fetchUserSessions,
     updateSessionTitle,
@@ -154,19 +154,12 @@ const ChatPage = () => {
         }
     };
 
-    // Delete a Chat Session
-    const handleDeleteSession = async (sessionId: string) => {
-        const user = getStoredUser();
-        if (!user?.id) return;
-        try {
-            await deleteSession(sessionId);
-            if (currentSessionId === sessionId) {
-                handleNewChat();
-            }
-            await loadSessions(user.id, false);
-        } catch (error) {
-            console.error('Failed to delete session:', error);
-        }
+    // Delete the selection together and update history only after server confirmation.
+    const handleDeleteSessions = async (sessionIds: string[]) => {
+        const result = await deleteSessions(sessionIds);
+        const deletedIds = new Set(result.ids);
+        setSessions((current) => current.filter((session) => !deletedIds.has(session.id)));
+        if (currentSessionId && deletedIds.has(currentSessionId)) handleNewChat();
     };
 
     // Rename a Chat Session
@@ -327,7 +320,7 @@ const ChatPage = () => {
                 activeSessionId={currentSessionId}
                 onSelectSession={handleSelectSession}
                 onNewChat={handleNewChat}
-                onDeleteSession={handleDeleteSession}
+                onDeleteSessions={handleDeleteSessions}
                 onRenameSession={handleRenameSession}
                 isLoading={isLoadingSessions}
             />

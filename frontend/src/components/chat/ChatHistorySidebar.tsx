@@ -3,16 +3,18 @@ import {
     History,
     MessageSquare,
     Plus,
-    Trash2,
-    Edit2,
     Check,
     X,
     ChevronLeft,
     Search,
     Clock,
+    LoaderCircle,
+    ListChecks,
 } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
+import { downloadSessionHistories } from '../../api/chatHistory';
 import type { ChatSessionSummary } from '../../types';
+import { ChatHistoryActions } from './ChatHistoryActions';
 
 interface ChatHistorySidebarProps {
     isOpen: boolean;
@@ -22,7 +24,7 @@ interface ChatHistorySidebarProps {
     activeSessionId: string | null;
     onSelectSession: (sessionId: string) => void;
     onNewChat: () => void;
-    onDeleteSession: (sessionId: string) => void;
+    onDeleteSessions: (sessionIds: string[]) => Promise<void>;
     onRenameSession: (sessionId: string, newTitle: string) => void;
     isLoading: boolean;
 }
@@ -35,21 +37,58 @@ export function ChatHistorySidebar({
     activeSessionId,
     onSelectSession,
     onNewChat,
-    onDeleteSession,
+    onDeleteSessions,
     onRenameSession,
     isLoading,
 }: ChatHistorySidebarProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [busyAction, setBusyAction] = useState<'download' | 'delete' | null>(null);
+    const [actionError, setActionError] = useState('');
+    const [actionMessage, setActionMessage] = useState('');
+    const selectedSessions = sessions.filter((session) => selectedIds.has(session.id));
+
+    const performAction = async (action: 'download' | 'delete', ids: string[]) => {
+        if (busyAction || ids.length === 0) return;
+        if (action === 'delete' && !window.confirm(`Delete ${ids.length === 1 ? 'this conversation' : `these ${ids.length} conversations`}? This cannot be undone.`)) return;
+        setBusyAction(action);
+        setActionError('');
+        setActionMessage('');
+        try {
+            if (action === 'download') {
+                await downloadSessionHistories(ids);
+                setActionMessage(`${ids.length} conversation${ids.length === 1 ? '' : 's'} downloaded.`);
+            } else {
+                await onDeleteSessions(ids);
+                setSelectedIds((current) => new Set([...current].filter((id) => !ids.includes(id))));
+                setActionMessage(`${ids.length} conversation${ids.length === 1 ? '' : 's'} deleted.`);
+            }
+        } catch (error) {
+            setActionError(error instanceof Error ? error.message : 'The action failed. Please try again.');
+        } finally {
+            setBusyAction(null);
+        }
+    };
+
+    const toggleSelection = (id: string) => {
+        if (busyAction) return;
+        setSelectedIds((current) => {
+            const next = new Set(current);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
 
     const filteredSessions = sessions.filter((s) =>
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.last_message && s.last_message.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const startEditing = (s: ChatSessionSummary, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const startEditing = (s: ChatSessionSummary) => {
         setEditingSessionId(s.id);
         setEditTitle(s.title);
     };
@@ -65,13 +104,6 @@ export function ChatHistorySidebar({
     const cancelRename = (e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingSessionId(null);
-    };
-
-    const handleDelete = (sessionId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (window.confirm('Delete this conversation history?')) {
-            onDeleteSession(sessionId);
-        }
     };
 
     const formatTime = (isoString?: string) => {
@@ -159,11 +191,51 @@ export function ChatHistorySidebar({
                         <input
                             type="text"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(event) => {
+                                setSearchQuery(event.target.value);
+                                setSelectedIds(new Set());
+                            }}
+                            disabled={busyAction !== null}
                             placeholder="Search history..."
                             className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-700 placeholder-slate-400 transition-colors focus:border-amber-500 focus:bg-white focus:outline-none dark:border-white/10 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:bg-slate-800"
                         />
                     </div>
+                </div>
+
+                <div className="shrink-0 space-y-2 px-3 pb-2">
+                    <button type="button" disabled={busyAction !== null || isLoading}
+                        onClick={() => {
+                            setSelectionMode((current) => !current);
+                            setSelectedIds(new Set());
+                            setEditingSessionId(null);
+                            setActionMessage('');
+                            setActionError('');
+                        }}
+                        aria-pressed={selectionMode}
+                        className="flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 dark:border-white/10 dark:text-slate-300 dark:hover:bg-slate-800">
+                        {selectionMode ? <X className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />}
+                        {selectionMode ? 'Done selecting' : 'Select conversations'}
+                    </button>
+                    {selectionMode && <>
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                            <button type="button" disabled={busyAction !== null || filteredSessions.length === 0}
+                                title="Select all conversations matching the search"
+                                onClick={() => setSelectedIds(new Set(filteredSessions.map((session) => session.id)))}
+                                className="min-h-8 rounded px-2 font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-40 dark:text-amber-400 dark:hover:bg-amber-500/10">Select all</button>
+                            <button type="button" disabled={busyAction !== null || selectedSessions.length === 0}
+                                onClick={() => setSelectedIds(new Set())}
+                                className="min-h-8 rounded px-2 text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800">Deselect all</button>
+                        </div>
+                        <ChatHistoryActions label="Actions for selected conversations"
+                            summary={<span className="text-xs text-slate-500 dark:text-slate-400" aria-live="polite">{selectedSessions.length} selected</span>}
+                            disabled={busyAction !== null || selectedSessions.length === 0}
+                            onDownload={() => void performAction('download', selectedSessions.map((session) => session.id))}
+                            onDelete={() => void performAction('delete', selectedSessions.map((session) => session.id))} />
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Selected conversations download together in one TXT file.</p>
+                    </>}
+                    {busyAction && <p role="status" className="flex items-center gap-2 text-xs text-slate-500"><LoaderCircle className="h-3 w-3 animate-spin" />{busyAction === 'download' ? 'Preparing download…' : 'Deleting conversations…'}</p>}
+                    {actionError && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{actionError}</p>}
+                    {actionMessage && <p role="status" className="text-xs text-emerald-700 dark:text-emerald-400">{actionMessage}</p>}
                 </div>
 
                 {/* Sessions List */}
@@ -191,7 +263,11 @@ export function ChatHistorySidebar({
                             return (
                                 <div
                                     key={session.id}
-                                    onClick={() => !isEditing && onSelectSession(session.id)}
+                                    onClick={() => {
+                                        if (isEditing || busyAction) return;
+                                        if (selectionMode) toggleSelection(session.id);
+                                        else onSelectSession(session.id);
+                                    }}
                                     className={`
                                         group relative flex cursor-pointer flex-col rounded-xl px-3 py-2.5 transition-all
                                         ${isActive
@@ -201,6 +277,10 @@ export function ChatHistorySidebar({
                                     `}
                                 >
                                     <div className="flex items-center justify-between gap-1">
+                                        {selectionMode && <input type="checkbox" checked={selectedIds.has(session.id)}
+                                            disabled={busyAction !== null} aria-label={`Select ${session.title}`}
+                                            onClick={(event) => event.stopPropagation()} onChange={() => toggleSelection(session.id)}
+                                            className="mr-2 h-4 w-4 shrink-0 accent-amber-600" />}
                                         {isEditing ? (
                                             <div className="flex flex-1 items-center gap-1">
                                                 <input
@@ -232,9 +312,15 @@ export function ChatHistorySidebar({
                                             </div>
                                         ) : (
                                             <>
-                                                <span className="truncate text-xs font-semibold leading-5">
+                                                <button type="button" disabled={busyAction !== null}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        if (selectionMode) toggleSelection(session.id);
+                                                        else onSelectSession(session.id);
+                                                    }}
+                                                    className="min-w-0 flex-1 truncate text-left text-xs font-semibold leading-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                                                     {session.title}
-                                                </span>
+                                                </button>
                                                 <span className="shrink-0 text-[10px] text-slate-400 dark:text-slate-500">
                                                     {formatTime(session.updated_at || session.created_at)}
                                                 </span>
@@ -244,28 +330,13 @@ export function ChatHistorySidebar({
 
                                     {/* Snippet & Actions */}
                                     {!isEditing && (
-                                        <div className="mt-1 flex items-center justify-between">
-                                            <p className="truncate text-[11px] text-slate-500 dark:text-slate-400 max-w-[190px]">
-                                                {session.last_message || 'No messages'}
-                                            </p>
-                                            <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                                                <button
-                                                    onClick={(e) => startEditing(session, e)}
-                                                    className="rounded p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                                                    title="Rename"
-                                                    type="button"
-                                                >
-                                                    <Edit2 className="h-3 w-3" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDelete(session.id, e)}
-                                                    className="rounded p-1 text-slate-400 hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400"
-                                                    title="Delete"
-                                                    type="button"
-                                                >
-                                                    <Trash2 className="h-3 w-3" />
-                                                </button>
-                                            </div>
+                                        <div className="mt-1">
+                                            {selectionMode ? <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">{session.last_message || 'No messages'}</p>
+                                                : <ChatHistoryActions label={`Actions for ${session.title}`} compact disabled={busyAction !== null}
+                                                    summary={<p className="min-w-0 truncate text-[11px] text-slate-500 dark:text-slate-400">{session.last_message || 'No messages'}</p>}
+                                                    onRename={() => startEditing(session)}
+                                                    onDownload={() => void performAction('download', [session.id])}
+                                                    onDelete={() => void performAction('delete', [session.id])} />}
                                         </div>
                                     )}
                                 </div>

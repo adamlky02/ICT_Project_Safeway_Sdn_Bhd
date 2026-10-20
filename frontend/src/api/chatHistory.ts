@@ -37,6 +37,56 @@ export async function fetchSessionDetail(sessionId: string): Promise<ChatSession
     return readJson<ChatSessionDetail>(response);
 }
 
+// Downloads the saved conversation using the same authentication as history viewing.
+export async function downloadSessionHistory(sessionId: string): Promise<void> {
+    const response = await authenticatedFetch(`${API_URL}/api/chat-history/sessions/${encodeURIComponent(sessionId)}/export`);
+    await saveHistoryDownload(response, `chat-history-${sessionId}.txt`);
+}
+
+export async function downloadSessionHistories(sessionIds: string[]): Promise<void> {
+    if (sessionIds.length === 1) return downloadSessionHistory(sessionIds[0]);
+    const response = await authenticatedFetch(`${API_URL}/api/chat-history/sessions/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_ids: sessionIds }),
+    });
+    await saveHistoryDownload(response, 'chat-history.txt');
+}
+
+async function saveHistoryDownload(response: Response, filename: string): Promise<void> {
+    if (!response.ok) {
+        if (response.status === 401) throw new Error('Your session has expired. Please log in again.');
+        if (response.status === 404) throw new Error('This conversation is no longer available.');
+        throw new Error('Unable to download chat history. Please try again.');
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    try {
+        link.click();
+    } finally {
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+}
+
+export async function deleteSessions(sessionIds: string[]): Promise<{ ids: string[] }> {
+    const response = await authenticatedFetch(`${API_URL}/api/chat-history/sessions/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_ids: sessionIds }),
+    });
+    if (!response.ok) {
+        if (response.status === 401) throw new Error('Your session has expired. Please log in again.');
+        if (response.status === 404) throw new Error('One or more conversations are no longer available. Refresh history and try again.');
+        throw new Error('Unable to delete conversations. Please try again.');
+    }
+    return readJson<{ ids: string[] }>(response);
+}
+
 // Renames an existing chat session
 export async function updateSessionTitle(sessionId: string, title: string): Promise<{ message: string; id: string; title: string }> {
     const response = await authenticatedFetch(`${API_URL}/api/chat-history/sessions/${encodeURIComponent(sessionId)}/title`, {

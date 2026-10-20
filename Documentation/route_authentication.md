@@ -6,6 +6,25 @@ expired, wrong-scope tokens and inactive/deleted accounts return HTTP 401.
 
 ## Client contract
 
+- Each conversation's **Actions** menu provides **Download TXT**, **Rename**,
+  and **Delete**. Choose **Select conversations** to use checkboxes, **Select all**,
+  or **Deselect all**, then use the selection's **Actions** menu for bulk download
+  or deletion. Select all follows the current search; changing the search clears
+  the selection. Deletion requires confirmation.
+- TXT downloads contain the complete saved conversation, including its title, message
+  timestamps, questions, answers, and source titles. UTF-8 with a BOM preserves
+  Chinese and Malay text in Windows editors. Unsaved messages and source
+  documents are excluded.
+- `GET /api/chat-history/sessions/{session_id}/export` returns a private,
+  non-cacheable `.txt` attachment. It uses the existing login session and only
+  permits the conversation's owner, including for administrator accounts.
+  Invalid IDs return 400; unknown or foreign conversations return 404.
+- `POST /api/chat-history/sessions/export` and `POST /api/chat-history/sessions/delete`
+  accept `{ "session_ids": ["uuid", "uuid"] }`. Every conversation must belong to
+  the signed-in user. Exports combine the selected histories into one TXT file;
+  deletion removes the complete selection in one transaction. A missing or
+  foreign conversation rejects the entire request with 404, and an empty or
+  invalid selection returns 422. Duplicate IDs are handled once.
 - Chat accepts `message`, optional `history` and optional `session_id`.
 - History creation accepts an optional `title` in the JSON body.
 - History list/detail/rename/delete use the signed-in account automatically.

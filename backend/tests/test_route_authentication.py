@@ -7,7 +7,7 @@ import os
 import tempfile
 import time
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -69,6 +69,9 @@ class ProtectedRouteTests(unittest.TestCase):
             ('GET', '/api/chat-history/sessions', None),
             ('POST', '/api/chat-history/sessions', {}),
             ('GET', f'/api/chat-history/sessions/{sid}', None),
+            ('GET', f'/api/chat-history/sessions/{sid}/export', None),
+            ('POST', '/api/chat-history/sessions/export', {'session_ids': [sid]}),
+            ('POST', '/api/chat-history/sessions/delete', {'session_ids': [sid]}),
             ('PATCH', f'/api/chat-history/sessions/{sid}/title', {'title': 'Changed'}),
             ('DELETE', f'/api/chat-history/sessions/{sid}', None),
             ('GET', '/api/files/manual.pdf', None),
@@ -198,6 +201,113 @@ class ProtectedRouteTests(unittest.TestCase):
             response = self.client.get('/api/files/'+name, headers=self.headers())
             self.assertEqual(response.status_code, 404, response.text)
         self.storage.get_object.assert_not_called()
+
+    def test_history_export_only_allows_the_owner(self):
+        url = f'/api/chat-history/sessions/{self.session.id}/export'
+        self.assertEqual(self.client.get(url).status_code, 401)
+        for user in (self.a, self.admin):
+            response = self.client.get(url, params={'user_id': str(self.b.id)}, headers=self.headers(user))
+            self.assertEqual(response.status_code, 404, response.text)
+        response = self.client.get(url, headers=self.headers(self.b))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('Private B history', response.text)
+        self.assertIn('Private question', response.text)
+        self.assertIn('Private answer', response.text)
+        self.assertEqual(response.headers['content-type'], 'text/plain; charset=utf-8')
+        self.assertEqual(response.headers['content-disposition'], f'attachment; filename="chat-history-{self.session.id}.txt"')
+        self.assertEqual(response.headers['cache-control'], 'private, no-store')
+        self.assertEqual(response.headers['x-content-type-options'], 'nosniff')
+        self.assertTrue(response.content.startswith(b'\xef\xbb\xbf'))
+        self.assertEqual(self.client.get(f'/api/chat-history/sessions/{uuid4()}/export', headers=self.headers()).status_code, 404)
+        self.assertEqual(self.client.get('/api/chat-history/sessions/invalid/export', headers=self.headers()).status_code, 400)
+
+    def test_history_export_preserves_message_order_unicode_and_source_titles(self):
+        session = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='中文 / Bahasa Melayu')
+        now = datetime.now(timezone.utc)
+        for index in range(3):
+            # Deliberately insert replies first with identical question/reply timestamps.
+            created_at = now + timedelta(seconds=index)
+            self.db.add_all([
+                chat_history.ChatMessageRecord(session_id=session.id, sender='bot', content=f'回答-{index}\nJawapan', created_at=created_at,
+                    sources=[{'title': '员工手册 / Panduan', 'file_path': 'private-storage-key', 'content': 'private-source-excerpt'}]),
+                chat_history.ChatMessageRecord(session_id=session.id, sender='user', content=f'问题-{index}', created_at=created_at),
+            ])
+        self.db.commit()
+        response = self.client.get(f'/api/chat-history/sessions/{session.id}/export', headers=self.headers())
+        self.assertEqual(response.status_code, 200, response.text)
+        exported = response.content.decode('utf-8-sig')
+        self.assertIn('中文 / Bahasa Melayu', exported)
+        self.assertIn('Source: 员工手册 / Panduan', exported)
+        self.assertNotIn('private-storage-key', exported)
+        self.assertNotIn('private-source-excerpt', exported)
+        self.assertIn('You (', exported)
+        self.assertIn('Safeway Assistant (', exported)
+        for index in range(3):
+            self.assertLess(exported.index(f'问题-{index}'), exported.index(f'回答-{index}\nJawapan'))
+            if index < 2:
+                self.assertLess(exported.index(f'回答-{index}'), exported.index(f'问题-{index+1}'))
+
+    def test_bulk_history_download_combines_only_the_owned_selection(self):
+        first = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='First selected chat')
+        second = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='中文 / Kedua')
+        unselected = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='Unselected private chat')
+        chat_history.save_chat_turn(self.db, first.id, 'First question', 'First answer', [])
+        chat_history.save_chat_turn(self.db, second.id, '第二个问题', 'Jawapan kedua', [])
+        response = self.client.post('/api/chat-history/sessions/export', headers=self.headers(),
+            json={'session_ids': [str(second.id), str(first.id), str(second.id)]})
+        self.assertEqual(response.status_code, 200, response.text)
+        content = response.content.decode('utf-8-sig')
+        self.assertEqual(response.headers['content-type'], 'text/plain; charset=utf-8')
+        self.assertEqual(response.headers['content-disposition'], 'attachment; filename="chat-history.txt"')
+        self.assertEqual(response.headers['cache-control'], 'private, no-store')
+        self.assertTrue(response.content.startswith(b'\xef\xbb\xbf'))
+        self.assertEqual(content.count('中文 / Kedua'), 1)
+        self.assertLess(content.index('中文 / Kedua'), content.index('First selected chat'))
+        self.assertIn('第二个问题', content)
+        self.assertIn('Jawapan kedua', content)
+        for excluded in (unselected.title, self.session.title, 'Private question'):
+            self.assertNotIn(excluded, content)
+
+    def test_bulk_actions_reject_foreign_or_missing_ids_without_deleting_anything(self):
+        own = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='Keep this conversation')
+        chat_history.save_chat_turn(self.db, own.id, 'Keep question', 'Keep answer', [])
+        for endpoint in ('export', 'delete'):
+            for unavailable in (self.session.id, uuid4()):
+                response = self.client.post('/api/chat-history/sessions/' + endpoint, headers=self.headers(),
+                    json={'session_ids': [str(own.id), str(unavailable)], 'user_id': str(self.b.id)})
+                self.assertEqual(response.status_code, 404, response.text)
+                self.assertEqual(self.db.query(chat_history.ChatSession).count(), 2)
+                self.assertEqual(self.db.query(chat_history.ChatMessageRecord).count(), 4)
+            response = self.client.post('/api/chat-history/sessions/' + endpoint, headers=self.headers(self.admin),
+                json={'session_ids': [str(own.id), str(self.session.id)]})
+            self.assertEqual(response.status_code, 404, response.text)
+
+    def test_bulk_delete_removes_selected_sessions_and_messages_only(self):
+        first = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='Delete first')
+        second = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='Delete second')
+        keep = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='Keep this')
+        for session in (first, second, keep):
+            chat_history.save_chat_turn(self.db, session.id, 'Question', 'Answer', [])
+        ids = [str(first.id), str(second.id)]
+        response = self.client.post('/api/chat-history/sessions/delete', headers=self.headers(),
+            json={'session_ids': ids + [ids[0]]})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['ids'], ids)
+        self.assertEqual({row.id for row in self.db.query(chat_history.ChatSession)}, {keep.id, self.session.id})
+        self.assertEqual({row.session_id for row in self.db.query(chat_history.ChatMessageRecord)}, {keep.id, self.session.id})
+
+    def test_bulk_actions_require_a_nonempty_selection_of_valid_ids(self):
+        headers = self.headers()
+        for endpoint in ('export', 'delete'):
+            for body in ({}, {'session_ids': []}, {'session_ids': ['invalid']}, {'session_ids': [None]}):
+                response = self.client.post('/api/chat-history/sessions/' + endpoint, headers=headers, json=body)
+                self.assertEqual(response.status_code, 422, response.text)
+
+    def test_empty_history_can_be_downloaded_as_text(self):
+        session = chat_history.get_or_create_session(self.db, str(self.a.id))
+        response = self.client.get(f'/api/chat-history/sessions/{session.id}/export', headers=self.headers())
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('No saved messages in this conversation.', response.text)
 
     def test_local_fallback_still_requires_authentication(self):
         self.db.add(models.KnowledgeBase(title='Text', category='General', file_path='note.txt', file_type='txt', uploaded_by=self.a.id)); self.db.commit()

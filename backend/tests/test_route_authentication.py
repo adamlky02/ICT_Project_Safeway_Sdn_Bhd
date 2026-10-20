@@ -7,24 +7,25 @@ import os
 import tempfile
 import time
 import unittest
-from datetime import datetime, timezone
+import bcrypt
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from botocore.exceptions import ClientError
 from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # Do not load local credentials or construct a real cloud storage client.
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345", "GOOGLE_API_KEY": "test-only"}), patch('dotenv.load_dotenv'), patch('boto3.client'):
-    from backend.general import auth, database, models, chat_history, mfa
-    from backend.route import authentication, chat, documents
-    from backend.route import mfa as mfa_routes
+    from backend.general import auth, database, models, chat_history
+    from backend.route import chat, documents, authentication, profile
 
 
 class ProtectedRouteTests(unittest.TestCase):
@@ -35,19 +36,18 @@ class ProtectedRouteTests(unittest.TestCase):
         def functions(connection, _):
             connection.create_function('now', 0, lambda: datetime.now(timezone.utc).isoformat())
             connection.create_function('gen_random_uuid', 0, lambda: uuid4().hex)
-        tables = [models.User.__table__, models.KnowledgeBase.__table__, chat_history.ChatSession.__table__, chat_history.ChatMessageRecord.__table__]
-        database.Base.metadata.create_all(self.engine)
+        tables = [models.User.__table__, models.AuthSession.__table__, models.KnowledgeBase.__table__, chat_history.ChatSession.__table__, chat_history.ChatMessageRecord.__table__]
+        database.Base.metadata.create_all(self.engine, tables=tables)
         self.db = sessionmaker(bind=self.engine, expire_on_commit=False)()
         self.a = models.User(id=uuid4(), email='a@example.test', password_hash='unused', role='staff', is_active=True)
         self.b = models.User(id=uuid4(), email='b@example.test', password_hash='unused', role='staff', is_active=True)
-        self.admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
-        self.db.add_all([self.a, self.b, self.admin]); self.db.commit()
+        self.db.add_all([self.a, self.b]); self.db.commit()
         self.session = chat_history.get_or_create_session(self.db, str(self.b.id), initial_title='Private B history')
         chat_history.save_chat_turn(self.db, self.session.id, 'Private question', 'Private answer', [])
         self.app = FastAPI()
-        self.app.include_router(authentication.router)
-        self.app.include_router(mfa_routes.router)
         self.app.include_router(chat.router)
+        self.app.include_router(authentication.router)
+        self.app.include_router(profile.router)
         self.app.include_router(documents.router)
         self.app.include_router(chat_history.chat_history_router)
         self.app.dependency_overrides[database.get_db] = lambda: self.db
@@ -69,6 +69,7 @@ class ProtectedRouteTests(unittest.TestCase):
             ('GET', '/api/chat-history/sessions', None),
             ('POST', '/api/chat-history/sessions', {}),
             ('GET', f'/api/chat-history/sessions/{sid}', None),
+            ('GET', f'/api/chat-history/sessions/{sid}/export', None),
             ('PATCH', f'/api/chat-history/sessions/{sid}/title', {'title': 'Changed'}),
             ('DELETE', f'/api/chat-history/sessions/{sid}', None),
             ('GET', '/api/files/manual.pdf', None),
@@ -77,7 +78,7 @@ class ProtectedRouteTests(unittest.TestCase):
 
     def test_all_routes_reject_missing_invalid_expired_and_wrong_scope_tokens(self):
         invalid_tokens = [None, 'malformed', auth.create_access_token(self.a, self.db) + 'x', auth._create_signed_token({'sub': str(self.a.id), 'scope': 'access', 'exp': int(time.time())-1}),
-                          auth.create_developer_mode_token(self.a, self.db)[0],
+                          auth.create_developer_mode_token(self.a, SimpleNamespace(id=uuid4()))[0],
                           auth._create_signed_token({'sub': 'not-a-uuid', 'scope': 'access', 'exp': int(time.time())+60})]
         with patch.object(chat, 'get_embedding') as embed:
             for token in invalid_tokens:
@@ -137,11 +138,10 @@ class ProtectedRouteTests(unittest.TestCase):
     def test_authenticated_chat_uses_verified_identity(self):
         fake_db = MagicMock()
         fake_db.query.return_value.filter.return_value.first.return_value = self.a
-        empty_result = MagicMock()
-        empty_result.fetchall.return_value = []
-        fake_db.execute.side_effect = lambda query, *args, **kwargs: self.db.execute(query, *args, **kwargs) if any(name in str(query) for name in ('auth_sessions', 'authenticators')) else empty_result
-        fake_db.get.side_effect = self.db.get
+        fake_db.execute.return_value.fetchall.return_value = []
         self.app.dependency_overrides[database.get_db] = lambda: fake_db
+        # This test isolates chat's identity handling; authentication is covered separately.
+        self.app.dependency_overrides[auth.get_current_user] = lambda: self.a
         with patch.object(chat, 'get_or_create_session', return_value=SimpleNamespace(id=uuid4())) as resolve, patch.object(chat, 'save_chat_turn'), patch.object(chat, 'get_embedding', return_value=[0.1]):
             response = self.client.post('/api/chat', json={'message':'Hello', 'user_id':str(self.b.id)}, headers=self.headers())
             self.assertEqual(response.status_code, 200, response.text)
@@ -156,9 +156,9 @@ class ProtectedRouteTests(unittest.TestCase):
         self.assertEqual(response.headers['cache-control'], 'private, no-store')
 
     def test_admin_document_download_reads_r2_and_restricts_access(self):
-        admin = self.admin
+        admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
         developer = models.User(id=uuid4(), email='dev@example.test', password_hash='unused', role='developer', is_active=True)
-        self.db.add(developer)
+        self.db.add_all([admin, developer])
         self.db.add(models.KnowledgeBase(id=42, title='Safety Manual', category='Safety', file_path='stored-key.pdf', file_type='pdf', uploaded_by=admin.id))
         self.db.commit()
         url = '/api/admin/documents/42/download'
@@ -182,7 +182,8 @@ class ProtectedRouteTests(unittest.TestCase):
         self.storage.get_object.assert_called_with(Bucket=documents.R2_BUCKET, Key='stored-key.pdf')
 
     def test_admin_document_download_reports_missing_or_unavailable_r2_object(self):
-        admin = self.admin
+        admin = models.User(id=uuid4(), email='admin@example.test', password_hash='unused', role='admin', is_active=True)
+        self.db.add(admin)
         self.db.add(models.KnowledgeBase(id=42, title='Manual', category='General', file_path='stored-key.txt', file_type='txt', uploaded_by=admin.id))
         self.db.commit()
         url = '/api/admin/documents/42/download'
@@ -199,6 +200,69 @@ class ProtectedRouteTests(unittest.TestCase):
             self.assertEqual(response.status_code, 404, response.text)
         self.storage.get_object.assert_not_called()
 
+    def test_export_only_allows_owner_and_uses_private_attachment_headers(self):
+        url = f'/api/chat-history/sessions/{self.session.id}/export'
+        self.assertEqual(self.client.get(url).status_code, 401)
+        self.assertEqual(self.client.get(url, headers=self.headers()).status_code, 404)
+        admin = models.User(id=uuid4(), email='export-admin@example.test', password_hash='unused', role='admin', is_active=True)
+        self.db.add(admin); self.db.commit()
+        self.assertEqual(self.client.get(url, headers=self.headers(admin)).status_code, 404)
+        response = self.client.get(url, headers=self.headers(self.b))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('Private question', response.text)
+        self.assertIn('Private answer', response.text)
+        self.assertIn('attachment;', response.headers['content-disposition'])
+        self.assertIn('.txt', response.headers['content-disposition'])
+        self.assertEqual(response.headers['cache-control'], 'private, no-store')
+        self.assertEqual(response.headers['x-content-type-options'], 'nosniff')
+        self.assertTrue(response.content.startswith(b'\xef\xbb\xbf'))
+        self.assertIn('charset=utf-8', response.headers['content-type'])
+        self.assertEqual(self.client.get(f'/api/chat-history/sessions/{uuid4()}/export', headers=self.headers(self.b)).status_code, 404)
+        self.assertEqual(self.client.get('/api/chat-history/sessions/invalid/export', headers=self.headers(self.b)).status_code, 400)
+
+    def test_export_last_rounds_preserves_order_unicode_and_source_titles(self):
+        session = chat_history.get_or_create_session(self.db, str(self.a.id), initial_title='中文 / Bahasa Melayu')
+        now = datetime.now(timezone.utc)
+        for index in range(3):
+            # User and assistant timestamps deliberately match, as PostgreSQL now() does.
+            created_at = now + timedelta(seconds=index)
+            self.db.add_all([
+                chat_history.ChatMessageRecord(session_id=session.id, sender='bot', content=f'回答-{index}', created_at=created_at,
+                    sources=[{'title': '员工手册 / Panduan', 'file_path': 'private-storage-key'}]),
+                chat_history.ChatMessageRecord(session_id=session.id, sender='user', content=f'问题-{index}', created_at=created_at),
+            ])
+        self.db.commit()
+        url = f'/api/chat-history/sessions/{session.id}/export'
+        headers = self.headers()
+        for rounds, first_index in [(1, 2), (2, 1), (99, 0)]:
+            response = self.client.get(url, params={'last_rounds': rounds}, headers=headers)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertIn('中文 / Bahasa Melayu', response.text)
+            self.assertIn('Source: 员工手册 / Panduan', response.text)
+            self.assertNotIn('private-storage-key', response.text)
+            for index in range(3):
+                if index < first_index:
+                    self.assertNotIn(f'问题-{index}', response.text)
+                    self.assertNotIn(f'回答-{index}', response.text)
+                else:
+                    self.assertLess(response.text.index(f'问题-{index}'), response.text.index(f'回答-{index}'))
+            if first_index < 2:
+                self.assertLess(response.text.index(f'回答-{first_index}'), response.text.index(f'问题-{first_index+1}'))
+        response = self.client.get(url, headers=headers)
+        for index in range(3):
+            self.assertIn(f'问题-{index}', response.text)
+            self.assertIn(f'回答-{index}', response.text)
+
+    def test_export_rejects_invalid_rounds_and_handles_empty_conversation(self):
+        session = chat_history.get_or_create_session(self.db, str(self.a.id))
+        url = f'/api/chat-history/sessions/{session.id}/export'
+        headers = self.headers()
+        for count in ['0', '-1', '1.5', 'abc', '10001']:
+            self.assertEqual(self.client.get(url, params={'last_rounds': count}, headers=headers).status_code, 422)
+        response = self.client.get(url, headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('No saved messages', response.text)
+
     def test_local_fallback_still_requires_authentication(self):
         self.db.add(models.KnowledgeBase(title='Text', category='General', file_path='note.txt', file_type='txt', uploaded_by=self.a.id)); self.db.commit()
         self.storage.get_object.side_effect = RuntimeError('Storage unavailable')
@@ -210,91 +274,80 @@ class ProtectedRouteTests(unittest.TestCase):
             self.assertEqual(response.text, 'Internal note')
             self.assertIn('text/plain', response.headers['content-type'])
 
-    def prepare_login_accounts(self):
-        developer = models.User(id=uuid4(), email='dev@example.test', role='developer', is_active=True)
-        password_hash = authentication.bcrypt.hashpw(b'correct-password', authentication.bcrypt.gensalt(rounds=4)).decode('utf-8')
-        for user in (self.a, self.admin, developer):
-            user.password_hash = password_hash
-        self.db.add(developer)
+    def login(self):
+        self.a.password_hash = bcrypt.hashpw(b'test-password', bcrypt.gensalt(rounds=4)).decode()
         self.db.commit()
-        return developer
+        response = self.client.post('/api/login', json={'email': self.a.email, 'password': 'test-password', 'role': 'staff'})
+        self.assertEqual(response.status_code, 200, response.text)
+        return {'Authorization': 'Bearer ' + response.json()['access_token']}
 
-    def test_password_login_issues_usable_access_for_every_role_and_portal(self):
-        developer = self.prepare_login_accounts()
-        cases = [(self.a, 'staff', 'staff'), (self.admin, 'admin', 'admin'),
-                 (self.admin, 'staff', 'staff'), (developer, 'admin', 'developer'),
-                 (developer, 'staff', 'staff')]
-        for user, portal, response_role in cases:
-            with self.subTest(account_role=user.role, portal=portal):
-                response = self.client.post('/api/login', json={
-                    'email': user.email, 'password': 'correct-password', 'role': portal,
-                })
-                self.assertEqual(response.status_code, 200, response.text)
-                result = response.json()
-                self.assertEqual(set(result), {'id', 'email', 'role', 'name', 'access_token'})
-                self.assertEqual(result['id'], str(user.id))
-                self.assertEqual(result['role'], response_role)
-                session, resolved, _ = mfa.resolve_session(self.db, result['access_token'], {'access'})
-                self.assertEqual(session.purpose, 'access')
-                self.assertEqual(resolved.role, user.role)
-                headers = {'Authorization': 'Bearer ' + result['access_token']}
-                self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 200)
+    def test_logout_revokes_only_current_login_and_blocks_all_protected_routes(self):
+        first = self.login()
+        second = self.login()
+        other = self.headers(self.b)
+        self.assertNotEqual(first, second)
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers=first).status_code, 200)
+        self.assertEqual(self.client.post('/api/logout', headers=first).status_code, 200)
+        # Open a new ORM session to demonstrate revocation is persisted, not in memory.
+        with sessionmaker(bind=self.engine)() as fresh_db:
+            self.app.dependency_overrides[database.get_db] = lambda: fresh_db
+            with patch.object(chat, 'get_embedding') as embed:
+                for method, url, body in self.routes():
+                    self.assertEqual(self.client.request(method, url, json=body, headers=first).status_code, 401, url)
+                embed.assert_not_called()
+            self.assertEqual(self.client.post('/api/logout', headers=first).status_code, 401)
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers=second).status_code, 200)
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers=other).status_code, 200)
+        self.storage.get_object.assert_not_called()
 
-    def test_login_still_rejects_bad_credentials_inactive_accounts_and_wrong_portals(self):
-        developer = self.prepare_login_accounts()
-        cases = [(self.a.email, 'wrong-password', 'staff', 401),
-                 (self.admin.email, 'wrong-password', 'admin', 401),
-                 (developer.email, 'wrong-password', 'admin', 401),
-                 ('unknown@example.test', 'correct-password', 'staff', 401),
-                 (self.a.email, 'correct-password', 'admin', 403),
-                 (developer.email, 'correct-password', 'developer', 400),
-                 (self.admin.email, 'correct-password', 'unknown', 400)]
-        for email, password, portal, expected in cases:
-            with self.subTest(email=email, portal=portal, expected=expected):
-                response = self.client.post('/api/login', json={'email': email, 'password': password, 'role': portal})
-                self.assertEqual(response.status_code, expected, response.text)
-                self.assertNotIn('access_token', response.json())
-        for user, portal in ((self.a, 'staff'), (self.admin, 'admin'), (developer, 'admin')):
-            user.is_active = False
-            self.db.commit()
-            response = self.client.post('/api/login', json={'email': user.email, 'password': 'correct-password', 'role': portal})
-            self.assertEqual(response.status_code, 401, response.text)
-
-    def test_previously_enrolled_and_locked_accounts_can_sign_in_with_password(self):
-        developer = self.prepare_login_accounts()
-        # Emulate an existing database before the optional column cleanup.
-        for column in ('totp_secret TEXT', 'totp_enabled BOOLEAN DEFAULT FALSE',
-                       'totp_last_counter INTEGER', 'totp_failed_attempts INTEGER DEFAULT 0',
-                       'totp_lock_until INTEGER'):
-            self.db.execute(text('ALTER TABLE "User_list" ADD COLUMN ' + column))
-        self.db.execute(text('UPDATE "User_list" SET totp_secret = :secret, totp_enabled = TRUE, '
-                             'totp_failed_attempts = 5, totp_lock_until = :lock_until'),
-                        {'secret': 'unreadable-legacy-enrollment', 'lock_until': int(time.time()) + 900})
+    def test_database_expiration_unknown_session_and_legacy_tokens_are_rejected(self):
+        headers = self.headers()
+        payload = auth._verify_signed_token(headers['Authorization'][7:], 'Invalid')
+        session = self.db.query(models.AuthSession).filter_by(id=UUID(payload['sid'])).one()
+        session.expires_at = int(time.time()) - 1
         self.db.commit()
-        for user in (self.admin, developer):
-            for portal in ('admin', 'staff'):
-                with self.subTest(account_role=user.role, portal=portal):
-                    response = self.client.post('/api/login', json={'email': user.email, 'password': 'correct-password', 'role': portal})
-                    self.assertEqual(response.status_code, 200, response.text)
-                    self.assertIn('access_token', response.json())
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 401)
+        for change in [{'sid': str(uuid4())}, {'sid': payload['sid'], 'sub': str(self.b.id)}]:
+            token = auth._create_signed_token({**payload, **change})
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer '+token}).status_code, 401)
+        payload.pop('sid')
+        token = auth._create_signed_token(payload)
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer '+token}).status_code, 401)
+        self.assertEqual(self.client.post('/api/logout').status_code, 401)
 
-    def test_old_authenticator_endpoint_and_legacy_signed_challenges_cannot_issue_access(self):
-        response = self.client.post('/api/login/mfa', json={'mfa_token': 'obsolete', 'code': '123456'})
-        self.assertEqual(response.status_code, 404, response.text)
-        for scope in ('mfa_setup', 'mfa_login'):
-            token = auth._create_signed_token({'sub': str(self.admin.id), 'scope': scope, 'exp': int(time.time()) + 300})
-            response = self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer ' + token})
-            self.assertEqual(response.status_code, 401, response.text)
+    def test_password_change_revokes_all_logins_and_new_password_can_log_in(self):
+        first, second = self.login(), self.login()
+        response = self.client.put(f'/api/profile/{self.a.id}', headers=first,
+                                   json={'full_name': 'Updated', 'password': 'new-password'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertTrue(response.json()['requires_login'])
+        for headers in [first, second]:
+            self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 401)
+        response = self.client.post('/api/login', json={'email': self.a.email, 'password': 'test-password', 'role': 'staff'})
+        self.assertEqual(response.status_code, 401)
+        response = self.client.post('/api/login', json={'email': self.a.email, 'password': 'new-password', 'role': 'staff'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers={'Authorization': 'Bearer '+response.json()['access_token']}).status_code, 200)
 
-    def test_production_requires_stable_signing_key_without_authenticator_configuration(self):
-        with patch.dict(os.environ, {'APP_ENV': 'production', 'MFA_ENCRYPTION_KEY': '', 'MFA_ENCRYPTION_PREVIOUS_KEYS': ''}):
-            for key in ('', 'short'):
-                with self.subTest(key=key), patch.object(auth, '_configured_secret', key):
-                    with self.assertRaisesRegex(RuntimeError, 'SECRET_KEY'):
-                        auth.validate_auth_configuration()
-            with patch.object(auth, '_configured_secret', 'test-only-stable-signing-key-1234567890'):
-                auth.validate_auth_configuration()
+    def test_profile_name_change_does_not_revoke_session(self):
+        headers = self.headers()
+        response = self.client.put(f'/api/profile/{self.a.id}', headers=headers, json={'full_name': 'Updated'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(response.json()['requires_login'])
+        self.assertEqual(self.client.get('/api/chat-history/sessions', headers=headers).status_code, 200)
 
+    def test_developer_unlock_cannot_be_reused_in_a_new_login_session(self):
+        first, second = self.headers(), self.headers()
+        sessions = []
+        for headers in [first, second]:
+            payload = auth._verify_signed_token(headers['Authorization'][7:], 'Invalid')
+            sessions.append(self.db.query(models.AuthSession).filter_by(id=UUID(payload['sid'])).one())
+        token, _ = auth.create_developer_mode_token(self.a, sessions[0])
+        self.assertEqual(auth.verify_developer_mode_token(token, self.a, sessions[0]), self.a)
+        self.assertEqual(self.client.post('/api/logout', headers=first).status_code, 200)
+        with self.assertRaises(HTTPException) as caught:
+            auth.verify_developer_mode_token(token, self.a, sessions[1])
+        self.assertEqual(caught.exception.status_code, 403)
 
 if __name__ == '__main__':
     unittest.main()

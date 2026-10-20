@@ -2,8 +2,9 @@ import uuid
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, ForeignKey, JSON
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
+from sqlalchemy import Column, String, Text, TIMESTAMP, text, Boolean, ForeignKey, JSON, case
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, relationship
 
@@ -251,7 +252,8 @@ def get_session_detail(db: Session, session_id: str, user_id: Optional[str] = No
     messages = (
         db.query(ChatMessageRecord)
         .filter(ChatMessageRecord.session_id == sess_uuid)
-        .order_by(ChatMessageRecord.created_at.asc())
+        # PostgreSQL now() gives both messages in a saved turn the same timestamp.
+        .order_by(ChatMessageRecord.created_at.asc(), case((ChatMessageRecord.sender == "user", 0), else_=1), ChatMessageRecord.id.asc())
         .all()
     )
 
@@ -359,6 +361,44 @@ def api_get_session(
 ):
     """Retrieve full messages for a specific session."""
     return get_session_detail(db, session_id, str(current_user.id))
+
+
+@chat_history_router.get("/sessions/{session_id}/export")
+def api_export_session(
+    session_id: str,
+    last_rounds: Optional[int] = Query(default=None, ge=1, le=10000),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(database.get_db),
+):
+    """Download the owner's saved conversation, keeping question/answer rounds intact."""
+    detail = get_session_detail(db, session_id, str(current_user.id))
+    messages = detail["messages"]
+    starts = [index for index, message in enumerate(messages) if message["sender"] == "user"]
+    if last_rounds is not None and len(starts) > last_rounds:
+        messages = messages[starts[-last_rounds]:]
+
+    lines = ["Safeway Chat History", detail["title"],
+             f"Conversation: {detail['id']}",
+             "Range: " + ("All messages" if last_rounds is None else f"Last {last_rounds} question-and-answer rounds"),
+             ""]
+    for message in messages:
+        label = "You" if message["sender"] == "user" else "Safeway Assistant"
+        timestamp = message["created_at"].isoformat() if message["created_at"] else ""
+        lines.extend([f"{label} ({timestamp})" if timestamp else label, message["content"]])
+        for source in message["sources"]:
+            if isinstance(source, dict) and source.get("title"):
+                lines.append(f"Source: {source['title']}")
+        lines.append("")
+    if not messages:
+        lines.append("No saved messages in this conversation.")
+
+    # BOM keeps Chinese/Malay text readable in Windows text editors.
+    content = ("\ufeff" + "\n".join(lines)).encode("utf-8")
+    return Response(content=content, media_type="text/plain; charset=utf-8", headers={
+        "Content-Disposition": f'attachment; filename="chat-history-{detail["id"]}.txt"',
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 @chat_history_router.patch("/sessions/{session_id}/title")

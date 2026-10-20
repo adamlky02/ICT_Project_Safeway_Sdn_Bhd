@@ -37,6 +37,27 @@ export async function fetchSessionDetail(sessionId: string): Promise<ChatSession
     return readJson<ChatSessionDetail>(response);
 }
 
+// Downloads saved messages through the authenticated export endpoint.
+export async function downloadSessionHistory(sessionId: string, lastRounds?: number): Promise<void> {
+    const query = lastRounds === undefined ? '' : `?last_rounds=${lastRounds}`;
+    const response = await authenticatedFetch(`${API_URL}/api/chat-history/sessions/${encodeURIComponent(sessionId)}/export${query}`);
+    if (!response.ok) {
+        if (response.status === 401) throw new Error('Your session has expired. Please log in again.');
+        if (response.status === 404) throw new Error('This conversation is no longer available.');
+        throw new Error('Unable to download chat history. Please try again.');
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `chat-history-${sessionId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // Allow the browser to start the download before releasing the object URL.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // Renames an existing chat session
 export async function updateSessionTitle(sessionId: string, title: string): Promise<{ message: string; id: string; title: string }> {
     const response = await authenticatedFetch(`${API_URL}/api/chat-history/sessions/${encodeURIComponent(sessionId)}/title`, {

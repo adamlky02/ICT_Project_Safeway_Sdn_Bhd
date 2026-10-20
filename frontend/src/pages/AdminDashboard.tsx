@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, logout, getStoredUser, readJson } from '../api/client';
+import { API_URL, authenticatedFetch, getStoredUser, readJson } from '../api/client';
 import { EngineeringBackground } from '../components/EngineeringBackground';
-import { AuthenticatorPanel } from '../components/admin/AuthenticatorPanel';
-import { MfaReminder } from '../components/authenticator/MfaReminder';
 import { AccountsPanel } from '../components/admin/AccountsPanel';
 import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { CredentialsModal, EditUserModal, RoleConfirmModal } from '../components/admin/AdminModals';
@@ -381,8 +379,8 @@ const AdminDashboard = () => {
     };
 
     // Admin Logout (clears the browser session and returns to the landing page)
-    const handleLogout = async () => {
-        try { await logout(); } catch { /* Local sign-out still completes if the server is unavailable. */ }
+    const handleLogout = () => {
+        localStorage.clear();
         navigate('/');
     };
 
@@ -463,7 +461,6 @@ const AdminDashboard = () => {
 
     // Ambient Motion (moves Safeway-colored light fields as the active workspace changes)
     const ambientMotion: Record<AdminTab, { primary: { x: string; y: string; scale: number }; secondary: { x: string; y: string; scale: number } }> = {
-        authenticator: { primary: { x: '10%', y: '6%', scale: 1 }, secondary: { x: '-10%', y: '-6%', scale: 1 } },
         analytics: { primary: { x: '-8%', y: '-6%', scale: 1 }, secondary: { x: '8%', y: '4%', scale: 1 } },
         staff: { primary: { x: '18%', y: '8%', scale: 1.16 }, secondary: { x: '-18%', y: '-8%', scale: 0.9 } },
         docs: { primary: { x: '4%', y: '28%', scale: 0.92 }, secondary: { x: '-6%', y: '-24%', scale: 1.18 } },
@@ -510,7 +507,6 @@ const AdminDashboard = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    <MfaReminder />
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat', { state: { fromAdminPanel: true } })} onOpenProfile={() => navigate('/profile')} />
 
                     {/* Tab Content (animates between analytics, account, and document panels) */}
@@ -523,7 +519,6 @@ const AdminDashboard = () => {
                             exit={{ opacity: 0, y: -18, scale: 0.99, filter: 'blur(9px)' }}
                             transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            {tab === 'authenticator' && <AuthenticatorPanel />}
                             {tab === 'analytics' && (
                                 <AnalyticsPanel
                                     analytics={analytics}

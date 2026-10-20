@@ -10,9 +10,11 @@ import {
     ChevronLeft,
     Search,
     Clock,
+    Download,
 } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import type { ChatSessionSummary } from '../../types';
+import { ChatHistoryExportDialog } from './ChatHistoryExportDialog';
 
 interface ChatHistorySidebarProps {
     isOpen: boolean;
@@ -42,6 +44,7 @@ export function ChatHistorySidebar({
     const [searchQuery, setSearchQuery] = useState('');
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
+    const [exportSession, setExportSession] = useState<ChatSessionSummary | null>(null);
 
     const filteredSessions = sessions.filter((s) =>
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -248,7 +251,16 @@ export function ChatHistorySidebar({
                                             <p className="truncate text-[11px] text-slate-500 dark:text-slate-400 max-w-[190px]">
                                                 {session.last_message || 'No messages'}
                                             </p>
-                                            <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                            <div className="flex items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                                                <button
+                                                    onClick={(event) => { event.stopPropagation(); setExportSession(session); }}
+                                                    className="rounded p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                                                    title="Download chat history"
+                                                    aria-label={`Download history: ${session.title}`}
+                                                    type="button"
+                                                >
+                                                    <Download className="h-3 w-3" />
+                                                </button>
                                                 <button
                                                     onClick={(e) => startEditing(session, e)}
                                                     className="rounded p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
@@ -281,6 +293,7 @@ export function ChatHistorySidebar({
                     </span>
                 </div>
             </aside>
+            {exportSession && <ChatHistoryExportDialog key={exportSession.id} session={exportSession} onClose={() => setExportSession(null)} />}
         </>
     );
 }

@@ -77,6 +77,72 @@ class ProviderResponseTests(unittest.TestCase):
         with self.assertRaisesRegex(providers.ProviderError, "empty response"):
             providers._openai_compatible_request(self.profile, "Hello", test_mode=True)
 
+    def test_openrouter_error_body_preserves_category_without_exposing_remote_text(self):
+        self.post.return_value.json.return_value = {"error": {
+            "code": 504, "message": "private-key-or-company-prompt",
+            "metadata": {"error_type": "timeout", "raw": "private-provider-diagnostic"},
+        }}
+        with self.assertRaises(providers.ProviderError) as caught:
+            providers._openai_compatible_request(self.profile, "Synthetic test", test_mode=True)
+        self.assertEqual(caught.exception.status_code, 504)
+        self.assertIn('OpenRouter', str(caught.exception))
+        self.assertIn('timed out', str(caught.exception))
+        self.assertNotIn('private-', str(caught.exception))
+
+    def test_openrouter_503_504_505_have_distinct_safe_messages(self):
+        messages = {503: 'unavailable', 504: 'timed out', 505: 'HTTP protocol'}
+        for code, message in messages.items():
+            with self.subTest(code=code):
+                response = providers.requests.Response()
+                response.status_code = code
+                response._content = b'{"error":{"message":"private-response"}}'
+                with patch.object(providers, '_post_with_transient_retries', return_value=response):
+                    with self.assertRaises(providers.ProviderError) as caught:
+                        providers._openai_compatible_request(self.profile, 'Synthetic test', test_mode=True)
+                self.assertEqual(caught.exception.status_code, code)
+                self.assertIn(message, str(caught.exception))
+                self.assertNotIn('private-response', str(caught.exception))
+
+    def test_connection_configuration_failure_marks_draft_failed_and_keeps_active(self):
+        active = {"provider": "gemini", "model": "synthetic-active-model"}
+        setting = SimpleNamespace(config={"active": active, "draft": dict(self.profile), "previous": None})
+        db = MagicMock()
+        with patch.object(providers, '_get_setting', return_value=setting), patch.object(
+            providers, '_provider_request', side_effect=HTTPException(503, 'AI settings encryption is not configured.')
+        ):
+            with self.assertRaises(HTTPException) as caught:
+                providers.test_ai_draft(db)
+        self.assertEqual(caught.exception.status_code, 503)
+        self.assertEqual(setting.config['draft']['test_status'], 'failed')
+        self.assertIs(setting.config['active'], active)
+        db.commit.assert_called_once()
+
+    def test_unavailable_openrouter_free_model_fails_before_generation(self):
+        self.profile['model'] = 'tencent/hy3:free'
+        response = Mock(status_code=200)
+        response.json.return_value = {'data': {'endpoints': []}}
+        with patch.object(providers.requests, 'get', return_value=response) as get:
+            with self.assertRaises(providers.ProviderError) as caught:
+                providers._openai_compatible_request(self.profile, 'Synthetic test', test_mode=True)
+        self.assertEqual(caught.exception.status_code, 503)
+        self.assertIn('no available provider endpoints', str(caught.exception))
+        self.post.assert_not_called()
+        self.assertEqual(get.call_args.args[0], 'https://openrouter.ai/api/v1/models/tencent/hy3%3Afree/endpoints')
+
+    def test_free_model_catalogue_failure_does_not_prevent_real_connection_test(self):
+        self.profile['model'] = 'tencent/hy3:free'
+        with patch.object(providers.requests, 'get', side_effect=providers.requests.Timeout):
+            self.assertEqual(providers._openai_compatible_request(self.profile, 'Synthetic test', test_mode=True), 'CONNECTED')
+        self.post.assert_called_once()
+
+    def test_free_model_with_available_endpoints_is_tested_normally(self):
+        self.profile['model'] = 'tencent/hy3:free'
+        response = Mock(status_code=200)
+        response.json.return_value = {'data': {'endpoints': [{'provider_name': 'Synthetic provider'}]}}
+        with patch.object(providers.requests, 'get', return_value=response):
+            self.assertEqual(providers._openai_compatible_request(self.profile, 'Synthetic test', test_mode=True), 'CONNECTED')
+        self.post.assert_called_once()
+
     def test_gemini_connection_uses_configured_budget(self):
         self.profile["base_url"] = providers.DEFAULT_GEMINI_BASE_URL
         self.post.return_value.json.return_value = {
@@ -212,8 +278,8 @@ class ProviderRetryTests(unittest.TestCase):
                 self.assertIn("HTTP 503", str(caught.exception))
                 self.assertNotIn("private-provider-response", str(caught.exception))
 
-    def test_client_and_quota_errors_are_not_retried(self):
-        for status in (400, 401, 402, 403, 404, 429):
+    def test_non_transient_errors_are_not_retried(self):
+        for status in (400, 401, 402, 403, 404, 429, 505):
             with self.subTest(status=status):
                 self.post.reset_mock()
                 self.post.return_value = self.response(status)

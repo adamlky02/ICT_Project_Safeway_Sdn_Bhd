@@ -404,7 +404,77 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
         raise ProviderError("The Gemini provider returned an unsupported response format.")
 
 
-# Compatible Generation (calls a chat-completions API and normalizes its text response)
+# OpenRouter Diagnostics (use canonical categories without exposing raw provider messages).
+def _openrouter_error(response: requests.Response, data: Any = None) -> ProviderError | None:
+    """Classify allowlisted codes only; upstream messages may echo prompts or credentials."""
+    if data is None:
+        try:
+            data = response.json()
+        except (ValueError, TypeError):
+            data = {}
+    error = data.get("error") if isinstance(data, dict) else None
+    http_status = response.status_code
+    if http_status < 400 and not isinstance(error, dict):
+        return None
+    error = error if isinstance(error, dict) else {}
+    metadata = error.get("metadata")
+    kind = metadata.get("error_type") if isinstance(metadata, dict) else None
+    typed = {
+        "authentication": (401, "could not authenticate the API key. Check the key in the saved draft"),
+        "payment_required": (402, "has insufficient credits for this request. Check account balance and key spending limits"),
+        "permission_denied": (403, "denied this request. Check the key's model permissions and account policy"),
+        "not_found": (404, "could not find the requested model or endpoint. Check the exact model ID and base URL"),
+        "rate_limit_exceeded": (429, "rate limit was reached. Wait before retrying and check account limits"),
+        "provider_unavailable": (502, "upstream provider is unavailable. Retry later or test another supported model"),
+        "provider_overloaded": (503, "upstream provider is temporarily unavailable or overloaded. Retry later or test another supported model"),
+        "timeout": (504, "upstream provider timed out. Retry later or test another supported model"),
+        "context_length_exceeded": (400, "request exceeded the model's context limit. Reduce the input or output budget"),
+        "max_tokens_exceeded": (400, "output token budget was exhausted. Increase Maximum output tokens and test again"),
+    }
+    classification = typed.get(kind) if isinstance(kind, str) else None
+    if http_status >= 400:
+        code = http_status
+    else:
+        reported_code = error.get("code")
+        try:
+            code = int(reported_code)
+        except (TypeError, ValueError, OverflowError):
+            code = classification[0] if classification else 502
+        if not 400 <= code <= 599:
+            code = classification[0] if classification else 502
+    by_status = {value[0]: value[1] for value in typed.values() if value[0] != 400}
+    by_status[505] = "provider or gateway rejected the HTTP protocol. Check the base URL and contact the provider if this persists"
+    explanation = classification[1] if classification else by_status.get(code, "request failed. Check provider availability and the saved configuration")
+    return ProviderError(f"OpenRouter {explanation} (HTTP {code}).", status_code=code)
+
+
+def _check_openrouter_free_endpoints(profile: dict[str, Any]) -> None:
+    """A public catalogue can identify unavailable free variants before spending tokens.
+
+    Catalogue outages must not replace the actual connection test with a false failure.
+    This check runs on explicit connection tests only, not on each staff question.
+    """
+    endpoint = f"{profile['base_url']}/models/{quote(profile['model'], safe='/')}/endpoints"
+    budget = float(profile['timeout_seconds'])
+    try:
+        response = requests.get(endpoint, timeout=(min(5, budget), min(10, budget)), allow_redirects=False)
+        try:
+            if response.status_code != 200:
+                return
+            data = response.json()
+        finally:
+            response.close()
+    except (requests.RequestException, ValueError):
+        return
+    details = data.get('data') if isinstance(data, dict) else None
+    if isinstance(details, dict) and details.get('endpoints') == []:
+        raise ProviderError(
+            'The selected OpenRouter free model currently has no available provider endpoints. '
+            'Choose an available model, save the draft, and test again.', status_code=503,
+        )
+
+
+# Compatible Generation (calls a chat-completions API and normalizes its text response).
 def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> str:
     api_key = _resolve_api_key(profile)
     endpoint = f"{profile['base_url']}/chat/completions"
@@ -421,6 +491,8 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
         body["thinking"] = {"type": profile.get("thinking_mode", "disabled")}
     elif hostname == "openrouter.ai":
         body["reasoning"] = {"enabled": profile.get("thinking_mode", "disabled") == "enabled"}
+        if test_mode and profile['model'].endswith(':free'):
+            _check_openrouter_free_endpoints(profile)
 
     try:
         response = _post_with_transient_retries(
@@ -429,6 +501,10 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
         )
         response.raise_for_status()
         data = response.json()
+        if hostname == "openrouter.ai":
+            error = _openrouter_error(response, data)
+            if error:
+                raise error
         choice = data["choices"][0]
         content = choice["message"]["content"]
         # Text Normalization (accepts plain message text or a list of text content parts)
@@ -455,6 +531,8 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
             "Increase Request timeout or use a faster model, then save and test again."
         ) from None
     except requests.RequestException as exc:
+        if hostname == "openrouter.ai" and exc.response is not None:
+            raise _openrouter_error(exc.response) from None
         status_code = exc.response.status_code if exc.response is not None else None
         suffix = f" (HTTP {status_code})" if status_code else ""
         raise ProviderError(f"The AI provider request failed{suffix}.", status_code=status_code) from None
@@ -470,16 +548,20 @@ def test_ai_draft(db: Session) -> dict[str, Any]:
     if not setting or not draft:
         raise HTTPException(status_code=409, detail="Save a draft configuration before testing it.")
 
+    # Copy before editing: in-place nested JSON changes are not tracked by SQLAlchemy.
+    draft = dict(draft)
     started = time.monotonic()
     try:
         preview = _provider_request(draft, DEFAULT_TEST_PROMPT, test_mode=True)
-    except ProviderError as exc:
+    except (ProviderError, HTTPException) as exc:
         draft["test_status"] = "failed"
         draft["tested_at"] = _utc_now_iso()
         draft["latency_ms"] = round((time.monotonic() - started) * 1000)
         container["draft"] = draft
         setting.config = container
         db.commit()
+        if isinstance(exc, HTTPException):
+            raise
         raise HTTPException(status_code=502, detail=str(exc))
 
     draft["test_status"] = "passed"

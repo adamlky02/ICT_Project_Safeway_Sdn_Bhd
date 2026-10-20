@@ -7,25 +7,23 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 try:
-    from ..general import database, models, mfa
-    from ..general.auth import require_admin, verify_developer_mode_token
+    from ..general import database, models
+    from ..general.auth import require_admin, verify_developer_mode_token, revoke_user_sessions, get_current_session
     from ..general.email import send_staff_credentials_email
 except ImportError:
-    from general import database, models, mfa
-    from general.auth import require_admin, verify_developer_mode_token
+    from general import database, models
+    from general.auth import require_admin, verify_developer_mode_token, revoke_user_sessions, get_current_session
     from general.email import send_staff_credentials_email
 
 router = APIRouter(prefix="/api/admin/users", tags=["user administration"])
 STAFF_EMAIL_DOMAIN = "gmail.com"
 
 
-# Staff Creation Payload (collects the account name and username before credentials are generated)
 class StaffCreate(BaseModel):
     username: str
     full_name: str
 
 
-# Account Update Payload (supports identity edits with optional password and role changes)
 class StaffUpdate(BaseModel):
     username: str
     password: str | None = None
@@ -33,7 +31,6 @@ class StaffUpdate(BaseModel):
     role: str | None = None
 
 
-# Username Normalization (accepts bare usernames or addresses using the current and legacy staff domains)
 def _normalize_username(username: str) -> str:
     clean = username.strip().lower()
     for domain in (STAFF_EMAIL_DOMAIN, "safeway.com"):
@@ -43,13 +40,11 @@ def _normalize_username(username: str) -> str:
     return clean
 
 
-# Initial Password Generation (uses cryptographic randomness for newly created staff credentials)
 def _generate_random_password(length: int = 12) -> str:
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*_-=+"
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-# Account Directory (returns administrator-visible account metadata without password hashes)
 @router.get("")
 def get_users(db: Session = Depends(database.get_db), _admin: models.User = Depends(require_admin)):
     return [{
@@ -58,7 +53,6 @@ def get_users(db: Session = Depends(database.get_db), _admin: models.User = Depe
     } for user in db.query(models.User).all()]
 
 
-# Staff Account Creation (stores a password hash and emails the generated login credentials)
 @router.post("")
 def create_staff(req: StaffCreate, db: Session = Depends(database.get_db), _admin: models.User = Depends(require_admin)):
     email = f"{_normalize_username(req.username)}@{STAFF_EMAIL_DOMAIN}"
@@ -73,25 +67,24 @@ def create_staff(req: StaffCreate, db: Session = Depends(database.get_db), _admi
     return {"message": "Success", "password": generated_password, "email": email}
 
 
-# Account Administration (updates identity and applies additional checks for developer role changes)
 @router.put("/{uid}")
 def update_staff(
     uid: str,
     req: StaffUpdate,
     db: Session = Depends(database.get_db),
     admin: models.User = Depends(require_admin),
+    session: models.AuthSession = Depends(get_current_session),
     developer_token: str | None = Header(default=None, alias="X-Developer-Token"),
 ):
     user = db.query(models.User).filter(models.User.id == uid).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Developer Role Protection (requires a recent unlock and prevents self-demotion or removal of the last developer)
     requested_role = req.role or user.role
     if user.role == "developer" or requested_role == "developer":
         if admin.role != "developer":
             raise HTTPException(status_code=403, detail="Only a developer can manage developer accounts.")
-        verify_developer_mode_token(developer_token, admin, db)
+        verify_developer_mode_token(developer_token, admin, session)
         if requested_role == "developer" and user.role not in {"admin", "developer"}:
             raise HTTPException(status_code=400, detail="Promote this account to administrator before granting developer access.")
         if str(user.id) == str(admin.id) and requested_role != user.role:
@@ -101,29 +94,21 @@ def update_staff(
             if count <= 1:
                 raise HTTPException(status_code=400, detail="The system must keep at least one developer account.")
 
-    # Credential/Role Revocation (management edits invalidate old sessions and pending login challenges).
-    credentials_changed = bool(req.password and req.password.strip()) or requested_role != user.role
-    if credentials_changed:
-        state = mfa.state_for(db, user, lock=True)
-        mfa.revoke_sessions(db, state)
-        mfa.cancel_requests(db, user, "Account credentials or role changed; submit a fresh request if needed.")
-        mfa.audit(db, "account_credentials_changed", user, admin)
     user.email = f"{_normalize_username(req.username)}@{STAFF_EMAIL_DOMAIN}"
     user.full_name = req.full_name
     if req.password and req.password.strip():
         user.password_hash = bcrypt.hashpw(req.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        revoke_user_sessions(db, user.id)
     if req.role in {"staff", "admin", "developer"}:
         user.role = req.role
     try:
         db.commit()
-    # Duplicate Email Handling (rolls back a conflicting edit before returning a recoverable API error)
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="Staff email already exists")
     return {"message": "Updated"}
 
 
-# Account Deletion (blocks self-deletion and requires developer access to be removed first)
 @router.delete("/{uid}")
 def delete_user(uid: str, db: Session = Depends(database.get_db), admin: models.User = Depends(require_admin)):
     user = db.query(models.User).filter(models.User.id == uid).first()

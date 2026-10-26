@@ -1,7 +1,10 @@
 import os
 import warnings
 import bcrypt
-from . import database, models
+try:
+    from ..general import database, models
+except ImportError:
+    from general import database, models
 
 
 # Developer Bootstrap (prepares the configured account only when no developer account already exists)

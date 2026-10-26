@@ -9,7 +9,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, relationship
 
 from . import database
-from .auth import get_current_user
+try:
+    from ..login.auth import get_current_user
+except ImportError:
+    from login.auth import get_current_user
 from .models import User
 
 # ==========================================

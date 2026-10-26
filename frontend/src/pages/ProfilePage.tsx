@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, logout, getStoredUser, readJson, storeUser } from '../api/client';
-import { AuthenticatorSettings } from '../components/authenticator/AuthenticatorSettings';
+import { API_URL, readJson } from '../api/client';
+import { authenticatedFetch, logout, getStoredUser, storeUser } from '../login/session';
+import { AuthenticatorSettings } from '../login/components/AuthenticatorSettings';
 import { ProfileForm } from '../components/profile/ProfileForm';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';

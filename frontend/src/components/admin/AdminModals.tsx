@@ -2,7 +2,8 @@ import type { FormEvent } from 'react';
 import { Code2, ShieldCheck } from 'lucide-react';
 import { m } from 'motion/react';
 import type { Translation } from '../../translations';
-import type { AdminUser, EditAccountForm, GeneratedCredentials, UserRole } from '../../types';
+import type { AdminUser, EditAccountForm, GeneratedCredentials } from '../../types';
+import type { UserRole } from '../../login/types';
 import { fadeScale, modalBackdrop } from '../motion/presets';
 import { inputStyle, primaryButtonStyle } from './styles';
 

@@ -18,7 +18,7 @@ try:
     from ..ai.prompt import build_grounded_chat_prompt
     from ..ai.providers import ProviderError, ProviderTimeoutError, generate_ai_response
     from ..general import database
-    from ..general.auth import get_current_user
+    from ..login.auth import get_current_user
     from ..general.models import User
     from ..general.chat_history import get_or_create_session, save_chat_turn
 except ImportError:
@@ -27,7 +27,7 @@ except ImportError:
     from ai.prompt import build_grounded_chat_prompt
     from ai.providers import ProviderError, ProviderTimeoutError, generate_ai_response
     from general import database
-    from general.auth import get_current_user
+    from login.auth import get_current_user
     from general.models import User
     from general.chat_history import get_or_create_session, save_chat_turn
 

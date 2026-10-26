@@ -11,7 +11,8 @@ import {
     ShieldCheck,
     Zap,
 } from 'lucide-react';
-import { API_URL, authenticatedFetch, readJson } from '../../api/client';
+import { API_URL, readJson } from '../../api/client';
+import { authenticatedFetch } from '../../login/session';
 import type { Translation } from '../../translations';
 import type { AIProviderForm, AIProviderProfile, AISettingsState, ApiErrorBody } from '../../types';
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';

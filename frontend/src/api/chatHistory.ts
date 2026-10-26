@@ -1,4 +1,5 @@
-import { API_URL, authenticatedFetch, readJson } from './client';
+import { API_URL, readJson } from './client';
+import { authenticatedFetch } from '../login/session';
 import type { ChatSessionDetail, ChatSessionSummary } from '../types';
 
 /**

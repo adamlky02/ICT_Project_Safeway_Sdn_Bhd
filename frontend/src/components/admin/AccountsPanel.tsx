@@ -1,7 +1,8 @@
 import type { FormEvent } from 'react';
 import { Code2, LockKeyhole, Pencil, Search, ShieldCheck, Trash2, User, UserPlus } from 'lucide-react';
 import type { Translation } from '../../translations';
-import type { AccountForm, AdminUser, UserRole } from '../../types';
+import type { AccountForm, AdminUser } from '../../types';
+import type { UserRole } from '../../login/types';
 import { cardStyle, inputStyle, primaryButtonStyle } from './styles';
 
 // Accounts Panel Props (provides account data, form state, filters, and CRUD actions)

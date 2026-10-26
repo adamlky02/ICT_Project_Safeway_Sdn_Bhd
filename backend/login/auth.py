@@ -13,7 +13,11 @@ from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from . import database, models, mfa
+try:
+    from ..general import database, models
+except ImportError:
+    from general import database, models
+from . import mfa
 
 
 # Developer Unlock Signing (uses the deployment secret with an ephemeral fallback only for development)

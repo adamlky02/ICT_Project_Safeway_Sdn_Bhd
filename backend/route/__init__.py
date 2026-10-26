@@ -1,17 +1,14 @@
 from .ai_settings import router as ai_settings_router
 from .analytics import router as analytics_router
-from .authentication import router as authentication_router
 from .chat import router as chat_router
-from .developer import router as developer_router
 from .documents import router as documents_router
-from .mfa import router as mfa_router
-from .profile import router as profile_router
-from .users import router as users_router
 
 try:
     from ..general.chat_history import chat_history_router
+    from ..login.routes import authentication_router, developer_router, mfa_router, profile_router, users_router
 except ImportError:
     from general.chat_history import chat_history_router
+    from login.routes import authentication_router, developer_router, mfa_router, profile_router, users_router
 
 
 routers = (

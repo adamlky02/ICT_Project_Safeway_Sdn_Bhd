@@ -1,1 +1,1 @@
-"""Shared authentication, persistence, messaging, and history modules."""
+"""Shared database models, persistence, and chat history modules."""

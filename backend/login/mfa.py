@@ -14,7 +14,10 @@ from fastapi import HTTPException
 from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 
-from . import models
+try:
+    from ..general import models
+except ImportError:
+    from general import models
 
 CHALLENGE_TTL = 300
 SESSION_TTL = int(os.getenv("ACCESS_TOKEN_TTL_SECONDS", "43200"))
@@ -89,6 +92,8 @@ def throttle(db, request, scope, identity, *, limit=10, window=300):
             raise HTTPException(429, 'Too many attempts. Please try again later.', headers={'Retry-After': str(window)})
         row.count += 1
     # Opportunistic cleanup keeps expired buckets from accumulating with arbitrary login identifiers.
+    # Sessions disable autoflush: persist refreshed windows before cleanup can delete their old rows.
+    db.flush()
     db.execute(delete(models.AuthRateLimit).where(models.AuthRateLimit.window_start < now() - 86400))
     db.commit()
 

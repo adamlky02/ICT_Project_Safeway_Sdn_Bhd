@@ -8,12 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Backend Entry Points (supports both package imports and direct execution from the backend directory)
 if __package__:
-    from .general import auth, database
-    from .general.bootstrap import ensure_bootstrap_developer
+    from .general import database
+    from .login import auth
+    from .login.bootstrap import ensure_bootstrap_developer
     from .route import routers
 else:
-    from general import auth, database
-    from general.bootstrap import ensure_bootstrap_developer
+    from general import database
+    from login import auth
+    from login.bootstrap import ensure_bootstrap_developer
     from route import routers
 
 

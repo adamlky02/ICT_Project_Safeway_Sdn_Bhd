@@ -4,11 +4,13 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 try:
-    from ..general import database, models, mfa
-    from ..general.auth import get_current_user
+    from ...general import database, models
+    from .. import mfa
+    from ..auth import get_current_user
 except ImportError:
-    from general import database, models, mfa
-    from general.auth import get_current_user
+    from general import database, models
+    from login import mfa
+    from login.auth import get_current_user
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 

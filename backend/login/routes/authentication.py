@@ -5,11 +5,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 try:
-    from ..general import database, models
-    from ..general import auth, mfa
+    from ...general import database, models
+    from .. import auth, mfa
 except ImportError:
     from general import database, models
-    from general import auth, mfa
+    from login import auth, mfa
 
 router = APIRouter(prefix="/api", tags=["authentication"])
 

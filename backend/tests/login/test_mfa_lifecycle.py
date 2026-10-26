@@ -1,7 +1,6 @@
 """MFA workflow regressions use SQLite, synthetic identities, and no company services."""
 import importlib.util
 import os
-import time
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -9,9 +8,10 @@ from uuid import uuid4
 import pyotp
 from sqlalchemy import select, text
 
-import test_route_authentication as fixture
-from backend.general import auth, database, mfa, models
-from backend.route import profile
+from . import test_route_authentication as fixture
+from backend.general import database, models
+from backend.login import auth, mfa
+from backend.login.routes import profile
 
 
 class MfaLifecycleTests(unittest.TestCase):
@@ -256,7 +256,7 @@ class MfaLifecycleTests(unittest.TestCase):
 
     def test_sessions_work_after_worker_restart_without_sharing_process_memory(self):
         token = self.login().json()['access_token']
-        spec = importlib.util.spec_from_file_location('backend.general.mfa_worker', mfa.__file__)
+        spec = importlib.util.spec_from_file_location('backend.login.mfa_worker', mfa.__file__)
         worker = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(worker)
         _, user, _ = worker.resolve_session(self.db, token, {'access'})
@@ -271,6 +271,44 @@ class MfaLifecycleTests(unittest.TestCase):
         for _ in range(10):
             self.assertEqual(self.client.post('/api/login', json={'email': self.a.email, 'password': 'incorrect', 'role': 'staff'}).status_code, 401)
         self.assertEqual(self.login().status_code, 429)
+
+    def test_login_after_idle_day_resets_buckets_before_cleanup_and_keeps_limits(self):
+        # Production sessions disable autoflush; default test sessions hid this crash.
+        self.db.autoflush = False
+        account_key = mfa.digest(f'login:account:{self.a.email}')
+        ip_key = mfa.digest('login:ip:testclient')
+        stale_key = mfa.digest('login:account:stale@example.test')
+        active_key = mfa.digest('login:account:active@example.test')
+        self.db.add_all([
+            models.AuthRateLimit(key=account_key, count=10, window_start=mfa.now() - 86401),
+            models.AuthRateLimit(key=ip_key, count=60, window_start=mfa.now() - 86401),
+            models.AuthRateLimit(key=stale_key, count=1, window_start=mfa.now() - 86401),
+            models.AuthRateLimit(key=active_key, count=3, window_start=mfa.now()),
+        ])
+        self.db.commit()
+
+        response = self.login()
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('access_token', response.json())
+        # Read persisted values, rather than the session's in-memory changes.
+        self.db.expire_all()
+        for key in (account_key, ip_key):
+            bucket = self.db.get(models.AuthRateLimit, key)
+            self.assertIsNotNone(bucket)
+            self.assertEqual((bucket.count, bucket.window_start), (1, mfa.now()))
+        self.assertIsNone(self.db.get(models.AuthRateLimit, stale_key))
+        self.assertEqual(self.db.get(models.AuthRateLimit, active_key).count, 3)
+
+        for _ in range(9):
+            response = self.client.post('/api/login', json={
+                'email': self.a.email, 'password': 'incorrect', 'role': 'staff',
+            })
+            self.assertEqual(response.status_code, 401, response.text)
+        response = self.login()
+        self.assertEqual(response.status_code, 429, response.text)
+        self.assertEqual(response.headers['Retry-After'], '300')
+        self.time.return_value += 301
+        self.assertEqual(self.login().status_code, 200)
 
     def test_password_change_requires_confirmation_and_revokes_old_login_sessions(self):
         token = self.login().json()['access_token']

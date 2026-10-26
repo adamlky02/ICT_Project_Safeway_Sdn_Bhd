@@ -2,15 +2,17 @@ import { useState, type FormEvent } from 'react';
 import { ArrowLeft, Loader2, LockKeyhole, LogIn } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API_URL, apiErrorMessage, readJson, STAFF_EMAIL_DOMAIN, storeUser } from '../api/client';
+import { API_URL, apiErrorMessage, readJson, STAFF_EMAIL_DOMAIN } from '../api/client';
+import { storeUser } from './session';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { PageControls } from '../components/PageControls';
-import { LoginLoadingOverlay } from '../components/login/LoginLoadingOverlay';
+import { LoginLoadingOverlay } from './components/LoginLoadingOverlay';
 import { fadeUp } from '../components/motion/presets';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import { buttonClass, FactorField, fieldClass, RecoveryReceipt, secondaryClass, SecurityDialog, SetupForm } from '../components/authenticator/AuthenticatorForms';
-import type { ApiErrorBody, MfaChallenge, MfaLoginResult, PortalRole, StoredUser } from '../types';
+import { buttonClass, FactorField, fieldClass, RecoveryReceipt, secondaryClass, SecurityDialog, SetupForm } from './components/AuthenticatorForms';
+import type { ApiErrorBody } from '../types';
+import type { MfaChallenge, MfaLoginResult, PortalRole, StoredUser } from './types';
 
 // Login Navigation State (carries the portal role selected on the landing page)
 interface LoginLocationState {

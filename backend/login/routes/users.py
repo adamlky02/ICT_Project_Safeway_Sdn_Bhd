@@ -7,13 +7,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 try:
-    from ..general import database, models, mfa
-    from ..general.auth import require_admin, verify_developer_mode_token
-    from ..general.email import send_staff_credentials_email
+    from ...general import database, models
+    from .. import mfa
+    from ..auth import require_admin, verify_developer_mode_token
+    from ..email import send_staff_credentials_email
 except ImportError:
-    from general import database, models, mfa
-    from general.auth import require_admin, verify_developer_mode_token
-    from general.email import send_staff_credentials_email
+    from general import database, models
+    from login import mfa
+    from login.auth import require_admin, verify_developer_mode_token
+    from login.email import send_staff_credentials_email
 
 router = APIRouter(prefix="/api/admin/users", tags=["user administration"])
 STAFF_EMAIL_DOMAIN = "gmail.com"

@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 try:
     from ..ai.providers import get_active_provider_name
     from ..general import database, models
-    from ..general.auth import require_admin
+    from ..login.auth import require_admin
 except ImportError:
     from ai.providers import get_active_provider_name
     from general import database, models
-    from general.auth import require_admin
+    from login.auth import require_admin
 
 router = APIRouter(prefix="/api/admin", tags=["admin analytics"])
 

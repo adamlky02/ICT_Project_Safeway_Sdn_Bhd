@@ -8,9 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 try:
-    from ..general import auth, database, mfa, models
+    from ...general import database, models
+    from .. import auth, mfa
 except ImportError:
-    from general import auth, database, mfa, models
+    from general import database, models
+    from login import auth, mfa
 
 router = APIRouter(prefix='/api', tags=['authenticator'])
 

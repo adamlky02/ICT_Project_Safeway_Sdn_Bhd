@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Code2, Loader2, LockKeyhole } from 'lucide-react';
 import { m } from 'motion/react';
-import { API_URL, authenticatedFetch, readJson } from '../../api/client';
+import { API_URL, readJson } from '../../api/client';
+import { authenticatedFetch } from '../session';
 import type { Translation } from '../../translations';
-import type { ApiErrorBody, DeveloperUnlockResponse } from '../../types';
-import { fadeScale, modalBackdrop } from '../motion/presets';
-import { inputStyle, primaryButtonStyle } from './styles';
+import type { ApiErrorBody } from '../../types';
+import type { DeveloperUnlockResponse } from '../types';
+import { fadeScale, modalBackdrop } from '../../components/motion/presets';
+import { inputStyle, primaryButtonStyle } from '../../components/admin/styles';
 
 // Developer Unlock Controls (connects the password dialog to dismissal and authorized dashboard actions)
 interface DeveloperModeModalProps {

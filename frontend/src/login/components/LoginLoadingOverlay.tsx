@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { m } from 'motion/react';
-import { fadeScale, modalBackdrop } from '../motion/presets';
+import { fadeScale, modalBackdrop } from '../../components/motion/presets';
 
 // Login Loading Props (provides localized authentication status copy)
 interface LoginLoadingOverlayProps {

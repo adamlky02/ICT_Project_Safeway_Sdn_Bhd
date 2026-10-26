@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
-import { API_URL, authenticatedFetch } from '../../api/client';
-import type { MfaStatus } from '../../types';
+import { API_URL } from '../../api/client';
+import { authenticatedFetch } from '../session';
+import type { MfaStatus } from '../types';
 
 // Privileged Account Reminder (server role controls the reminder even when management enters the staff portal).
 export function MfaReminder() {

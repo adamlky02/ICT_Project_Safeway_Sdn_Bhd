@@ -6,11 +6,11 @@ from sqlalchemy.orm import Session
 try:
     from ..ai.providers import activate_ai_draft, get_ai_settings, rollback_ai_provider, save_ai_draft, test_ai_draft
     from ..general import database, models
-    from ..general.auth import require_developer_mode
+    from ..login.auth import require_developer_mode
 except ImportError:
     from ai.providers import activate_ai_draft, get_ai_settings, rollback_ai_provider, save_ai_draft, test_ai_draft
     from general import database, models
-    from general.auth import require_developer_mode
+    from login.auth import require_developer_mode
 
 router = APIRouter(prefix="/api/admin/ai-settings", tags=["AI settings"])
 

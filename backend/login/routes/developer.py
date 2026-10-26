@@ -3,11 +3,11 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
 try:
-    from ..general import models, database
-    from ..general.auth import create_developer_mode_token, require_developer, password_matches
+    from ...general import models, database
+    from ..auth import create_developer_mode_token, require_developer, password_matches
 except ImportError:
     from general import models, database
-    from general.auth import create_developer_mode_token, require_developer, password_matches
+    from login.auth import create_developer_mode_token, require_developer, password_matches
 
 router = APIRouter(prefix="/api/developer", tags=["developer"])
 

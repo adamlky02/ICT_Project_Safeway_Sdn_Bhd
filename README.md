@@ -76,15 +76,21 @@ Company documents are retrieved at request time and supplied to the response mod
 ICT_Project_Safeway_Sdn_Bhd/
 ├── backend/
 │   ├── ai/             # AI conversation, retrieval, prompt, and provider modules
-│   ├── general/        # Shared authentication, data, email, and history modules
+│   ├── general/        # Shared database models, persistence, and chat history
+│   ├── login/          # Login, MFA, sessions, credentials, and access control
+│   ├── route/          # Chat, documents, analytics, and AI-settings endpoints
+│   ├── tests/          # System regressions; login/ contains authentication tests
 │   ├── main.py         # FastAPI application entry point
 │   └── seed_db.py      # Authorized local initialization utility
 ├── frontend/
 │   ├── public/         # Public static assets
-│   └── src/            # React application source
+│   └── src/            # React application source; login/ groups login and MFA
 ├── Documentation/     # Public-safe project documentation
 └── run_app.py          # Local development launcher
 ```
+
+See [Login file guide](Documentation/login.md) for authentication files,
+login procedures, MFA recovery, and the test-suite layout.
 
 ## Local development
 

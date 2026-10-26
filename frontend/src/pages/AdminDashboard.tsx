@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, logout, getStoredUser, readJson } from '../api/client';
+import { API_URL, readJson } from '../api/client';
+import { authenticatedFetch, logout, getStoredUser } from '../login/session';
 import { EngineeringBackground } from '../components/EngineeringBackground';
-import { AuthenticatorPanel } from '../components/admin/AuthenticatorPanel';
-import { MfaReminder } from '../components/authenticator/MfaReminder';
+import { AuthenticatorPanel } from '../login/components/AuthenticatorPanel';
+import { MfaReminder } from '../login/components/MfaReminder';
 import { AccountsPanel } from '../components/admin/AccountsPanel';
 import { AdminPageHeader } from '../components/admin/AdminPageHeader';
 import { CredentialsModal, EditUserModal, RoleConfirmModal } from '../components/admin/AdminModals';
@@ -12,22 +13,11 @@ import { AdminNavigation } from '../components/admin/AdminNavigation';
 import { AnalyticsPanel } from '../components/admin/AnalyticsPanel';
 import { DocumentsPanel } from '../components/admin/DocumentsPanel';
 import { AISettingsPanel } from '../components/admin/AISettingsPanel';
-import { DeveloperModeModal } from '../components/admin/DeveloperModeModal';
+import { DeveloperModeModal } from '../login/components/DeveloperModeModal';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
-import type {
-    AccountForm,
-    AdminAnalytics,
-    AdminData,
-    AdminDocument,
-    AdminTab,
-    AdminUploadItem,
-    AdminUser,
-    ApiErrorBody,
-    EditAccountForm,
-    GeneratedCredentials,
-    UserRole,
-} from '../types';
+import type { AccountForm, AdminAnalytics, AdminData, AdminDocument, AdminTab, AdminUploadItem, AdminUser, ApiErrorBody, EditAccountForm, GeneratedCredentials } from '../types';
+import type { UserRole } from '../login/types';
 
 // Empty Account Form (provides safe defaults for account creation and document metadata)
 const emptyAccountForm: AccountForm = {

@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ShieldCheck, RefreshCw } from 'lucide-react';
-import { API_URL, apiErrorMessage, authenticatedFetch, getStoredUser } from '../../api/client';
-import type { AuthenticatorAccount, MfaStatus } from '../../types';
-import { buttonClass, FactorField, fieldClass, secondaryClass, SecurityDialog } from '../authenticator/AuthenticatorForms';
+import { API_URL, apiErrorMessage } from '../../api/client';
+import { authenticatedFetch, getStoredUser } from '../session';
+import type { AuthenticatorAccount, MfaStatus } from '../types';
+import { buttonClass, FactorField, fieldClass, secondaryClass, SecurityDialog } from './AuthenticatorForms';
 
 // Authenticator Directory (searchable per-account metadata and reset decisions are available to both management roles).
 export function AuthenticatorPanel() {

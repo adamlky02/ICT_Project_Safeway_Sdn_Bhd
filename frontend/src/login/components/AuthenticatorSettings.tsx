@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ShieldCheck } from 'lucide-react';
-import { API_URL, apiErrorMessage, authenticatedFetch, readJson, storeUser } from '../../api/client';
-import type { MfaChallenge, MfaLoginResult, MfaStatus } from '../../types';
+import { API_URL, apiErrorMessage, readJson } from '../../api/client';
+import { authenticatedFetch, storeUser } from '../session';
+import type { MfaChallenge, MfaLoginResult, MfaStatus } from '../types';
 import { buttonClass, FactorField, fieldClass, RecoveryReceipt, secondaryClass, SecurityDialog, SetupForm } from './AuthenticatorForms';
 
 // Profile MFA Settings (password confirmation gates enrollment, disabling, and lost-device reset requests).

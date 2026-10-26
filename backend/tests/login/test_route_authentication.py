@@ -22,9 +22,11 @@ from sqlalchemy.pool import StaticPool
 
 # Do not load local credentials or construct a real cloud storage client.
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345", "GOOGLE_API_KEY": "test-only"}), patch('dotenv.load_dotenv'), patch('boto3.client'):
-    from backend.general import auth, database, models, chat_history, mfa
-    from backend.route import authentication, chat, documents
-    from backend.route import mfa as mfa_routes
+    from backend.general import database, models, chat_history
+    from backend.login import auth, mfa
+    from backend.route import chat, documents
+    from backend.login.routes import authentication
+    from backend.login.routes import mfa as mfa_routes
 
 
 class ProtectedRouteTests(unittest.TestCase):
@@ -35,7 +37,6 @@ class ProtectedRouteTests(unittest.TestCase):
         def functions(connection, _):
             connection.create_function('now', 0, lambda: datetime.now(timezone.utc).isoformat())
             connection.create_function('gen_random_uuid', 0, lambda: uuid4().hex)
-        tables = [models.User.__table__, models.KnowledgeBase.__table__, chat_history.ChatSession.__table__, chat_history.ChatMessageRecord.__table__]
         database.Base.metadata.create_all(self.engine)
         self.db = sessionmaker(bind=self.engine, expire_on_commit=False)()
         self.a = models.User(id=uuid4(), email='a@example.test', password_hash='unused', role='staff', is_active=True)

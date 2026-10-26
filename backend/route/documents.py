@@ -15,12 +15,12 @@ try:
     from ..ai.catalogue_chunks import build_index_chunks
     from ..ai.embeddings import get_embedding
     from ..general import database, models
-    from ..general.auth import require_admin, get_current_user
+    from ..login.auth import require_admin, get_current_user
 except ImportError:
     from ai.catalogue_chunks import build_index_chunks
     from ai.embeddings import get_embedding
     from general import database, models
-    from general.auth import require_admin, get_current_user
+    from login.auth import require_admin, get_current_user
 
 router = APIRouter(prefix="/api", tags=["documents"])
 # Document Storage (configures cloud objects and the local fallback used by authenticated previews)

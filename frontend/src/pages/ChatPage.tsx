@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { m } from 'motion/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API_URL, authenticatedFetch, logout, getStoredUser, readJson } from '../api/client';
+import { API_URL, readJson } from '../api/client';
+import { authenticatedFetch, logout, getStoredUser } from '../login/session';
 import {
     deleteSessions,
     fetchSessionDetail,

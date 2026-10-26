@@ -6,9 +6,12 @@ document-grounded internal assistant.
 ## Project navigation
 
 - `frontend/src/`: UI components, hooks, API clients, and shared types.
-- `backend/route/`: HTTP endpoints.
+- `backend/login/`: login, MFA, sessions, account credentials, and access-control routes/helpers.
+- `backend/route/`: chat, document, analytics, and AI-settings HTTP endpoints.
 - `backend/ai/`: retrieval, embeddings, conversation reasoning, prompts, providers.
-- `backend/general/`: authentication, database models, email, and chat history.
+- `backend/general/`: shared database models, database configuration, and chat history.
+- `frontend/src/login/`: login page, MFA controls, browser sessions, and login types.
+- `backend/tests/login/`: authentication and MFA regression tests.
 - `Documentation/`: project documentation.
 
 ## Validation and data boundaries

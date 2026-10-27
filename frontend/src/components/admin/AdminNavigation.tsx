@@ -64,7 +64,7 @@ export function AdminNavigation({
     const items: NavigationItem[] = [
         { id: 'analytics', icon: Activity, label: t.tab_analytics || 'Analytics' },
         { id: 'staff', icon: Users, label: t.tab_accounts || 'Accounts' },
-        { id: 'authenticator', icon: ShieldCheck, label: 'Authenticator' },
+        { id: 'authenticator', icon: ShieldCheck, label: t.authenticator },
         { id: 'docs', icon: FileText, label: t.tab_docs || 'Documents' },
         ...(isDeveloper && developerModeUnlocked
             ? [{ id: 'ai' as const, icon: Bot, label: t.tab_ai || 'AI Model' }]
@@ -137,7 +137,7 @@ export function AdminNavigation({
                                     <Globe size={17} />
                                     <span className="absolute -bottom-0.5 text-[7px] font-black uppercase text-amber-500">{lang}</span>
                                 </button>
-                                <button onClick={onThemeToggle} className={utilityButtonClass} type="button" aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'} title={t.theme_mode || 'Change theme'}>
+                                <button onClick={onThemeToggle} className={utilityButtonClass} type="button" aria-label={isDarkMode ? t.switch_light_mode : t.switch_dark_mode} title={t.theme_mode || 'Change theme'}>
                                     {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
                                 </button>
                                 <button onClick={onLogout} className={`${utilityButtonClass} hover:bg-red-50/70 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400`} type="button" aria-label={t.logout || 'Logout'} title={t.logout || 'Logout'}>
@@ -157,7 +157,7 @@ export function AdminNavigation({
                         </div>
                         <div aria-hidden="true" />
                         <div className="flex items-center justify-start gap-0.5 pl-1">
-                            <button onClick={onThemeToggle} className={utilityButtonClass} type="button" aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+                            <button onClick={onThemeToggle} className={utilityButtonClass} type="button" aria-label={isDarkMode ? t.switch_light_mode : t.switch_dark_mode}>
                                 {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
                             </button>
                             <button onClick={onLogout} className={`${utilityButtonClass} hover:text-red-600 dark:hover:text-red-400`} type="button" aria-label={t.logout || 'Logout'}>

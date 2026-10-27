@@ -500,7 +500,7 @@ const AdminDashboard = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 >
-                    <MfaReminder />
+                    <MfaReminder t={t} />
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat', { state: { fromAdminPanel: true } })} onOpenProfile={() => navigate('/profile')} />
 
                     {/* Tab Content (animates between analytics, account, and document panels) */}
@@ -513,7 +513,7 @@ const AdminDashboard = () => {
                             exit={{ opacity: 0, y: -18, scale: 0.99, filter: 'blur(9px)' }}
                             transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            {tab === 'authenticator' && <AuthenticatorPanel />}
+                            {tab === 'authenticator' && <AuthenticatorPanel t={t} lang={lang} />}
                             {tab === 'analytics' && (
                                 <AnalyticsPanel
                                     analytics={analytics}

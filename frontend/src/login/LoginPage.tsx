@@ -68,9 +68,9 @@ const LoginPage = () => {
             }
 
             const responseError = await readJson<ApiErrorBody>(response);
-            setError(apiErrorMessage(responseError, 'Login failed'));
+            setError(apiErrorMessage(responseError, t.login_failed));
         } catch {
-            setError(lang === 'en' ? 'Network error: Could not reach server.' : 'Ralat Rangkaian / 网络错误');
+            setError(t.login_network_error);
         } finally {
             setIsLoading(false);
         }
@@ -84,10 +84,10 @@ const LoginPage = () => {
             const path = challenge.setup_required ? '/api/mfa/enroll/confirm' : '/api/login/mfa/verify';
             const response = await fetch(`${API_URL}${path}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: value, setup_token: challenge.setup_token, challenge_token: challenge.challenge_token }) });
             const result = await readJson<MfaLoginResult & ApiErrorBody>(response);
-            if (!response.ok) throw new Error(apiErrorMessage(result, 'Authenticator verification failed.'));
+            if (!response.ok) throw new Error(apiErrorMessage(result, t.mfa_verify_failed));
             if (result.recovery_codes?.length) { setCompleted(result); setChallenge(null); }
             else finishLogin(result);
-        } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to verify your code.'); }
+        } catch (caught) { setError(caught instanceof Error ? caught.message : t.mfa_code_failed); }
         finally { setIsLoading(false); }
     };
     const sendReset = async (event: FormEvent) => {
@@ -95,10 +95,10 @@ const LoginPage = () => {
         try {
             const response = await fetch(`${API_URL}/api/login/mfa/reset-request`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ challenge_token: challenge?.challenge_token, reason }) });
             const result = await response.json();
-            if (!response.ok) throw new Error(apiErrorMessage(result, 'Unable to submit your request.'));
-            setNotice(result.message); setRequestOpen(false); setRequestSent(true);
+            if (!response.ok) throw new Error(apiErrorMessage(result, t.mfa_request_failed));
+            setNotice(t.mfa_reset_sent_notice); setRequestOpen(false); setRequestSent(true);
             setChallenge((previous) => previous ? { ...previous, reset_request: result.reset_request } : null);
-        } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to submit your request.'); }
+        } catch (caught) { setError(caught instanceof Error ? caught.message : t.mfa_request_failed); }
         finally { setIsLoading(false); }
     };
     const back = () => { setChallenge(null); setCode(''); setError(''); setNotice(''); setPassword(''); };
@@ -177,13 +177,13 @@ const LoginPage = () => {
 
                 {/* Login Form (collects account credentials for the selected portal) */}
                 {notice && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">{notice}</p>}
-                {completed?.recovery_codes ? <RecoveryReceipt codes={completed.recovery_codes} onDone={() => finishLogin(completed)} /> : challenge?.setup_required ? <SetupForm setup={challenge} busy={isLoading} onConfirm={(value) => void verify(value)} onCancel={back} /> : challenge ? <form onSubmit={(event) => { event.preventDefault(); void verify(code); }} className="space-y-4">
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Enter a code from your authenticator app or an unused recovery code to finish signing in.</p>
-                    <FactorField value={code} onChange={setCode} disabled={isLoading} />
-                    <button className={buttonClass} disabled={isLoading}>Verify and sign in</button>
-                    {challenge.reset_request && <div className="rounded-xl bg-slate-100 p-3 text-sm dark:bg-slate-950"><p>Reset request: <strong className="capitalize">{challenge.reset_request.status}</strong></p>{challenge.reset_request.review_note && <p>{challenge.reset_request.review_note}</p>}</div>}
-                    <button type="button" className={secondaryClass} disabled={isLoading || challenge.reset_request?.status === 'pending'} onClick={() => { setReason(''); setError(''); setRequestOpen(true); }}>{challenge.reset_request?.status === 'pending' ? 'Reset awaiting approval' : 'I want to reset my authenticator'}</button>
-                    <button type="button" className="block min-h-11 text-sm font-semibold underline" disabled={isLoading} onClick={back}>Back to password / check approval</button>
+                {completed?.recovery_codes ? <RecoveryReceipt t={t} codes={completed.recovery_codes} onDone={() => finishLogin(completed)} /> : challenge?.setup_required ? <SetupForm t={t} setup={challenge} busy={isLoading} onConfirm={(value) => void verify(value)} onCancel={back} /> : challenge ? <form onSubmit={(event) => { event.preventDefault(); void verify(code); }} className="space-y-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{t.mfa_login_prompt}</p>
+                    <FactorField t={t} value={code} onChange={setCode} disabled={isLoading} />
+                    <button className={buttonClass} disabled={isLoading}>{t.mfa_verify_login}</button>
+                    {challenge.reset_request && <div className="rounded-xl bg-slate-100 p-3 text-sm dark:bg-slate-950"><p>{t.mfa_reset_request}: <strong className="capitalize">{t[`mfa_status_${challenge.reset_request.status}`]}</strong></p>{challenge.reset_request.review_note && <p>{challenge.reset_request.review_note}</p>}</div>}
+                    <button type="button" className={secondaryClass} disabled={isLoading || challenge.reset_request?.status === 'pending'} onClick={() => { setReason(''); setError(''); setRequestOpen(true); }}>{challenge.reset_request?.status === 'pending' ? t.mfa_reset_pending : t.mfa_reset_action}</button>
+                    <button type="button" className="block min-h-11 text-sm font-semibold underline" disabled={isLoading} onClick={back}>{t.mfa_back_password}</button>
                 </form> : <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     <div className="space-y-1.5">
                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
@@ -222,8 +222,8 @@ const LoginPage = () => {
                         {isLoading ? t.btn_loading : t.btn_login}
                     </button>
                 </form>}
-                {requestOpen && <SecurityDialog title="Request an authenticator reset" onClose={() => { if (!isLoading) setRequestOpen(false); }}><form onSubmit={(event) => void sendReset(event)} className="space-y-4"><p className="text-sm">Your password was verified. An administrator or developer must approve your request before you can register a new device.</p><label className="block space-y-2 text-sm font-semibold">Reason<textarea className={fieldClass} value={reason} onChange={(event) => setReason(event.target.value)} minLength={3} maxLength={500} required disabled={isLoading} /></label>{error && <p role="alert" className="text-sm text-red-600">{error}</p>}<button className={buttonClass} disabled={isLoading}>Send reset request</button></form></SecurityDialog>}
-                {requestSent && <SecurityDialog title="Reset request sent" onClose={() => setRequestSent(false)}><p role="status" className="mb-5">{notice}</p><button className={buttonClass} type="button" onClick={() => setRequestSent(false)}>Done</button></SecurityDialog>}
+                {requestOpen && <SecurityDialog t={t} title={t.mfa_reset_title} onClose={() => { if (!isLoading) setRequestOpen(false); }}><form onSubmit={(event) => void sendReset(event)} className="space-y-4"><p className="text-sm">{t.mfa_login_reset_description}</p><label className="block space-y-2 text-sm font-semibold">{t.reason}<textarea className={fieldClass} value={reason} onChange={(event) => setReason(event.target.value)} minLength={3} maxLength={500} required disabled={isLoading} /></label>{error && <p role="alert" className="text-sm text-red-600">{error}</p>}<button className={buttonClass} disabled={isLoading}>{t.mfa_send_reset}</button></form></SecurityDialog>}
+                {requestSent && <SecurityDialog t={t} title={t.mfa_reset_sent} onClose={() => setRequestSent(false)}><p role="status" className="mb-5">{notice}</p><button className={buttonClass} type="button" onClick={() => setRequestSent(false)}>{t.done}</button></SecurityDialog>}
             </m.div>
         </div>
     );

@@ -6,6 +6,7 @@ import { AuthenticatorSettings } from '../login/components/AuthenticatorSettings
 import { ProfileForm } from '../components/profile/ProfileForm';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../hooks/useLanguage';
 import type { ApiErrorBody, ProfileFormData, UserProfile } from '../types';
 
 // Empty Profile Form (provides safe initial values for editable account fields)
@@ -15,6 +16,7 @@ const emptyProfileForm: ProfileFormData = { full_name: '', password: '', confirm
 const ProfilePage = () => {
     // Profile State (tracks account data, form mode, validation, and request progress)
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const { isDarkMode, toggleTheme } = useTheme();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -37,14 +39,14 @@ const ProfilePage = () => {
 
                 const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`);
                 if (!response.ok) {
-                    throw new Error('Failed to load profile');
+                    throw new Error(t.profile_load_failed);
                 }
 
                 const profileData = await readJson<UserProfile>(response);
                 setProfile(profileData);
                 setForm({ full_name: profileData.full_name || '', password: '', confirmPassword: '' });
             } catch {
-                setError('Unable to load profile. Please log in again.');
+                setError(t.profile_load_failed);
             } finally {
                 setLoading(false);
             }
@@ -68,7 +70,7 @@ const ProfilePage = () => {
         setError('');
 
         if (form.password && form.password !== form.confirmPassword) {
-            setPasswordError('Passwords do not match');
+            setPasswordError(t.password_mismatch);
             setSaving(false);
             return;
         }
@@ -76,7 +78,7 @@ const ProfilePage = () => {
         try {
             const user = getStoredUser();
             if (!user) {
-                throw new Error('Session expired');
+                throw new Error(t.session_expired);
             }
 
             const response = await authenticatedFetch(`${API_URL}/api/profile/${user.id}`, {
@@ -86,16 +88,16 @@ const ProfilePage = () => {
             });
             const data = await readJson<UserProfile & ApiErrorBody>(response);
             if (!response.ok) {
-                throw new Error(data.detail || 'Failed to update profile');
+                throw new Error(data.detail || t.profile_save_failed);
             }
 
             setProfile(data);
             storeUser({ ...user, name: data.full_name });
             setForm({ full_name: data.full_name, password: '', confirmPassword: '' });
             setEditing(false);
-            setMessage('Profile updated successfully.');
+            setMessage(t.profile_saved);
         } catch (caughtError) {
-            setError(caughtError instanceof Error ? caughtError.message : 'Failed to update profile');
+            setError(caughtError instanceof Error ? caughtError.message : t.profile_save_failed);
         } finally {
             setSaving(false);
         }
@@ -103,7 +105,7 @@ const ProfilePage = () => {
 
     // Loading View (holds the page while profile data is being requested)
     if (loading) {
-        return <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 text-center text-slate-600 dark:text-slate-400 transition-colors duration-300">Loading profile...</div>;
+        return <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 text-center text-slate-600 dark:text-slate-400 transition-colors duration-300">{t.profile_loading}</div>;
     }
 
     // Fatal Error View (offers recovery when no profile could be loaded)
@@ -112,7 +114,7 @@ const ProfilePage = () => {
             <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 max-w-md w-full text-center transition-colors duration-300">
                     <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
-                    <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition" type="button">Back to home</button>
+                    <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition" type="button">{t.back_home}</button>
                 </div>
             </div>
         );
@@ -127,6 +129,7 @@ const ProfilePage = () => {
         <div className="min-h-[100svh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-300 font-sans">
             {/* Profile Navigation (provides back, theme, and logout controls) */}
             <ProfileHeader
+                t={t}
                 isDarkMode={isDarkMode}
                 onBack={() => navigate(-1)}
                 onThemeToggle={toggleTheme}
@@ -135,6 +138,7 @@ const ProfilePage = () => {
             {/* Profile Editor (displays and updates the current account fields) */}
             <main className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 py-5 sm:py-8 md:py-10 pb-[max(2rem,env(safe-area-inset-bottom))]">
                 <ProfileForm
+                    t={t}
                     profile={profile}
                     form={form}
                     editing={editing}
@@ -153,7 +157,7 @@ const ProfilePage = () => {
                     }}
                     onClearPasswordError={() => setPasswordError('')}
                 />
-                <AuthenticatorSettings />
+                <AuthenticatorSettings t={t} />
             </main>
         </div>
     );

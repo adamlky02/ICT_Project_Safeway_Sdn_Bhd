@@ -1,8 +1,9 @@
 import type { FormEvent } from 'react';
-import { Check, Edit3 } from 'lucide-react';
+import { Check, Edit3, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import type { ProfileFormData, UserProfile } from '../../types';
 import type { Translation } from '../../translations';
+import { FeedbackBanner } from '../feedback/FeedbackBanner';
 import { fadeUp } from '../motion/presets';
 
 // Profile Form Props (provides account data, edit state, validation, and form actions)
@@ -40,7 +41,7 @@ export function ProfileForm({
 }: ProfileFormProps) {
     return (
         <m.div
-            className="bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors duration-300"
+            className="content-panel bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden transition-colors duration-300"
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -52,30 +53,9 @@ export function ProfileForm({
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t.profile_description}</p>
             </div>
 
-            <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
-                {/* Submission Feedback (shows animated success or API error messages) */}
-                <AnimatePresence initial={false}>
-                    {message && (
-                        <m.div
-                            className="rounded-lg border border-green-200 dark:border-green-900/50 bg-green-50 dark:bg-green-900/20 px-4 py-3 text-green-700 dark:text-green-400 transition-colors"
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                        >
-                            {message}
-                        </m.div>
-                    )}
-                    {error && (
-                        <m.div
-                            className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-red-700 dark:text-red-400 transition-colors"
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                        >
-                            {error}
-                        </m.div>
-                    )}
-                </AnimatePresence>
+            <form aria-busy={saving} onSubmit={onSubmit} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
+                {message && <FeedbackBanner message={message} />}
+                {error && <FeedbackBanner tone="error" message={error} />}
 
                 {/* Read-only Email (displays the account identifier without editing controls) */}
                 <div>
@@ -93,8 +73,8 @@ export function ProfileForm({
                             <m.div key="name-edit" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}>
                                 <input
                                     value={form.full_name}
-                                    onChange={(event) => onFormChange({ ...form, full_name: event.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                                    disabled={saving} onChange={(event) => onFormChange({ ...form, full_name: event.target.value })}
+                                    className="soft-field w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
                                     placeholder={t.your_name}
                                     required
                                 />
@@ -116,32 +96,33 @@ export function ProfileForm({
                                 <input
                                     type="password"
                                     value={form.password}
-                                    onChange={(event) => {
+                                    disabled={saving} onChange={(event) => {
                                         onFormChange({ ...form, password: event.target.value });
                                         onClearPasswordError();
                                     }}
-                                    className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 mb-3 transition-colors"
+                                    className="soft-field w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white px-4 py-3 outline-none focus:ring-2 focus:ring-orange-500 mb-3 transition-colors"
                                     placeholder={t.new_password}
                                 />
                                 <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">{t.confirm_password}</label>
                                 <input
                                     type="password"
+                                    aria-invalid={Boolean(passwordError)}
                                     value={form.confirmPassword}
-                                    onChange={(event) => {
+                                    disabled={saving} onChange={(event) => {
                                         onFormChange({ ...form, confirmPassword: event.target.value });
                                         onClearPasswordError();
                                     }}
-                                    className={`w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors ${
+                                    className={`soft-field w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white transition-colors ${
                                         passwordError
                                             ? 'border-red-300 dark:border-red-500 focus:ring-red-500'
-                                            : 'border-slate-300 dark:border-slate-600 focus:ring-blue-500'
+                                            : 'border-slate-300 dark:border-slate-600 focus:ring-orange-500'
                                     }`}
                                     placeholder={t.confirm_new_password}
                                 />
                                 {/* Credential Change Confirmation (an existing factor is also required when the account has MFA enabled). */}
                                 {form.password && <div className="mt-4 space-y-3">
-                                    <label className="block text-sm font-semibold">{t.current_password}<input type="password" autoComplete="current-password" required value={form.currentPassword || ''} onChange={(event) => onFormChange({ ...form, currentPassword: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-900" /></label>
-                                    <label className="block text-sm font-semibold">{t.mfa_optional_factor}<input autoComplete="one-time-code" maxLength={40} value={form.mfaCode || ''} onChange={(event) => onFormChange({ ...form, mfaCode: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-900" /></label>
+                                    <label className="block text-sm font-semibold">{t.current_password}<input type="password" autoComplete="current-password" required value={form.currentPassword || ''} disabled={saving} onChange={(event) => onFormChange({ ...form, currentPassword: event.target.value })} className="soft-field mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-900" /></label>
+                                    <label className="block text-sm font-semibold">{t.mfa_optional_factor}<input autoComplete="one-time-code" maxLength={40} value={form.mfaCode || ''} disabled={saving} onChange={(event) => onFormChange({ ...form, mfaCode: event.target.value })} className="soft-field mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 dark:border-slate-600 dark:bg-slate-900" /></label>
                                 </div>}
                                 <AnimatePresence>
                                     {passwordError && (
@@ -166,17 +147,17 @@ export function ProfileForm({
                             <button
                                 type="submit"
                                 disabled={saving || Boolean(form.password && form.password !== form.confirmPassword)}
-                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+                                className="accent-button inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 font-semibold text-white hover:bg-orange-700 disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
                             >
-                                <Check size={18} /> {saving ? t.saving : t.save_changes}
+                                {saving ? <LoaderCircle className="animate-spin" size={18} /> : <Check size={18} />} {saving ? t.saving : t.save_changes}
                             </button>
-                            <button type="button" onClick={onCancel} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                            <button type="button" disabled={saving} onClick={onCancel} className="soft-button inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 {t.cancel}
                             </button>
                         </m.div>
                     ) : (
                         <m.div key="read-actions" className="flex pt-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}>
-                            <button type="button" onClick={onEdit} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-700 px-4 py-3 font-semibold text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
+                            <button type="button" onClick={onEdit} className="accent-button inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-700 px-4 py-3 font-semibold text-white hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors">
                                 <Edit3 size={18} /> {t.edit_profile}
                             </button>
                         </m.div>

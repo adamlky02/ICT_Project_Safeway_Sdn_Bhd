@@ -61,19 +61,20 @@ export function ChatComposer({ input, isLoading, language, t, onInputChange, onS
 
     // Enter-key Submission (sends the current draft when the user presses Enter)
     const handleKeyPress = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && !event.nativeEvent.isComposing && !isLoading && input.trim()) {
             handleSend();
         }
     };
 
     return (
-        <div className="z-20 shrink-0 border-t border-slate-200 bg-white/90 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] backdrop-blur-2xl transition-colors duration-500 dark:border-white/5 dark:bg-[#0a0a0a]/90 dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:px-5 md:p-5 lg:p-6">
+        <div className="glass-panel composer-shell z-20 shrink-0 border-t border-slate-200 bg-white/90 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] backdrop-blur-2xl transition-colors duration-500 dark:border-white/5 dark:bg-[#0a0a0a]/90 dark:shadow-[0_-10px_40px_rgba(0,0,0,0.3)] sm:px-5 md:p-5 lg:p-6">
             <div className="max-w-4xl mx-auto">
                 <div className="flex gap-2 md:gap-3 items-center relative">
                     {/* Question Input (captures typed text and displays the live transcript) */}
                     <input
                         type="text"
-                        className={`h-12 flex-1 min-w-0 border rounded-xl px-3 sm:px-4 md:px-5 focus:ring-2 outline-none bg-slate-50 dark:bg-black/40 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 transition-all duration-300 text-base disabled:opacity-50 shadow-inner backdrop-blur-sm md:h-14 ${
+                        aria-label={t.chat_input_placeholder || 'Ask a question'}
+                        className={`soft-field h-12 flex-1 min-w-0 border rounded-xl px-3 sm:px-4 md:px-5 focus:ring-2 outline-none bg-slate-50 dark:bg-black/40 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 transition-all duration-300 text-base disabled:opacity-50 shadow-inner backdrop-blur-sm md:h-14 ${
                             isListening
                                 ? 'border-red-400 dark:border-red-500/70 focus:ring-red-500/30'
                                 : 'border-slate-300 dark:border-slate-700 focus:ring-amber-500/50 focus:border-amber-500'
@@ -84,6 +85,7 @@ export function ChatComposer({ input, isLoading, language, t, onInputChange, onS
                         onKeyDown={handleKeyPress}
                         disabled={isLoading}
                         readOnly={isListening}
+                        data-listening={isListening}
                     />
 
                     {/* Voice Control (starts or stops live browser speech recognition) */}
@@ -97,7 +99,7 @@ export function ChatComposer({ input, isLoading, language, t, onInputChange, onS
                         className={`relative h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl border transition-all shadow-md flex items-center justify-center shrink-0 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 ${
                             isListening
                                 ? 'bg-red-500 text-white border-red-400 shadow-red-500/25 hover:bg-red-600'
-                                : 'bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:text-amber-600 hover:border-amber-400 dark:hover:text-amber-400 dark:hover:border-amber-500/60'
+                                : 'soft-button bg-white dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:text-amber-600 hover:border-amber-400 dark:hover:text-amber-400 dark:hover:border-amber-500/60'
                         }`}
                     >
                         {isListening && <span className="absolute inset-0 rounded-2xl bg-red-500 animate-ping opacity-20" aria-hidden="true" />}
@@ -106,14 +108,14 @@ export function ChatComposer({ input, isLoading, language, t, onInputChange, onS
 
                     {/* Request Control (offers cancellation during a request and submission otherwise) */}
                     {isLoading ? (
-                        <button onClick={onStop} className="flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-500/10 px-3 font-black text-red-600 shadow-md transition-all hover:bg-red-500 hover:text-white active:scale-[0.96] dark:border-red-500/30 dark:bg-red-500/20 dark:text-red-400 md:h-14 md:rounded-2xl md:px-6" type="button">
+                        <button onClick={onStop} aria-label={t.chat_stop} className="flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-500/10 px-3 font-semibold text-red-600 shadow-md transition-all hover:bg-red-500 hover:text-white active:scale-[0.96] dark:border-red-500/30 dark:bg-red-500/20 dark:text-red-400 md:h-14 md:rounded-2xl md:px-6" type="button">
                             <XCircle size={20} className="md:mr-2" />
-                            <span className="hidden md:inline uppercase tracking-widest text-xs">Stop</span>
+                            <span className="hidden md:inline tracking-wide text-xs">{t.chat_stop}</span>
                         </button>
                     ) : (
-                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className="flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3 font-black text-slate-200 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 active:scale-[0.96] disabled:opacity-50 disabled:grayscale md:h-14 md:rounded-2xl md:px-8" type="button">
+                        <button onClick={handleSend} disabled={isLoading || !input.trim()} aria-label={t.chat_btn_send || 'Send'} className="accent-button flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-3 font-semibold text-slate-200 shadow-lg shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-orange-500 active:scale-[0.96] disabled:opacity-50 disabled:grayscale md:h-14 md:rounded-2xl md:px-8" type="button">
                             <Send size={20} className="md:mr-2" />
-                            <span className="hidden md:inline uppercase tracking-widest text-xs">{t.chat_btn_send || 'Send'}</span>
+                            <span className="hidden md:inline tracking-wide text-xs">{t.chat_btn_send || 'Send'}</span>
                         </button>
                     )}
                 </div>

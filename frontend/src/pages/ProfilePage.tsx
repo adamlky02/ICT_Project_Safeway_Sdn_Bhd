@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_URL, readJson } from '../api/client';
 import { authenticatedFetch, logout, getStoredUser, storeUser } from '../login/session';
 import { AuthenticatorSettings } from '../login/components/AuthenticatorSettings';
+import { LoadingState } from '../components/feedback/LoadingState';
 import { ProfileForm } from '../components/profile/ProfileForm';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { useTheme } from '../hooks/useTheme';
@@ -26,10 +27,13 @@ const ProfilePage = () => {
     const [error, setError] = useState('');
     const [form, setForm] = useState<ProfileFormData>(emptyProfileForm);
     const [passwordError, setPasswordError] = useState('');
+    const [reloadKey, setReloadKey] = useState(0);
 
     // Profile Loading (restores the session and fetches the current account details)
     useEffect(() => {
         const loadProfile = async () => {
+            setLoading(true);
+            setError('');
             try {
                 const user = getStoredUser();
                 if (!user) {
@@ -53,7 +57,7 @@ const ProfilePage = () => {
         };
 
         void loadProfile();
-    }, [navigate]);
+    }, [navigate, reloadKey]);
 
     // Profile Logout (clears the browser session and returns to the landing page)
     const handleLogout = async () => {
@@ -105,16 +109,17 @@ const ProfilePage = () => {
 
     // Loading View (holds the page while profile data is being requested)
     if (loading) {
-        return <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 text-center text-slate-600 dark:text-slate-400 transition-colors duration-300">{t.profile_loading}</div>;
+        return <div className="app-canvas min-h-[100svh]"><ProfileHeader t={t} isDarkMode={isDarkMode} onBack={() => navigate(-1)} onThemeToggle={toggleTheme} onLogout={handleLogout} /><main className="mx-auto max-w-3xl px-4 py-8"><LoadingState label={t.profile_loading} /></main></div>;
     }
 
     // Fatal Error View (offers recovery when no profile could be loaded)
     if (error && !profile) {
         return (
-            <div className="min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 max-w-md w-full text-center transition-colors duration-300">
-                    <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
-                    <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition" type="button">{t.back_home}</button>
+            <div className="app-canvas min-h-[100svh] flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300">
+                <div className="glass-panel bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 max-w-md w-full text-center transition-colors duration-300">
+                    <p role="alert" className="text-red-600 dark:text-red-400 font-medium">{error}</p>
+                    <button type="button" onClick={() => setReloadKey(value => value + 1)} className="accent-button mt-4 rounded-xl px-5 py-3">{t.retry}</button>
+                    <button onClick={() => navigate('/')} className="mt-4 ml-3 px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200 transition" type="button">{t.back_home}</button>
                 </div>
             </div>
         );
@@ -126,7 +131,7 @@ const ProfilePage = () => {
     }
 
     return (
-        <div className="min-h-[100svh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-300 font-sans">
+        <div className="app-canvas min-h-[100svh] bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 transition-colors duration-300 font-sans">
             {/* Profile Navigation (provides back, theme, and logout controls) */}
             <ProfileHeader
                 t={t}

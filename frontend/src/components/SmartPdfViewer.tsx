@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { Loader2 } from 'lucide-react';
+import { LoadingState } from './feedback/LoadingState';
+import { FeedbackBanner } from './feedback/FeedbackBanner';
+import type { Translation } from '../translations';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -14,6 +16,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 // PDF Viewer Types (describe component inputs and the text-layer items being rendered)
 interface SmartPdfViewerProps {
     fileUrl: string;
+    t: Translation;
     searchText: string;
 }
 
@@ -32,13 +35,14 @@ function escapeHtml(value: string): string {
 }
 
 // Smart PDF Viewer (renders every PDF page and highlights lines matching retrieved text)
-const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
+const SmartPdfViewer = ({ fileUrl, searchText, t }: SmartPdfViewerProps) => {
     const file = useMemo(() => ({
         url: fileUrl,
         withCredentials: true,
     }), [fileUrl]);
     const [numPages, setNumPages] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
+    const [attempt, setAttempt] = useState(0);
     const [pageWidth, setPageWidth] = useState(700);
     const viewerRef = useRef<HTMLDivElement>(null);
 
@@ -107,18 +111,16 @@ const SmartPdfViewer = ({ fileUrl, searchText }: SmartPdfViewerProps) => {
 
                 {/* Loading State (reports PDF parsing progress until page metadata is available) */}
                 {loading && (
-                    <div className="flex flex-col items-center justify-center h-64 text-slate-500 dark:text-slate-400">
-                        <Loader2 className="animate-spin mb-3 text-amber-500" size={32} />
-                        <p className="font-bold tracking-widest uppercase text-xs">Decrypting Document...</p>
-                    </div>
+                    <div className="w-full"><LoadingState compact label={t.preview_loading} /></div>
                 )}
 
                 {/* PDF Document (renders every page with the custom searchable text layer) */}
                 <Document
+                    key={attempt}
                     file={file}
                     onLoadSuccess={onDocumentLoadSuccess}
                     onLoadError={() => setLoading(false)}
-                    error={<p role="alert">Unable to load this document. Check your session and sign in again if needed.</p>}
+                    error={<FeedbackBanner tone="error" message={t.preview_failed} actionLabel={t.retry} onAction={() => { setLoading(true); setNumPages(null); setAttempt(value => value + 1); }} />}
                     className="flex flex-col items-center w-full"
                     loading={null}
                 >

@@ -50,7 +50,7 @@ export function DocumentsPanel({
                 <div className="relative z-10">
                     <div className="space-y-1.5 max-w-md">
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.category}</label>
+                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide ml-1">{t.category}</label>
                             <select className={`${inputStyle} appearance-none`} value={form.category} onChange={(event) => onFormChange({ ...form, category: event.target.value })}>
                                 <option value="HR">HR / Policies</option>
                                 <option value="Safety">Safety / Warehouse</option>
@@ -86,8 +86,8 @@ export function DocumentsPanel({
                 {uploadItems.length > 0 && (
                     <div className="relative z-10 space-y-3">
                         <div className="flex items-center justify-between px-1">
-                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t.upload_queue}</p>
-                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{uploadItems.length} {t.files}</p>
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wide">{t.upload_queue}</p>
+                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wide">{uploadItems.length} {t.files}</p>
                         </div>
                         {uploadItems.map((item) => (
                             <div key={item.id} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white/60 dark:bg-black/20 p-3 sm:p-4">
@@ -142,7 +142,7 @@ export function DocumentsPanel({
                     </button>
                     {isUploading && (
                         <button
-                            className="flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-5 py-2.5 text-sm font-black text-red-700 shadow-sm transition-all hover:border-red-400 hover:bg-red-100 active:scale-[0.98] dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                            className="flex items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-700 shadow-sm transition-all hover:border-red-400 hover:bg-red-100 active:scale-[0.98] dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
                             type="button"
                             onClick={onForceStopUpload}
                         >
@@ -157,14 +157,14 @@ export function DocumentsPanel({
             <div className={`${cardStyle} overflow-hidden`}>
                 <div className="absolute inset-0 rounded-[2rem] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] pointer-events-none" />
                 <div className="relative z-10">
-                    <div className="bg-slate-50 dark:bg-white/5 p-4 border-b border-slate-200 dark:border-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{t.stored_docs}</div>
+                    <div className="bg-slate-50 dark:bg-white/5 p-4 border-b border-slate-200 dark:border-white/5 text-xs font-bold text-slate-700 dark:text-slate-300 tracking-wide">{t.stored_docs}</div>
                     {documents.map((document) => (
                         <div key={document.id} className="p-3 sm:p-4 border-b border-slate-200/50 dark:border-white/5 flex justify-between items-center hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
                             <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                                 <div className="bg-orange-50 dark:bg-orange-500/10 p-2.5 rounded-xl text-orange-600 dark:text-orange-500 border border-orange-200/50 dark:border-orange-500/20 shrink-0"><File size={18} /></div>
                                 <div className="overflow-hidden">
                                     <p className="font-bold truncate text-slate-800 dark:text-white tracking-tight">{document.title}</p>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{document.category} • {document.file_type}</p>
+                                    <p className="text-[10px] font-bold text-slate-500 tracking-wide mt-0.5">{document.category} • {document.file_type}</p>
                                 </div>
                             </div>
                             <div className="flex shrink-0 items-center gap-1">
@@ -182,7 +182,7 @@ export function DocumentsPanel({
                             </div>
                         </div>
                     ))}
-                    {documents.length === 0 && <p className="p-8 text-center text-slate-500 italic text-sm">{t.no_matches}</p>}
+                    {documents.length === 0 && <div className="p-8 text-center"><File size={28} className="mx-auto mb-3 text-orange-500" aria-hidden="true" /><p className="text-sm font-semibold text-slate-800 dark:text-white">{t.no_documents_title}</p><p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-slate-600 dark:text-slate-300">{t.no_documents_hint}</p></div>}
                 </div>
             </div>
         </div>

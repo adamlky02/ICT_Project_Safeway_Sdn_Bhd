@@ -238,7 +238,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
     return (
         <div className="space-y-5">
             {/* Active Configuration (makes the live-vs-draft state explicit before any change) */}
-            <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+            <div className="grid gap-4 lg:grid-cols-2">
                 <div className={`${cardStyle} p-5 sm:p-7`}>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-4">
@@ -246,12 +246,12 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                                 <Zap size={24} />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">{t.ai_active_model || 'Active response model'}</p>
-                                <h3 className="truncate text-xl font-black text-slate-900 dark:text-white">{settings?.active.display_name}</h3>
+                                <p className="text-[10px] font-semibold tracking-[0.2em] text-emerald-600 dark:text-emerald-400">{t.ai_active_model || 'Active response model'}</p>
+                                <h3 className="truncate text-xl font-semibold text-slate-900 dark:text-white">{settings?.active.display_name}</h3>
                                 <p className="truncate text-xs text-slate-500">{settings?.active.model} · {settings?.active.provider}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 self-start rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+                        <div className="flex items-center gap-2 self-start rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-semibold tracking-wider text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
                             <CheckCircle2 size={14} /> Live
                         </div>
                     </div>
@@ -266,8 +266,8 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                     <div className="flex items-center gap-3">
                         <Database className="text-blue-500" size={22} />
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.ai_embedding_model || 'Embedding model'}</p>
-                            <h3 className="font-black text-slate-900 dark:text-white">{settings?.embedding.model}</h3>
+                            <p className="text-[10px] font-semibold tracking-wide text-slate-400">{t.ai_embedding_model || 'Embedding model'}</p>
+                            <h3 className="font-semibold text-slate-900 dark:text-white">{settings?.embedding.model}</h3>
                         </div>
                     </div>
                     <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
@@ -281,34 +281,34 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                 <div className="mb-6 flex items-center gap-3">
                     <div className="rounded-2xl bg-amber-100 p-3 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"><Bot size={24} /></div>
                     <div>
-                        <h3 className="text-lg font-black text-slate-900 dark:text-white">{t.ai_provider_configuration || 'Response provider configuration'}</h3>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t.ai_provider_configuration || 'Response provider configuration'}</h3>
                         <p className="text-xs text-slate-500">{t.ai_provider_description || 'Save a draft, verify the connection, then activate it.'}</p>
                     </div>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2">
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_provider_preset || 'Provider preset'}
+                <div className="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2 xl:grid-cols-3">
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_provider_preset || 'Provider preset'}</span>
                         <select value={preset} onChange={(event) => selectPreset(event.target.value as ProviderPreset)} className={inputStyle}>
                             <option value="gemini">Google Gemini</option>
                             <option value="deepseek">DeepSeek</option>
                             <option value="custom">Custom OpenAI-compatible</option>
                         </select>
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_display_name || 'Display name'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_display_name || 'Display name'}</span>
                         <input value={form.display_name} onChange={(event) => updateForm('display_name', event.target.value)} className={inputStyle} required />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 md:col-span-2">
-                        {t.ai_base_url || 'API base URL'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_base_url || 'API base URL'}</span>
                         <input type="url" value={form.base_url} onChange={(event) => updateForm('base_url', event.target.value)} className={inputStyle} required />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_model_id || 'Model ID'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_model_id || 'Model ID'}</span>
                         <input value={form.model} onChange={(event) => updateForm('model', event.target.value)} className={inputStyle} required />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        <span className="flex items-center gap-2"><KeyRound size={14} /> {t.ai_api_key || 'API key'}</span>
+                    <label className="provider-field">
+                        <span className="provider-field-label flex items-center gap-2"><KeyRound size={14} /> {t.ai_api_key || 'API key'}</span>
                         <input
                             type="password"
                             value={form.api_key}
@@ -318,20 +318,20 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                             autoComplete="new-password"
                         />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_temperature || 'Temperature'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_temperature || 'Temperature'}</span>
                         <input type="number" min="0" max="2" step="0.1" value={form.temperature} onChange={(event) => updateForm('temperature', Number(event.target.value))} className={inputStyle} />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_max_tokens || 'Maximum output tokens'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_max_tokens || 'Maximum output tokens'}</span>
                         <input type="number" min="32" max="32768" value={form.max_tokens} onChange={(event) => updateForm('max_tokens', Number(event.target.value))} className={inputStyle} />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_timeout || 'Request timeout (seconds)'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_timeout || 'Request timeout (seconds)'}</span>
                         <input type="number" min="5" max="120" value={form.timeout_seconds} onChange={(event) => updateForm('timeout_seconds', Number(event.target.value))} className={inputStyle} />
                     </label>
-                    <label className="space-y-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        {t.ai_thinking_mode || 'Thinking mode'}
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_thinking_mode || 'Thinking mode'}</span>
                         <select value={form.thinking_mode} onChange={(event) => updateForm('thinking_mode', event.target.value as 'enabled' | 'disabled')} className={inputStyle}>
                             <option value="disabled">{t.ai_thinking_disabled || 'Disabled — faster and cheaper'}</option>
                             <option value="enabled">{t.ai_thinking_enabled || 'Enabled — deeper reasoning'}</option>
@@ -340,20 +340,20 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                 </div>
 
                 {/* Provider Actions (enables operations according to saved draft, test status, and pending requests) */}
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                    <button type="submit" disabled={pendingAction !== null} className={`${primaryButtonStyle} sm:w-auto sm:px-6`}>
+                <div className="mt-6 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
+                    <button type="submit" disabled={pendingAction !== null} className={`${primaryButtonStyle} min-h-12 px-4`}>
                         {pendingAction === 'save' ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />}
                         {t.ai_save_draft || 'Save secure draft'}
                     </button>
-                    <button type="button" disabled={!settings?.draft || isDirty || pendingAction !== null} onClick={() => void runAction('test')} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-blue-300 bg-blue-50 px-5 text-sm font-black text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+                    <button type="button" disabled={!settings?.draft || isDirty || pendingAction !== null} onClick={() => void runAction('test')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-blue-300 bg-blue-50 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
                         {pendingAction === 'test' ? <Loader2 className="animate-spin" size={17} /> : <FlaskConical size={17} />}
                         {t.ai_test_connection || 'Test connection'}
                     </button>
-                    <button type="button" disabled={settings?.draft?.test_status !== 'passed' || pendingAction !== null} onClick={() => void runAction('activate')} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-black text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
+                    <button type="button" disabled={settings?.draft?.test_status !== 'passed' || pendingAction !== null} onClick={() => void runAction('activate')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
                         {pendingAction === 'activate' ? <Loader2 className="animate-spin" size={17} /> : <ShieldCheck size={17} />}
                         {t.ai_activate || 'Activate'}
                     </button>
-                    <button type="button" disabled={!settings?.previous || pendingAction !== null} onClick={() => void runAction('rollback')} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 text-sm font-black text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-white/5">
+                    <button type="button" disabled={!settings?.previous || pendingAction !== null} onClick={() => void runAction('rollback')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-white/5">
                         {pendingAction === 'rollback' ? <Loader2 className="animate-spin" size={17} /> : <RotateCcw size={17} />}
                         {t.ai_rollback || 'Rollback'}
                     </button>

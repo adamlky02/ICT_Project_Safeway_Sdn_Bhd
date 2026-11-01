@@ -13,14 +13,14 @@ interface ProfileHeaderProps {
 // Profile Header (renders account-page navigation and session controls)
 export function ProfileHeader({ t, isDarkMode, onBack, onThemeToggle, onLogout }: ProfileHeaderProps) {
     return (
-        <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
+        <header className="glass-panel sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
             <div className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
                 {/* Back Navigation (returns to the previously visited page) */}
-                <button onClick={onBack} aria-label={t.back} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:text-blue-400 dark:hover:bg-slate-800 transition" type="button">
+                <button onClick={onBack} aria-label={t.back} className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full text-slate-600 dark:text-slate-400 hover:text-orange-600 hover:bg-slate-100 dark:hover:text-orange-400 dark:hover:bg-slate-800 transition" type="button">
                     <ArrowLeft size={18} /> <span className="hidden md:inline">{t.back}</span>
                 </button>
                 <div className="flex min-w-0 items-center gap-2 text-sm sm:text-base text-slate-800 dark:text-white font-semibold">
-                    <UserCircle2 size={20} className="text-blue-600 dark:text-blue-400" />
+                    <UserCircle2 size={20} className="text-orange-600 dark:text-orange-400" />
                     {t.profile}
                 </div>
                 {/* Account Controls (switches theme or ends the current session) */}

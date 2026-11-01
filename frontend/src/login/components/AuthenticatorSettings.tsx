@@ -53,7 +53,7 @@ export function AuthenticatorSettings({ t }: { t: Translation }) {
         } catch (caught) { setError(caught instanceof Error ? caught.message : t.mfa_confirm_failed); }
         finally { setBusy(false); }
     };
-    return <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-700 dark:bg-slate-800 sm:p-6" aria-label={t.mfa_settings}>
+    return <section className="content-panel mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-700 dark:bg-slate-800 sm:p-6" aria-label={t.mfa_settings}>
         <div className="mb-4 flex items-center gap-3"><ShieldCheck className="text-amber-500" /><div><h2 className="text-xl font-bold">{t.authenticator}</h2><p className="text-sm text-slate-500 dark:text-slate-400">{t.mfa_description}</p></div></div>
         {error && <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
         {message && !showReceipt && <p role="status" className="mb-4 text-sm text-emerald-700 dark:text-emerald-400">{message}</p>}

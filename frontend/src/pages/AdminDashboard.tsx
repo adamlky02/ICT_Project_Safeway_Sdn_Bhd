@@ -3,6 +3,8 @@ import { AnimatePresence, m } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL, readJson } from '../api/client';
 import { authenticatedFetch, logout, getStoredUser } from '../login/session';
+import { LoadingState } from '../components/feedback/LoadingState';
+import { FeedbackBanner } from '../components/feedback/FeedbackBanner';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { AuthenticatorPanel } from '../login/components/AuthenticatorPanel';
 import { MfaReminder } from '../login/components/MfaReminder';
@@ -57,6 +59,13 @@ const AdminDashboard = () => {
     const [data, setData] = useState<AdminData>({ users: [], docs: [] });
     const [analytics, setAnalytics] = useState<AdminAnalytics>(emptyAnalytics);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [hasLoaded, setHasLoaded] = useState(false);
+    const [loadError, setLoadError] = useState('');
+    const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null);
+    const [accountBusy, setAccountBusy] = useState(false);
+    const [editError, setEditError] = useState('');
+    const loadRequestRef = useRef(0);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
@@ -73,34 +82,52 @@ const AdminDashboard = () => {
     const [developerToken, setDeveloperToken] = useState<string | null>(null);
     const [showDeveloperUnlock, setShowDeveloperUnlock] = useState(false);
 
-    // Dashboard Data Loading (refreshes users, documents, and analytics with safe fallbacks)
-    const loadData = async () => {
+    // Dashboard Data Loading (refreshes independent requests together and retains the last good data on failure)
+    const loadData = async (announce = false) => {
+        const requestId = ++loadRequestRef.current;
         setIsRefreshing(true);
+        setLoadError('');
         try {
-            const usersResponse = await authenticatedFetch(`${API_URL}/api/admin/users`);
-            const documentsResponse = await authenticatedFetch(`${API_URL}/api/admin/documents`);
-            const analyticsResponse = await authenticatedFetch(`${API_URL}/api/admin/analytics`).catch(() => null);
+            const [usersResponse, documentsResponse, analyticsResponse] = await Promise.all([
+                authenticatedFetch(`${API_URL}/api/admin/users`),
+                authenticatedFetch(`${API_URL}/api/admin/documents`),
+                authenticatedFetch(`${API_URL}/api/admin/analytics`),
+            ]);
 
+            if (requestId !== loadRequestRef.current) return;
             if ([usersResponse, documentsResponse, analyticsResponse].some((response) => response && [401, 403].includes(response.status))) {
                 localStorage.removeItem('userData');
                 navigate('/login', { state: { role: 'admin' } });
                 return;
             }
 
-            const users = usersResponse.ok ? await readJson<AdminUser[]>(usersResponse) : [];
-            const documents = documentsResponse.ok ? await readJson<AdminDocument[]>(documentsResponse) : [];
-            const safeUsers = Array.isArray(users) ? users : [];
-            const safeDocuments = Array.isArray(documents) ? documents : [];
-            const analyticsData = analyticsResponse?.ok
-                ? await readJson<AdminAnalytics>(analyticsResponse)
-                : { total_users: safeUsers.length, total_docs: safeDocuments.length, total_storage_mb: 0, status: {} };
+            if (![usersResponse, documentsResponse, analyticsResponse].every(response => response.ok)) {
+                throw new Error('Dashboard request failed');
+            }
+            const [users, documents, analyticsData] = await Promise.all([
+                readJson<AdminUser[]>(usersResponse),
+                readJson<AdminDocument[]>(documentsResponse),
+                readJson<AdminAnalytics>(analyticsResponse),
+            ]);
+            if (requestId !== loadRequestRef.current) return;
+            if (!Array.isArray(users) || !Array.isArray(documents) || !analyticsData?.status) {
+                throw new Error('Invalid dashboard data');
+            }
+            const safeUsers = users;
+            const safeDocuments = documents;
 
             setData({ users: safeUsers, docs: safeDocuments });
             setAnalytics(analyticsData);
+            setHasLoaded(true);
+            if (announce) setNotice({ message: t.data_refreshed, error: false });
         } catch (error) {
             console.error('Data load error:', error);
+            if (requestId === loadRequestRef.current) setLoadError(t.dashboard_load_failed);
         } finally {
-            setIsRefreshing(false);
+            if (requestId === loadRequestRef.current) {
+                setIsRefreshing(false);
+                setInitialLoading(false);
+            }
         }
     };
 
@@ -136,6 +163,9 @@ const AdminDashboard = () => {
     // Account Creation (submits staff details and opens the generated credentials dialog)
     const handleAddUser = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (accountBusy) return;
+        setAccountBusy(true);
+        setNotice(null);
         const fullName = `${form.first_name} ${form.last_name}`.trim();
 
         try {
@@ -151,9 +181,13 @@ const AdminDashboard = () => {
                 void loadData();
                 setGeneratedPassword(credentials);
                 setShowPasswordModal(true);
+            } else {
+                throw new Error(t.action_failed);
             }
         } catch {
-            alert('Network error.');
+            setNotice({ message: t.action_failed, error: true });
+        } finally {
+            setAccountBusy(false);
         }
     };
 
@@ -162,6 +196,7 @@ const AdminDashboard = () => {
         const username = user.email.endsWith('@gmail.com') ? user.email.replace('@s.com', '') : user.email || '';
         const names = (user.full_name || '').split(' ');
         setEditingUser(user);
+        setEditError('');
         setEditForm({
             first_name: names[0] || '',
             last_name: names.slice(1).join(' ') || '',
@@ -174,10 +209,12 @@ const AdminDashboard = () => {
     // Account Update (submits edited identity, password, and role information)
     const handleEditUser = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!editingUser) {
+        if (!editingUser || accountBusy) {
             return;
         }
 
+        setAccountBusy(true);
+        setEditError('');
         const fullName = `${editForm.first_name} ${editForm.last_name}`.trim();
         try {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -196,7 +233,7 @@ const AdminDashboard = () => {
             if (response.ok) {
                 setEditingUser(null);
                 void loadData();
-                alert(t.acc_ready || 'Account updated!');
+                setNotice({ message: t.changes_saved, error: false });
                 return;
             }
             const responseError = await readJson<ApiErrorBody>(response).catch((): ApiErrorBody => ({}));
@@ -204,9 +241,11 @@ const AdminDashboard = () => {
                 setDeveloperToken(null);
                 setShowDeveloperUnlock(true);
             }
-            alert(responseError.detail || 'Account update failed.');
+            setEditError(responseError.detail || t.action_failed);
         } catch {
-            alert('Network error.');
+            setEditError(t.action_failed);
+        } finally {
+            setAccountBusy(false);
         }
     };
 
@@ -216,7 +255,7 @@ const AdminDashboard = () => {
         const unsupportedFiles = files.filter((file) => !/\.(pdf|txt)$/i.test(file.name));
 
         if (unsupportedFiles.length > 0) {
-            alert(`${t.unsupported_files}: ${unsupportedFiles.map((file) => file.name).join(', ')}`);
+            setNotice({ message: `${t.unsupported_files}: ${unsupportedFiles.map((file) => file.name).join(', ')}`, error: true });
         }
 
         setUploadItems((current) => {
@@ -254,17 +293,17 @@ const AdminDashboard = () => {
 
         const queuedItems = uploadItems.filter((item) => item.status !== 'success');
         if (queuedItems.length === 0) {
-            alert(t.select_files_first);
+            setNotice({ message: t.select_files_first, error: true });
             return;
         }
         if (queuedItems.some((item) => !item.title.trim())) {
-            alert(t.title_required);
+            setNotice({ message: t.title_required, error: true });
             return;
         }
 
         const user = getStoredUser();
         if (!user) {
-            alert('Session expired.');
+            setNotice({ message: t.session_expired, error: true });
             navigate('/');
             return;
         }
@@ -337,10 +376,12 @@ const AdminDashboard = () => {
         }
 
         try {
-            await authenticatedFetch(`${API_URL}/api/admin/${type}/${id}`, { method: 'DELETE' });
+            const response = await authenticatedFetch(`${API_URL}/api/admin/${type}/${id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error(t.action_failed);
+            setNotice({ message: t.item_deleted, error: false });
             void loadData();
         } catch {
-            alert('Delete failed.');
+            setNotice({ message: t.action_failed, error: true });
         }
     };
 
@@ -364,7 +405,7 @@ const AdminDashboard = () => {
             window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         } catch (error) {
             console.error('Document download error:', error);
-            alert(t.download_failed);
+            setNotice({ message: t.download_failed, error: true });
         } finally {
             setDownloadingDocumentId(null);
         }
@@ -461,7 +502,7 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 overflow-hidden bg-[#f4f2ed] font-sans transition-colors duration-500 dark:bg-[#07080a]">
+        <div className="app-canvas fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 overflow-hidden bg-[#f4f2ed] font-sans transition-colors duration-500 dark:bg-[#07080a]">
             {/* Dashboard Background (adds restrained visual depth behind management panels) */}
             <EngineeringBackground />
             <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
@@ -498,20 +539,22 @@ const AdminDashboard = () => {
                     className="mx-auto min-w-0 max-w-[86rem]"
                     initial={{ opacity: 0, y: 28 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.7, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.4, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
                 >
                     <MfaReminder t={t} />
                     <AdminPageHeader tab={tab} t={t} onOpenChat={() => navigate('/chat', { state: { fromAdminPanel: true } })} onOpenProfile={() => navigate('/profile')} />
 
+                    {loadError && <div className="mb-5"><FeedbackBanner tone="error" message={loadError} actionLabel={t.retry} onAction={() => void loadData(true)} busy={isRefreshing} /></div>}
+                    {notice && <div className="mb-5"><FeedbackBanner message={notice.message} tone={notice.error ? 'error' : 'success'} /></div>}
+                    {initialLoading && <LoadingState label={t.loading} />}
                     {/* Tab Content (animates between analytics, account, and document panels) */}
-                    <AnimatePresence mode="wait" initial={false}>
+                    {hasLoaded && <AnimatePresence mode="wait" initial={false}>
                         <m.div
                             key={tab}
-                            className="admin-panel-enter"
-                            initial={{ opacity: 0, y: 34, scale: 0.985, filter: 'blur(12px)' }}
-                            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                            exit={{ opacity: 0, y: -18, scale: 0.99, filter: 'blur(9px)' }}
-                            transition={{ duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
+                            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                         >
                             {tab === 'authenticator' && <AuthenticatorPanel t={t} lang={lang} />}
                             {tab === 'analytics' && (
@@ -523,11 +566,12 @@ const AdminDashboard = () => {
                                     formattedTime={formattedTime}
                                     isRefreshing={isRefreshing}
                                     t={t}
-                                    onRefresh={() => void loadData()}
+                                    onRefresh={() => void loadData(true)}
                                 />
                             )}
                             {tab === 'staff' && (
                                 <AccountsPanel
+                                    isCreating={accountBusy}
                                     form={form}
                                     searchTerm={searchTerm}
                                     developerUsers={developerUsers}
@@ -568,7 +612,7 @@ const AdminDashboard = () => {
                                     : null
                             )}
                         </m.div>
-                    </AnimatePresence>
+                    </AnimatePresence>}
                 </m.div>
             </main>
 
@@ -584,7 +628,9 @@ const AdminDashboard = () => {
                         onDeveloperRoleToggle={handleDeveloperRoleToggle}
                         viewerRole={currentUser?.role || 'admin'}
                         developerModeUnlocked={Boolean(developerToken)}
-                        onClose={() => setEditingUser(null)}
+                        busy={accountBusy}
+                        error={editError}
+                        onClose={() => { if (!accountBusy) setEditingUser(null); }}
                         onSubmit={(event) => void handleEditUser(event)}
                     />
                 )}

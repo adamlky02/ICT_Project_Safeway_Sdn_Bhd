@@ -104,7 +104,7 @@ const LoginPage = () => {
     const back = () => { setChallenge(null); setCode(''); setError(''); setNotice(''); setPassword(''); };
 
     return (
-        <div className="min-h-[100svh] min-h-[100dvh] flex items-start sm:items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-x-hidden overflow-y-auto font-sans px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,env(safe-area-inset-top))] sm:px-6 sm:py-16 transition-colors duration-700">
+        <div className="app-canvas min-h-[100svh] min-h-[100dvh] flex items-start sm:items-center justify-center bg-[#f0f2f5] dark:bg-[#0a0a0a] relative overflow-x-hidden overflow-y-auto font-sans px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(5.5rem,env(safe-area-inset-top))] sm:px-6 sm:py-16 transition-colors duration-700">
             {/* Page Background and Controls (provide ambient visuals plus language and theme actions) */}
             <EngineeringBackground variant="login" />
             <PageControls
@@ -128,7 +128,7 @@ const LoginPage = () => {
 
             {/* Login Card (contains portal identity, validation feedback, and credential fields) */}
             <m.div
-                className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500"
+                className="glass-panel bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md z-10 relative transition-colors duration-500"
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
@@ -137,7 +137,7 @@ const LoginPage = () => {
                 <button
                     onClick={() => navigate('/')}
                     disabled={isLoading}
-                    className="flex min-h-11 items-center text-slate-500 dark:text-slate-400 mb-5 sm:mb-8 hover:text-amber-600 dark:hover:text-amber-500 transition-colors disabled:opacity-50 text-xs font-bold uppercase tracking-widest"
+                    className="flex min-h-11 items-center text-slate-500 dark:text-slate-400 mb-5 sm:mb-8 hover:text-amber-600 dark:hover:text-amber-500 transition-colors disabled:opacity-50 text-xs font-bold tracking-wide"
                     type="button"
                 >
                     <ArrowLeft size={16} className="mr-2" /> {t.login_back}
@@ -146,9 +146,9 @@ const LoginPage = () => {
                 {/* Portal Identity (shows whether staff or administrator access is requested) */}
                 <div className="flex min-w-0 items-center gap-3 mb-2">
                     <div className="bg-gradient-to-br from-amber-400 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-amber-500/20">
-                        <LockKeyhole size={24} className="text-white dark:text-slate-900" />
+                        <LockKeyhole size={24} className="text-inherit" />
                     </div>
-                    <h2 className="min-w-0 text-[clamp(1.35rem,7vw,1.875rem)] font-black leading-tight text-slate-900 dark:text-white uppercase tracking-tight">
+                    <h2 className="min-w-0 text-[clamp(1.35rem,7vw,1.875rem)] font-semibold leading-tight text-slate-900 dark:text-white tracking-tight">
                         {role === 'admin' ? t.admin_role : t.staff_role}{' '}
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">{t.portal}</span>
                     </h2>
@@ -186,10 +186,11 @@ const LoginPage = () => {
                     <button type="button" className="block min-h-11 text-sm font-semibold underline" disabled={isLoading} onClick={back}>{t.mfa_back_password}</button>
                 </form> : <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.email_label}</label>
+                        <label htmlFor="login-email" className="block text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wide ml-1">{t.email_label}</label>
                         <input
+                            id="login-email"
                             type="email"
-                            className="w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 shadow-inner"
+                            className="soft-field w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 shadow-inner"
                             placeholder={`${role}@${STAFF_EMAIL_DOMAIN}`}
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
@@ -199,10 +200,11 @@ const LoginPage = () => {
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">{t.password_label}</label>
+                        <label htmlFor="login-password" className="block text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wide ml-1">{t.password_label}</label>
                         <input
+                            id="login-password"
                             type="password"
-                            className="w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 tracking-[0.2em] shadow-inner"
+                            className="soft-field w-full bg-slate-50 dark:bg-[#0a0a0a] border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white p-3.5 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-600 tracking-[0.2em] shadow-inner"
                             placeholder="••••••••"
                             value={password}
                             onChange={(event) => setPassword(event.target.value)}
@@ -214,11 +216,11 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white dark:text-slate-900 py-3.5 rounded-xl font-black tracking-widest uppercase text-sm hover:from-amber-400 hover:to-orange-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale shadow-lg shadow-amber-500/20 mt-6 active:scale-[0.98]"
+                        className="accent-button w-full bg-gradient-to-r from-amber-500 to-orange-500 text-inherit py-3.5 rounded-xl font-semibold tracking-wide text-sm hover:from-amber-400 hover:to-orange-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale shadow-lg shadow-amber-500/20 mt-6 active:scale-[0.98]"
                     >
                         {isLoading
-                            ? <Loader2 className="animate-spin text-white dark:text-slate-900" size={18} />
-                            : <LogIn size={18} className="text-white dark:text-slate-900" />}
+                            ? <Loader2 className="animate-spin text-inherit" size={18} />
+                            : <LogIn size={18} className="text-inherit" />}
                         {isLoading ? t.btn_loading : t.btn_login}
                     </button>
                 </form>}

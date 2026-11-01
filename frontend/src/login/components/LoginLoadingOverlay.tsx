@@ -24,11 +24,11 @@ export function LoginLoadingOverlay({ title, description, warning }: LoginLoadin
                 variants={fadeScale}
             >
                 <Loader2 className="animate-spin text-amber-500 mb-4" size={48} />
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-wide uppercase">{title}</h3>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 tracking-wide">{title}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                     {description}
                     <br /><br />
-                    <span className="italic text-xs bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-500/20 font-bold uppercase tracking-widest">
+                    <span className="italic text-xs bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-500/20 font-bold tracking-wide">
                         {warning}
                     </span>
                 </p>

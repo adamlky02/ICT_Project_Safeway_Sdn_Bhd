@@ -41,7 +41,7 @@ export function ChatHeader({
     onToggleSidebar,
     onNewChat,
 }: ChatHeaderProps) {
-    const iconButtonClass = 'flex min-h-10 min-w-7 items-center justify-center rounded-full @min-[40rem]:min-w-10 text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-amber-400';
+    const iconButtonClass = 'dock-control flex min-h-10 min-w-7 items-center justify-center rounded-full @min-[40rem]:min-w-10 text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-amber-400';
 
     return (
         <header className="@container pointer-events-none relative z-50 flex h-20 min-w-0 shrink-0 justify-center md:col-start-2 md:row-start-1">

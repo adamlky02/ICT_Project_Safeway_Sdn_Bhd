@@ -9,6 +9,7 @@ import {
     fetchUserSessions,
     updateSessionTitle,
 } from '../api/chatHistory';
+import { FeedbackBanner } from '../components/feedback/FeedbackBanner';
 import { EngineeringBackground } from '../components/EngineeringBackground';
 import { ChatComposer } from '../components/chat/ChatComposer';
 import { ChatHeader } from '../components/chat/ChatHeader';
@@ -55,12 +56,14 @@ const ChatPage = () => {
     // Chat History & Session State
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
-    const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+    const [isLoadingSessions, setIsLoadingSessions] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const profileButtonRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [scrollResetKey, setScrollResetKey] = useState(0);
+    const [historyError, setHistoryError] = useState('');
+    const [chatNotice, setChatNotice] = useState<{ message: string; error: boolean } | null>(null);
     const sidebarRetractTimerRef = useRef<number | null>(null);
 
     // History Auto Retract (keeps the drawer temporary until the user engages with it)
@@ -95,6 +98,7 @@ const ChatPage = () => {
     // Load Sessions from Database
     const loadSessions = async (userId: string, autoSelectLatest: boolean = false) => {
         setIsLoadingSessions(true);
+        setHistoryError('');
         try {
             const list = await fetchUserSessions();
             setSessions(list);
@@ -103,6 +107,7 @@ const ChatPage = () => {
             }
         } catch (error) {
             console.warn('Failed to load chat sessions:', error);
+            setHistoryError(t.history_load_failed);
         } finally {
             setIsLoadingSessions(false);
         }
@@ -115,6 +120,8 @@ const ChatPage = () => {
         try {
             const detail = await fetchSessionDetail(sessionId);
             setCurrentSessionId(sessionId);
+            setScrollResetKey(value => value + 1);
+            setChatNotice(null);
             if (detail.messages && detail.messages.length > 0) {
                 setMessages(detail.messages.map((m) => ({
                     sender: m.sender,
@@ -136,12 +143,15 @@ const ChatPage = () => {
             }
         } catch (error) {
             console.error('Failed to load session messages:', error);
+            setChatNotice({ message: t.conversation_loaded_failed, error: true });
         }
     };
 
     // Start a Fresh New Chat
     const handleNewChat = () => {
         setCurrentSessionId(null);
+        setScrollResetKey(value => value + 1);
+        setChatNotice(null);
         setMessages([
             {
                 sender: 'bot',
@@ -170,8 +180,10 @@ const ChatPage = () => {
         try {
             await updateSessionTitle(sessionId, newTitle);
             await loadSessions(user.id, false);
+            setChatNotice({ message: t.conversation_renamed, error: false });
         } catch (error) {
             console.error('Failed to rename session:', error);
+            setChatNotice({ message: t.action_failed, error: true });
         }
     };
 
@@ -202,16 +214,13 @@ const ChatPage = () => {
                 void loadSessions(user.id, true);
             } catch (error) {
                 console.error('Failed to load profile or history:', error);
+                setHistoryError(t.history_load_failed);
+                setIsLoadingSessions(false);
             }
         };
 
         void loadProfileAndHistory();
     }, [navigate]);
-
-    // Conversation Scrolling (keeps the newest message or loading indicator visible)
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
 
     // Account Menu Dismissal (closes the dropdown when the user clicks elsewhere)
     useEffect(() => {
@@ -304,7 +313,7 @@ const ChatPage = () => {
 
     return (
         <m.div
-            className="fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 flex-col overflow-hidden bg-slate-50 font-sans transition-colors duration-300 dark:bg-[#0a0a0a] md:grid md:grid-cols-[auto_minmax(0,1fr)] md:grid-rows-[5rem_minmax(0,1fr)]"
+            className="app-canvas fixed inset-0 flex h-[100dvh] min-h-[100svh] w-full min-w-0 flex-col overflow-hidden bg-slate-50 font-sans transition-colors duration-300 dark:bg-[#0a0a0a] md:grid md:grid-cols-[auto_minmax(0,1fr)] md:grid-rows-[5rem_minmax(0,1fr)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
@@ -324,6 +333,9 @@ const ChatPage = () => {
                 onDeleteSessions={handleDeleteSessions}
                 onRenameSession={handleRenameSession}
                 isLoading={isLoadingSessions}
+                t={t}
+                error={historyError}
+                onRetry={() => user && void loadSessions(user.id)}
             />
 
             {/* Chat Header (provides branding, history toggle, controls, and account menu) */}
@@ -348,12 +360,13 @@ const ChatPage = () => {
             {/* Conversation Workspace (stays below the navigation and beside desktop history) */}
             <div className="relative flex min-h-0 w-full flex-1 overflow-hidden md:col-start-2 md:row-start-2">
                 <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+                    {chatNotice && <div className="px-3 pt-3"><FeedbackBanner message={chatNotice.message} tone={chatNotice.error ? 'error' : 'success'} /></div>}
                     {/* Conversation Feed (shows messages, sources, and request progress) */}
                     <ChatMessages
                         messages={messages}
                         isLoading={isLoading}
                         t={t}
-                        messagesEndRef={messagesEndRef}
+                        scrollResetKey={scrollResetKey}
                         onOpenSource={setDrawerSource}
                     />
 
@@ -371,7 +384,7 @@ const ChatPage = () => {
             </div>
 
             {/* Source Drawer (previews the document excerpt grounding a selected response) */}
-            <DocumentDrawer source={drawerSource} onClose={() => setDrawerSource(null)} />
+            <DocumentDrawer t={t} source={drawerSource} onClose={() => setDrawerSource(null)} />
         </m.div>
     );
 };

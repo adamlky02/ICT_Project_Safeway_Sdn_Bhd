@@ -72,20 +72,20 @@ export function AdminNavigation({
     ];
     const leftItems = items.slice(0, 2);
     const rightItems = items.slice(2);
-    const utilityButtonClass = 'relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white';
+    const utilityButtonClass = 'dock-control relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-900/5 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white';
 
     const renderDesktopTab = ({ id, icon: Icon, label }: NavigationItem) => (
         <button
             key={id}
             onClick={() => onTabChange(id)}
-            className={`relative flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 text-[11px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${tab === id ? 'text-slate-950 dark:text-white' : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white'}`}
+            className={`relative flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 text-[11px] font-bold tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${tab === id ? 'text-slate-950 dark:text-white' : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white'}`}
             type="button"
             aria-current={tab === id ? 'page' : undefined}
         >
             {tab === id && (
                 <m.span
                     layoutId="admin-active-tab"
-                    className="absolute inset-0 rounded-full border border-amber-500/30 bg-amber-50/70 shadow-[0_8px_24px_rgba(180,83,9,0.07)] dark:border-amber-400/20 dark:bg-white/[0.07] dark:shadow-[0_10px_28px_rgba(0,0,0,0.16)]"
+                    className="soft-selected absolute inset-0 rounded-full border border-amber-500/30 bg-amber-50/70 shadow-[0_8px_24px_rgba(180,83,9,0.07)] dark:border-amber-400/20 dark:bg-white/[0.07] dark:shadow-[0_10px_28px_rgba(0,0,0,0.16)]"
                     transition={{ type: 'spring', stiffness: 380, damping: 34 }}
                 />
             )}
@@ -135,7 +135,7 @@ export function AdminNavigation({
                                 {renderDeveloperButton()}
                                 <button onClick={onLanguageToggle} className={utilityButtonClass} type="button" aria-label={`Change language. Current language: ${lang}`} title={`Language: ${lang.toUpperCase()}`}>
                                     <Globe size={17} />
-                                    <span className="absolute -bottom-0.5 text-[7px] font-black uppercase text-amber-500">{lang}</span>
+                                    <span className="absolute -bottom-0.5 text-[7px] font-semibold text-amber-500">{lang}</span>
                                 </button>
                                 <button onClick={onThemeToggle} className={utilityButtonClass} type="button" aria-label={isDarkMode ? t.switch_light_mode : t.switch_dark_mode} title={t.theme_mode || 'Change theme'}>
                                     {isDarkMode ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} />}
@@ -170,7 +170,7 @@ export function AdminNavigation({
 
             {/* Compact Tab Island (wraps complete labels when the desktop controls cannot fit the available viewport). */}
             {!desktopFits && <m.nav
-                className="fixed inset-x-3 bottom-3 z-50 flex min-h-[4.25rem] items-stretch justify-around rounded-[1.45rem] border-[0.5px] border-slate-300/45 bg-white/62 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_16px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#090a0d]/68 dark:shadow-[0_18px_50px_rgba(0,0,0,0.26)]"
+                className="glass-panel fixed inset-x-3 bottom-3 z-50 flex min-h-[4.25rem] items-stretch justify-around rounded-[1.45rem] border-[0.5px] border-slate-300/45 bg-white/62 p-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_16px_45px_rgba(15,23,42,0.12)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#090a0d]/68 dark:shadow-[0_18px_50px_rgba(0,0,0,0.26)]"
                 initial={{ y: 82, opacity: 0, scale: 0.96 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -184,9 +184,9 @@ export function AdminNavigation({
                         type="button"
                         aria-current={tab === id ? 'page' : undefined}
                     >
-                        {tab === id && <m.span layoutId="admin-mobile-active-tab" className="absolute inset-0 rounded-2xl border border-amber-500/25 bg-amber-50/65 dark:border-amber-400/15 dark:bg-white/[0.07]" />}
+                        {tab === id && <m.span layoutId="admin-mobile-active-tab" className="soft-selected absolute inset-0 rounded-2xl border border-amber-500/25 bg-amber-50/65 dark:border-amber-400/15 dark:bg-white/[0.07]" />}
                         <Icon size={19} className={`relative z-10 ${tab === id ? 'text-amber-500 dark:text-amber-400' : ''}`} />
-                        <span className="relative z-10 mt-1 w-full whitespace-normal text-center text-[9px] font-black uppercase leading-snug tracking-[0.04em] [overflow-wrap:anywhere]">{label}</span>
+                        <span className="relative z-10 mt-1 w-full whitespace-normal text-center text-[10px] font-semibold leading-snug tracking-normal [overflow-wrap:anywhere]">{label}</span>
                     </button>
                 ))}
             </m.nav>}

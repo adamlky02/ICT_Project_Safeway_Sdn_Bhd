@@ -1,3 +1,6 @@
+import type { Translation } from '../../translations';
+import { LoadingState } from '../feedback/LoadingState';
+import { FeedbackBanner } from '../feedback/FeedbackBanner';
 import { useState } from 'react';
 import {
     History,
@@ -7,7 +10,6 @@ import {
     X,
     ChevronLeft,
     Search,
-    Clock,
     LoaderCircle,
     ListChecks,
 } from 'lucide-react';
@@ -17,6 +19,9 @@ import type { ChatSessionSummary } from '../../types';
 import { ChatHistoryActions } from './ChatHistoryActions';
 
 interface ChatHistorySidebarProps {
+    t: Translation;
+    error: string;
+    onRetry: () => void;
     isOpen: boolean;
     onClose: () => void;
     onEngage: () => void;
@@ -30,6 +35,7 @@ interface ChatHistorySidebarProps {
 }
 
 export function ChatHistorySidebar({
+    t, error, onRetry,
     isOpen,
     onClose,
     onEngage,
@@ -146,7 +152,7 @@ export function ChatHistorySidebar({
                 onPointerDown={onEngage}
                 onFocusCapture={onEngage}
                 className={`
-                    fixed bottom-0 left-0 top-20 z-40 flex w-72 min-w-0 shrink-0 flex-col overflow-hidden
+                    glass-panel history-panel fixed bottom-0 left-0 top-20 z-40 flex w-72 min-w-0 shrink-0 flex-col overflow-hidden
                     border-r border-slate-200/80 bg-white/95 shadow-xl backdrop-blur-2xl
                     transition-all duration-300 ease-in-out
                     dark:border-white/10 dark:bg-slate-900/95
@@ -176,7 +182,7 @@ export function ChatHistorySidebar({
                 <div className="p-3">
                     <button
                         onClick={onNewChat}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-500/20 transition-all hover:brightness-105 active:scale-98"
+                        className="accent-button flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-amber-500/20 transition-all hover:brightness-105 active:scale-98"
                         type="button"
                     >
                         <Plus className="h-4 w-4" />
@@ -241,10 +247,9 @@ export function ChatHistorySidebar({
                 {/* Sessions List */}
                 <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
-                            <Clock className="h-6 w-6 animate-spin mb-2 opacity-60" />
-                            <span className="text-xs">Loading conversations...</span>
-                        </div>
+                        <LoadingState compact label={t.loading} />
+                    ) : error ? (
+                        <FeedbackBanner tone="error" message={error} actionLabel={t.retry} onAction={onRetry} />
                     ) : filteredSessions.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 px-4 text-center text-slate-400 dark:text-slate-500">
                             <MessageSquare className="h-8 w-8 mb-2 opacity-40" />

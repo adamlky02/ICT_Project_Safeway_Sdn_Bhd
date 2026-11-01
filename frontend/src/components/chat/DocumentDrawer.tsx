@@ -2,16 +2,21 @@ import { FileText, Search, X } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import { API_URL } from '../../api/client';
 import type { DocumentSource } from '../../types';
-import SmartPdfViewer from '../SmartPdfViewer';
+import { lazy, Suspense } from 'react';
+import { LoadingState } from '../feedback/LoadingState';
+import { AsyncBoundary } from '../feedback/AsyncBoundary';
+import type { Translation } from '../../translations';
+const SmartPdfViewer = lazy(() => import('../SmartPdfViewer'));
 
 // Document Drawer Props (provides the selected source and close action)
 interface DocumentDrawerProps {
     source: DocumentSource | null;
+    t: Translation;
     onClose: () => void;
 }
 
 // Document Drawer (shows retrieved evidence beside an inline document preview)
-export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
+export function DocumentDrawer({ source, onClose, t }: DocumentDrawerProps) {
     return (
         <AnimatePresence>
             {source && (
@@ -31,7 +36,7 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
                     />
                     {/* Preview Panel (contains source identity, matched text, and file rendering) */}
                     <m.aside
-                        className="relative flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a] sm:w-[92vw] sm:max-w-xl lg:max-w-3xl"
+                        className="glass-panel relative flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a] sm:w-[92vw] sm:max-w-xl lg:max-w-3xl"
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
@@ -43,8 +48,8 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
                                     <FileText size={22} />
                                 </div>
                                 <div className="overflow-hidden">
-                                    <h3 className="truncate text-base font-black tracking-tight text-slate-800 dark:text-white sm:text-lg">{source.title}</h3>
-                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">{source.category}</p>
+                                    <h3 className="truncate text-base font-semibold tracking-tight text-slate-800 dark:text-white sm:text-lg">{source.title}</h3>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-wide mt-1">{source.category}</p>
                                 </div>
                             </div>
                             <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 rounded-full transition-colors shrink-0" type="button" aria-label="Close document preview">
@@ -56,7 +61,7 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
                         <div className="shrink-0 border-b border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/30 dark:bg-amber-900/10 sm:p-5">
                             <div className="flex items-center gap-2 mb-3 text-amber-600 dark:text-amber-500">
                                 <Search size={14} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">AI Extraction Highlight</span>
+                                <span className="text-[10px] font-semibold tracking-wide">AI Extraction Highlight</span>
                             </div>
                             <p className="max-h-24 overflow-y-auto border-l-[3px] border-amber-400 pl-3 text-xs font-medium italic leading-relaxed text-slate-700 custom-scrollbar dark:border-amber-500 dark:text-slate-300 sm:max-h-32 sm:pl-4">
                                 &quot;{source.content}&quot;
@@ -65,8 +70,8 @@ export function DocumentDrawer({ source, onClose }: DocumentDrawerProps) {
 
                         {/* File Preview (renders PDFs inline and explains unsupported preview formats) */}
                         <div className="flex-1 bg-slate-200 dark:bg-slate-950 relative w-full h-full overflow-hidden">
-                            {source.file_path.endsWith('.pdf') ? (
-                                <SmartPdfViewer fileUrl={`${API_URL}/api/files/${source.file_path}`} searchText={source.content} />
+                            {source.file_path.toLowerCase().endsWith('.pdf') ? (
+                                <AsyncBoundary key={source.file_path} t={t}><Suspense fallback={<LoadingState compact label={t.preview_loading} />}><SmartPdfViewer key={source.file_path} t={t} fileUrl={`${API_URL}/api/files/${source.file_path}`} searchText={source.content} /></Suspense></AsyncBoundary>
                             ) : (
                                 <div className="flex flex-col items-center justify-center h-full text-slate-500 dark:text-slate-400 p-8 text-center">
                                     <FileText size={48} className="mb-4 opacity-50" />

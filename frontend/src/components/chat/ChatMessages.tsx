@@ -17,10 +17,10 @@ interface ChatMessagesProps {
 
 // Chat Messages (renders animated conversation bubbles, evidence links, and request status)
 export const ChatMessages = memo(function ChatMessages({ messages, isLoading, t, scrollResetKey, onOpenSource }: ChatMessagesProps) {
-    const { viewportRef, contentRef, awayFromBottom, hasNewMessages, updatePosition, scrollToLatest } = useConversationScroll(messages, isLoading, scrollResetKey);
+    const { viewportRef, contentRef, awayFromBottom, hasNewMessages, isScrolledFromTop, updatePosition, scrollToLatest } = useConversationScroll(messages, isLoading, scrollResetKey);
     return (
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <div ref={viewportRef} onScroll={updatePosition} tabIndex={0} aria-label={t.chat_conversation} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 custom-scrollbar sm:px-5 md:px-8 md:py-6">
+        <div ref={viewportRef} onScroll={updatePosition} tabIndex={0} aria-label={t.chat_conversation} data-scrolled={isScrolledFromTop} className="chat-scroll-viewport min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 custom-scrollbar sm:px-5 md:px-8 md:py-6">
             {/* Conversation Column (anchors each role to the nearest outer edge of the workspace) */}
             <div ref={contentRef} className="flex w-full flex-col gap-4 md:gap-6">
                 {/* Conversation List (renders each user or assistant message with role-specific styling) */}

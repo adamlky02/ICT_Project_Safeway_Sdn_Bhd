@@ -152,7 +152,7 @@ export function ChatHistorySidebar({
                 onPointerDown={onEngage}
                 onFocusCapture={onEngage}
                 className={`
-                    glass-panel history-panel fixed bottom-0 left-0 top-20 z-40 flex w-72 min-w-0 shrink-0 flex-col overflow-hidden
+                    glass-panel history-panel fixed bottom-0 left-0 top-24 z-40 flex w-72 min-w-0 shrink-0 flex-col overflow-hidden
                     border-r border-slate-200/80 bg-white/95 shadow-xl backdrop-blur-2xl
                     transition-all duration-300 ease-in-out
                     dark:border-white/10 dark:bg-slate-900/95

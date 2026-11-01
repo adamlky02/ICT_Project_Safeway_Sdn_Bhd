@@ -322,6 +322,16 @@ button:disabled { cursor: not-allowed; }
 }
 .dark .content-panel { box-shadow: 0 3px 12px rgb(0 0 0 / 14%); }
 
+/* Soften only the outgoing scroll edge, below the header's reserved breathing room.
+   At the start of a conversation the mask is absent, keeping the first message crisp. */
+.chat-scroll-viewport {
+    scroll-padding-block: 1.5rem;
+}
+.chat-scroll-viewport[data-scrolled="true"] {
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px);
+    mask-image: linear-gradient(to bottom, transparent, #000 12px);
+}
+
 .skeleton { background: var(--edge-muted); animation: skeleton-breathe 1.8s ease-in-out infinite; }
 @keyframes skeleton-breathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.85; } }
 @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; opacity: 0.65; } }

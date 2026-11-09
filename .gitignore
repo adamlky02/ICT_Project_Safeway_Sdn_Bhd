@@ -38,6 +38,9 @@ frontend/.env
 .vscode/
 .DS_Store
 
+# Local coding-assistant instructions
+AGENTS.md
+
 # Runtime data and logs
 uploads/
 backend/uploads/

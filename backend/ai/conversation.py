@@ -330,8 +330,8 @@ def build_retrieval_query(
         )
     else:
         query = current_message.strip()
-        if len(current_message.split()) <= 12 and re.search(
-            r"\b(it|its|they|their|those|that|this|same|what about)\b", current_message, re.IGNORECASE
+        if len(current_message) <= 180 and len(current_message.split()) <= 12 and re.search(
+            r"\b(it|its|they|their|those|that|this|same|what about|itu|ini|tersebut|bagaimana pula|yang sama)\b|它|这个|那个|这些|那些|同款|那款|那么|那麼", current_message, re.IGNORECASE
         ):
             previous_user = next((turn.get("content", "") for turn in reversed(history) if turn.get("role") == "user"), "")
             query = " ".join(part for part in (previous_user, query) if part)

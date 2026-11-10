@@ -1,8 +1,9 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { ArrowDown, FileText, Loader2 } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import { useConversationScroll } from '../../hooks/useConversationScroll';
 import ReactMarkdown from 'react-markdown';
+import { rehypeKeywordEmphasis } from '../../utils/rehypeKeywordEmphasis';
 import type { Translation } from '../../translations';
 import type { ChatMessage, DocumentSource } from '../../types';
 
@@ -12,12 +13,19 @@ interface ChatMessagesProps {
     isLoading: boolean;
     t: Translation;
     scrollResetKey: number;
-    onOpenSource: (source: DocumentSource) => void;
+    onOpenSource: (source: DocumentSource, question: string) => void;
 }
 
 // Chat Messages (renders animated conversation bubbles, evidence links, and request status)
 export const ChatMessages = memo(function ChatMessages({ messages, isLoading, t, scrollResetKey, onOpenSource }: ChatMessagesProps) {
     const { viewportRef, contentRef, awayFromBottom, hasNewMessages, isScrolledFromTop, updatePosition, scrollToLatest } = useConversationScroll(messages, isLoading, scrollResetKey);
+    const questions = useMemo(() => {
+        let question = '';
+        return messages.map(message => {
+            if (message.sender === 'user') question = message.text;
+            return question;
+        });
+    }, [messages]);
     return (
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         <div ref={viewportRef} onScroll={updatePosition} tabIndex={0} aria-label={t.chat_conversation} data-scrolled={isScrolledFromTop} className="chat-scroll-viewport min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 custom-scrollbar sm:px-5 md:px-8 md:py-6">
@@ -42,9 +50,10 @@ export const ChatMessages = memo(function ChatMessages({ messages, isLoading, t,
                             <div className={message.sender === 'bot' ? 'space-y-3' : ''}>
                                 {message.sender === 'bot' ? (
                                     <ReactMarkdown
+                                        rehypePlugins={[[rehypeKeywordEmphasis, { query: questions[index], includeFacts: Boolean(message.sources?.length) }]]}
                                         components={{
                                             p: ({ node: _node, ...props }) => <p {...props} />,
-                                            strong: ({ node: _node, ...props }) => <strong className="font-semibold text-amber-700 dark:text-amber-500 tracking-wide" {...props} />,
+                                            strong: ({ node: _node, ...props }) => <strong className="keyword-emphasis" {...props} />,
                                             ul: ({ node: _node, ...props }) => <ul className="list-disc pl-5 space-y-2 my-3 marker:text-amber-500" {...props} />,
                                             ol: ({ node: _node, ...props }) => <ol className="list-decimal pl-5 space-y-2 my-3 marker:text-amber-500 font-bold" {...props} />,
                                             li: ({ node: _node, ...props }) => <li className="font-medium" {...props} />,
@@ -62,7 +71,7 @@ export const ChatMessages = memo(function ChatMessages({ messages, isLoading, t,
                                     {message.sources.map((source, sourceIndex) => (
                                         <m.button
                                             key={sourceIndex}
-                                            onClick={() => onOpenSource(source)}
+                                            onClick={() => onOpenSource(source, questions[index])}
                                             className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/20 px-2.5 py-1.5 rounded-lg hover:bg-amber-200/60 dark:hover:bg-amber-900/40 transition-colors shadow-sm"
                                             whileHover={{ y: -2 }}
                                             whileTap={{ scale: 0.95 }}
@@ -70,7 +79,7 @@ export const ChatMessages = memo(function ChatMessages({ messages, isLoading, t,
                                             type="button"
                                         >
                                             <FileText size={12} />
-                                            [{sourceIndex + 1}] {source.title.length > 20 ? `${source.title.substring(0, 20)}...` : source.title}
+                                            [{source.source_id || sourceIndex + 1}] {source.title.length > 20 ? `${source.title.substring(0, 20)}...` : source.title}
                                         </m.button>
                                     ))}
                                 </div>

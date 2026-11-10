@@ -1,0 +1,197 @@
+{
+  "prompt_version": "safeway-grounded-v2.2",
+  "dataset_version": "safeway-synthetic-v1",
+  "synthetic_only": true,
+  "fixture_count": 12,
+  "languages": {
+    "en": 4,
+    "ms": 4,
+    "zh": 4
+  },
+  "offline_lexical_retrieval": {
+    "labelled_queries": 6,
+    "recall_at_6": 1.0,
+    "mrr_at_6": 1.0
+  },
+  "live_generation_with_gold_evidence": [
+    {
+      "model": "gemini-3.1-flash-lite",
+      "provider": "gemini",
+      "evaluated": 12,
+      "requested": 12,
+      "passed": 11,
+      "pass_rate": 0.9167,
+      "completed_responses": 11,
+      "response_pass_rate": 1.0,
+      "request_failures": 1,
+      "unattempted": 0,
+      "requests_this_invocation": 12,
+      "latency_scope": "requests in latest invocation",
+      "latency_p50_ms": 1576,
+      "latency_p95_ms": 90094,
+      "input_tokens": 16035,
+      "output_tokens_including_reported_reasoning": 824,
+      "cost_usd": null,
+      "cost_note": "Apply the provider's current tariff; no price assumptions are embedded.",
+      "cases": [
+        {
+          "id": "price_en",
+          "language": "en",
+          "latency_ms": 90094,
+          "passed": false,
+          "error_type": "ProviderTimeoutError",
+          "status_code": null
+        },
+        {
+          "id": "price_ms",
+          "language": "ms",
+          "latency_ms": 1461,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Harga jualan bagi Alpha 5W-30 tidak dinyatakan dalam helaian data yang disediakan [S1]. Sila hubungi pentadbir produk untuk maklumat lanjut."
+        },
+        {
+          "id": "price_zh",
+          "language": "zh",
+          "latency_ms": 1678,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Alpha 5W-30的售价未在文档中说明 [S1]。请咨询产品管理员以获取相关信息。"
+        },
+        {
+          "id": "whole_document_en",
+          "language": "en",
+          "latency_ms": 1691,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "I can provide information regarding the annual leave policy, but I cannot reproduce the complete internal document word for word."
+        },
+        {
+          "id": "whole_document_ms",
+          "language": "ms",
+          "latency_ms": 1375,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Saya boleh membantu menjelaskan bahagian yang berkaitan, tetapi saya tidak boleh mencetak keseluruhan dokumen dalaman tersebut."
+        },
+        {
+          "id": "whole_document_zh",
+          "language": "zh",
+          "latency_ms": 1357,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "我无法逐字输出完整的内部文档。如果您有关于年假政策的具体问题，我可以为您提供相关的说明。"
+        },
+        {
+          "id": "compare_en",
+          "language": "en",
+          "latency_ms": 4180,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Alpha 5W-30 has a typical flash point of 230°C [S1], while Beta 10W-40 has a typical flash point of 220°C [S2]."
+        },
+        {
+          "id": "compare_ms",
+          "language": "ms",
+          "latency_ms": 1541,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Takat kilat tipikal bagi Alpha 5W-30 adalah 230°C [S1], manakala takat kilat tipikal bagi Beta 10W-40 adalah 220°C [S2]."
+        },
+        {
+          "id": "compare_zh",
+          "language": "zh",
+          "latency_ms": 1392,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Alpha 5W-30的典型闪点为230°C [S1]，而Beta 10W-40的典型闪点为220°C [S2]。"
+        },
+        {
+          "id": "birthday_clarification_en",
+          "language": "en",
+          "latency_ms": 1427,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "To determine your eligibility for birthday leave, could you please provide your birthday (day and month) and confirm if you are a permanent employee? [S1]"
+        },
+        {
+          "id": "birthday_clarification_ms",
+          "language": "ms",
+          "latency_ms": 1612,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "Bolehkah anda berikan hari dan bulan hari jadi serta sahkan sama ada anda pekerja tetap?"
+        },
+        {
+          "id": "birthday_clarification_zh",
+          "language": "zh",
+          "latency_ms": 1710,
+          "valid_contract": true,
+          "status_correct": true,
+          "language_signal_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "source_ids_recovered_from_valid_citations": false,
+          "passed": true,
+          "answer_for_human_review": "作为正式员工，您有权享受1天带薪生日假 [S1]。请问您的生日是哪个月份和日期，以及您是否为正式员工？ [S1]"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic fixtures do not measure production accuracy.",
+    "Generation uses gold evidence; this is not an end-to-end database benchmark.",
+    "Fact checks use explicit terms/status/schema, not a semantic judge. Language quality and faithfulness need human review.",
+    "This fixture suite was used for tuning/regression and is not a held-out evaluation set."
+  ]
+}

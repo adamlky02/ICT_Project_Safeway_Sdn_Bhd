@@ -52,6 +52,7 @@ const ChatPage = () => {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [drawerSource, setDrawerSource] = useState<DocumentSource | null>(null);
+    const [drawerQuestion, setDrawerQuestion] = useState('');
 
     // Chat History & Session State
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -284,7 +285,16 @@ const ChatPage = () => {
                 localStorage.removeItem('userData');
                 navigate('/login');
             } else {
-                setMessages((current) => [...current, { sender: 'bot', text: t.chat_error_timeout || 'Error: Connection timed out.' }]);
+                const data = await readJson<Partial<ChatResponse>>(response).catch(() => null);
+                if (data?.session_id) {
+                    setCurrentSessionId(data.session_id);
+                }
+                setMessages((current) => [...current, {
+                    sender: 'bot',
+                    text: typeof data?.error_code === 'string' && typeof data.message === 'string' && data.message
+                        ? data.message
+                        : t.chat_error_request,
+                }]);
             }
         } catch (error) {
             const wasAborted = error instanceof DOMException && error.name === 'AbortError';
@@ -367,7 +377,7 @@ const ChatPage = () => {
                         isLoading={isLoading}
                         t={t}
                         scrollResetKey={scrollResetKey}
-                        onOpenSource={setDrawerSource}
+                        onOpenSource={(source, question) => { setDrawerSource(source); setDrawerQuestion(question); }}
                     />
 
                     {/* Message Composer (collects, sends, or cancels the current question) */}
@@ -384,7 +394,7 @@ const ChatPage = () => {
             </div>
 
             {/* Source Drawer (previews the document excerpt grounding a selected response) */}
-            <DocumentDrawer t={t} source={drawerSource} onClose={() => setDrawerSource(null)} />
+            <DocumentDrawer t={t} source={drawerSource} question={drawerQuestion} onClose={() => setDrawerSource(null)} />
         </m.div>
     );
 };

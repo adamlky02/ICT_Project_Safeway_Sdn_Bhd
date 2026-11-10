@@ -57,7 +57,7 @@ class AISettingsLifecycleTests(unittest.TestCase):
             return providers.get_ai_settings(db)
 
     def test_successful_test_persists_status_and_allows_activation_after_reload(self):
-        with patch.object(providers, "_provider_request", return_value="CONNECTED") as request:
+        with patch.object(providers, "_provider_request", return_value='{"answer":"CONNECTED [S1]","status":"answered","source_ids":["S1"],"missing_information":[]}') as request:
             result = providers.test_ai_draft(self.db)
         request.assert_called_once()
         self.assertEqual(result["draft"]["test_status"], "passed")
@@ -96,7 +96,7 @@ class AISettingsLifecycleTests(unittest.TestCase):
         self.assert_failed_test_is_persisted(HTTPException(503, "Synthetic configuration failure"), 503)
 
     def test_failed_retest_invalidates_previous_success(self):
-        with patch.object(providers, "_provider_request", return_value="CONNECTED"):
+        with patch.object(providers, "_provider_request", return_value='{"answer":"CONNECTED [S1]","status":"answered","source_ids":["S1"],"missing_information":[]}'):
             providers.test_ai_draft(self.db)
         self.assertEqual(self.saved_settings()["draft"]["test_status"], "passed")
         self.assert_failed_test_is_persisted(providers.ProviderError("Synthetic timeout"), 502)
@@ -106,6 +106,17 @@ class AISettingsLifecycleTests(unittest.TestCase):
             providers.activate_ai_draft(self.db, "synthetic-developer")
         self.assertEqual(blocked.exception.status_code, 409)
         self.assertEqual(self.saved_settings()["active"]["model"], self.active["model"])
+
+    def test_legacy_connectivity_only_success_requires_retesting(self):
+        setting = providers._get_setting(self.db)
+        container = dict(setting.config)
+        container["draft"] = {**container["draft"], "test_status": "passed"}
+        setting.config = container
+        self.db.commit()
+        with self.assertRaises(HTTPException) as blocked:
+            providers.activate_ai_draft(self.db, "synthetic-developer")
+        self.assertEqual(blocked.exception.status_code, 409)
+        self.assertIn("Retest", blocked.exception.detail)
 
 
 if __name__ == "__main__":

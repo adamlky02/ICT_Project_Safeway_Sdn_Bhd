@@ -1,28 +1,28 @@
 import io
+import logging
 import os
 from pathlib import Path
 from urllib.parse import quote
 from uuid import uuid4
 import boto3
-import fitz
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 try:
-    from ..ai.catalogue_chunks import build_index_chunks
-    from ..ai.embeddings import get_embedding
+    from ..ai.indexing import MAX_DOCUMENT_BYTES, prepare_document_index, replace_document_index
+    from ..ai.embeddings import EmbeddingError
     from ..general import database, models
     from ..login.auth import require_admin, get_current_user
 except ImportError:
-    from ai.catalogue_chunks import build_index_chunks
-    from ai.embeddings import get_embedding
+    from ai.indexing import MAX_DOCUMENT_BYTES, prepare_document_index, replace_document_index
+    from ai.embeddings import EmbeddingError
     from general import database, models
     from login.auth import require_admin, get_current_user
 
 router = APIRouter(prefix="/api", tags=["documents"])
+logger = logging.getLogger(__name__)
 # Document Storage (configures cloud objects and the local fallback used by authenticated previews)
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -40,58 +40,49 @@ def get_docs(db: Session = Depends(database.get_db), _admin: models.User = Depen
     return db.query(models.KnowledgeBase).all()
 
 
-# Document Ingestion (stores an administrator's PDF or text file and indexes its extracted passages)
+# Document Ingestion (extracts and embeds before committing the document and its complete index)
 @router.post("/admin/upload")
-async def upload_document(
+def upload_document(
     title: str = Form(...), category: str = Form(...), file: UploadFile = File(...),
     db: Session = Depends(database.get_db), admin: models.User = Depends(require_admin),
 ):
-    extension = file.filename.split(".")[-1].lower()
+    extension = (file.filename or "").rsplit(".", 1)[-1].lower()
     if extension not in {"pdf", "txt"}:
         raise HTTPException(status_code=400, detail="Only PDF and TXT are supported for AI indexing.")
-    # Storage Identity (uses a generated object key independently of the document's display title)
+    file_bytes = file.file.read(MAX_DOCUMENT_BYTES + 1)
+    if len(file_bytes) > MAX_DOCUMENT_BYTES:
+        raise HTTPException(status_code=413, detail="Documents must be at most 25 MB.")
+    if not title.strip() or len(title) > 255 or len(category) > 50:
+        raise HTTPException(status_code=422, detail="A document title and valid category are required.")
+    try:
+        prepared = prepare_document_index(file_bytes, extension, title)
+    except EmbeddingError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from None
+    except Exception:
+        raise HTTPException(status_code=422, detail="Could not extract searchable text. Use a UTF-8 TXT or a text-based PDF; scanned PDFs need OCR.") from None
+
     unique_filename = f"{uuid4()}.{extension}"
-    file_bytes = await file.read()
     try:
         s3_client.put_object(Bucket=R2_BUCKET, Key=unique_filename, Body=file_bytes, ContentType=file.content_type)
-    except Exception as exc:
-        print("R2 Upload Error:", str(exc))
-        raise HTTPException(status_code=500, detail="Internal server error saving file to Cloud Storage.")
-
-    try:
-        # Text Extraction (reads PDF page text or decodes a text upload before chunking)
-        if extension == "pdf":
-            document = fitz.open(stream=file_bytes, filetype="pdf")
-            extracted_text = "".join(page.get_text() + "\n" for page in document)
-        else:
-            extracted_text = file_bytes.decode("utf-8")
-    except Exception as exc:
-        print("Text Extraction Error:", str(exc))
-        raise HTTPException(status_code=500, detail="Could not read the text from the file.")
-
+    except Exception:
+        raise HTTPException(status_code=502, detail="Could not save the document to cloud storage.") from None
     try:
         new_doc = models.KnowledgeBase(
-            title=title, category=category, file_path=unique_filename,
+            title=title.strip(), category=category, file_path=unique_filename,
             file_type=extension, file_size=len(file_bytes), uploaded_by=admin.id,
         )
         db.add(new_doc)
+        db.flush()
+        replace_document_index(db, new_doc.id, prepared)
         db.commit()
-        db.refresh(new_doc)
-        # Vector Indexing (keeps catalogue source labels and embeds passages with enough searchable text)
-        chunks = build_index_chunks(extracted_text)
-        for chunk in chunks:
-            if len(chunk.strip()) > 20:
-                vector = get_embedding(chunk)
-                db.execute(text('''
-                    INSERT INTO "AI chatbot"."document_chunks" (doc_id, content, embedding)
-                    VALUES (:d, :c, :e)
-                '''), {"d": new_doc.id, "c": chunk, "e": str(vector)})
-        db.commit()
-        return {"message": "Document uploaded and AI trained successfully"}
-    except Exception as exc:
+        return {"message": "Document uploaded and indexed successfully", "indexed_chunks": len(prepared)}
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(exc))
-
+        try:
+            s3_client.delete_object(Bucket=R2_BUCKET, Key=unique_filename)
+        except Exception:
+            logger.warning("Failed to remove a new document object after index transaction failure")
+        raise HTTPException(status_code=500, detail="Could not commit the document index. Verify the retrieval migration is installed.") from None
 
 # Document Removal (attempts cloud-object deletion before removing the registered document)
 @router.delete("/admin/documents/{did}")

@@ -14,6 +14,7 @@ export interface UserProfile {
 
 // Document Source (identifies retrieved evidence displayed with an AI answer)
 export interface DocumentSource {
+    source_id?: string;
     title: string;
     category: string;
     content: string;
@@ -40,6 +41,8 @@ export interface ChatResponse {
     message: string;
     sources: DocumentSource[];
     session_id?: string;
+    answer_status?: 'answered' | 'insufficient_evidence' | 'clarification' | 'conflict' | 'refused';
+    error_code?: string;
 }
 
 // Chat Session Summary (for sidebar / session selector)
@@ -128,9 +131,12 @@ export interface AIProviderProfile {
     max_tokens: number;
     timeout_seconds: number;
     thinking_mode: 'enabled' | 'disabled';
+    reasoning_effort: 'low' | 'medium' | 'high' | 'max';
+    structured_output: 'json_object' | 'json_schema' | 'prompt_only';
     secret_source: 'stored' | 'render_environment';
     has_api_key: boolean;
     test_status: 'environment' | 'untested' | 'passed' | 'failed';
+    test_protocol_version?: string | null;
     tested_at?: string | null;
     latency_ms?: number | null;
     activated_at?: string | null;
@@ -161,6 +167,8 @@ export interface AIProviderForm {
     max_tokens: number;
     timeout_seconds: number;
     thinking_mode: 'enabled' | 'disabled';
+    reasoning_effort: 'low' | 'medium' | 'high' | 'max';
+    structured_output: 'json_object' | 'json_schema' | 'prompt_only';
 }
 
 // Account Form (stores new-account fields and shared document form fields)

@@ -1,0 +1,127 @@
+{
+  "prompt_version": "safeway-grounded-v2",
+  "dataset_version": "safeway-synthetic-v1",
+  "synthetic_only": true,
+  "fixture_count": 6,
+  "languages": {
+    "en": 2,
+    "ms": 2,
+    "zh": 2
+  },
+  "offline_lexical_retrieval": {
+    "labelled_queries": 6,
+    "recall_at_6": 1.0,
+    "mrr_at_6": 1.0
+  },
+  "live_generation_with_gold_evidence": [
+    {
+      "model": "gemini-3.5-flash-lite",
+      "provider": "gemini",
+      "evaluated": 6,
+      "requested": 6,
+      "passed": 6,
+      "pass_rate": 1.0,
+      "latency_p50_ms": 1178,
+      "latency_p95_ms": 2615,
+      "input_tokens": 5194,
+      "output_tokens_including_reported_reasoning": 278,
+      "cost_usd": null,
+      "cost_note": "Apply the provider's current tariff; no price assumptions are embedded.",
+      "cases": [
+        {
+          "id": "annual_en",
+          "language": "en",
+          "valid_contract": true,
+          "status_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "passed": true
+        },
+        {
+          "id": "annual_ms",
+          "language": "ms",
+          "valid_contract": true,
+          "status_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "passed": true
+        },
+        {
+          "id": "annual_zh",
+          "language": "zh",
+          "valid_contract": true,
+          "status_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "passed": true
+        },
+        {
+          "id": "carry_en",
+          "language": "en",
+          "valid_contract": true,
+          "status_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "passed": true
+        },
+        {
+          "id": "carry_ms",
+          "language": "ms",
+          "valid_contract": true,
+          "status_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "passed": true
+        },
+        {
+          "id": "carry_zh",
+          "language": "zh",
+          "valid_contract": true,
+          "status_correct": true,
+          "required_facts_present": true,
+          "forbidden_facts_absent": true,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "provider": "gemini",
+      "evaluated": 3,
+      "requested": 6,
+      "passed": 0,
+      "pass_rate": 0.0,
+      "latency_p50_ms": 90094,
+      "latency_p95_ms": 90106,
+      "input_tokens": 0,
+      "output_tokens_including_reported_reasoning": 0,
+      "cost_usd": null,
+      "cost_note": "Apply the provider's current tariff; no price assumptions are embedded.",
+      "cases": [
+        {
+          "id": "annual_en",
+          "language": "en",
+          "passed": false,
+          "error_type": "ProviderError"
+        },
+        {
+          "id": "annual_ms",
+          "language": "ms",
+          "passed": false,
+          "error_type": "ProviderTimeoutError"
+        },
+        {
+          "id": "annual_zh",
+          "language": "zh",
+          "passed": false,
+          "error_type": "ProviderTimeoutError"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic fixtures do not measure production accuracy.",
+    "Generation uses gold evidence; this is not an end-to-end database benchmark.",
+    "Fact checks use explicit terms/status/schema, not a semantic judge. Language quality and faithfulness need human review."
+  ]
+}

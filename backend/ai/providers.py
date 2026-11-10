@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import ipaddress
+import json
 import logging
 import os
 import random
@@ -19,18 +20,20 @@ from sqlalchemy.orm import Session
 
 if "." in (__package__ or ""):
     from ..general import models
+    from .prompt import GroundedPrompt, GroundingError, parse_grounded_answer
 else:
     from general import models
+    from ai.prompt import GroundedPrompt, GroundingError, parse_grounded_answer
 
 
 # Provider Defaults (identifies the stored settings record and the deployment's Gemini fallback)
 AI_SETTING_CATEGORY = "ai_generation"
 DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_GEMINI_MODEL = os.getenv("GOOGLE_GENERATION_MODEL", "gemini-3.1-flash-lite")
-DEFAULT_TEST_PROMPT = "Reply with exactly: CONNECTED"
+DEFAULT_GEMINI_MODEL = os.getenv("GOOGLE_GENERATION_MODEL", "gemini-3.5-flash-lite")
 PROVIDER_CONNECT_TIMEOUT_SECONDS = 10
 PROVIDER_MAX_ATTEMPTS = 3
 PROVIDER_RETRYABLE_STATUSES = frozenset({502, 503, 504})
+CONNECTION_PROBE_VERSION = "grounded-v2"
 logger = logging.getLogger(__name__)
 
 
@@ -44,6 +47,34 @@ class ProviderError(RuntimeError):
 
 class ProviderTimeoutError(ProviderError):
     """The provider could not connect or respond within its configured timeout."""
+
+
+class ProviderText(str):
+    """Text with non-sensitive usage metadata for reproducible evaluations."""
+
+    def __new__(cls, value, *, input_tokens=0, output_tokens=0, latency_ms=0):
+        result = super().__new__(cls, value)
+        result.input_tokens = input_tokens
+        result.output_tokens = output_tokens
+        result.latency_ms = latency_ms
+        return result
+
+
+def _prompt_parts(prompt: str | GroundedPrompt):
+    if isinstance(prompt, GroundedPrompt):
+        return prompt.system_instruction, prompt.user_content, prompt.response_schema
+    return "", prompt, None
+
+
+def _provider_text(value: str, profile: dict, usage: dict, started: float, *, gemini=False):
+    input_tokens = usage.get("promptTokenCount" if gemini else "prompt_tokens", 0) or 0
+    output_tokens = usage.get("candidatesTokenCount" if gemini else "completion_tokens", 0) or 0
+    if gemini:
+        output_tokens += usage.get("thoughtsTokenCount", 0) or 0
+    latency_ms = round((time.perf_counter() - started) * 1000)
+    logger.info("AI generation provider=%s model=%s latency_ms=%s input_tokens=%s output_tokens=%s",
+                profile.get("provider"), profile.get("model"), latency_ms, input_tokens, output_tokens)
+    return ProviderText(value, input_tokens=input_tokens, output_tokens=output_tokens, latency_ms=latency_ms)
 
 
 def _request_timeout(profile: dict[str, Any]) -> tuple[float, float]:
@@ -193,10 +224,12 @@ def _default_profile() -> dict[str, Any]:
         "provider": "gemini",
         "base_url": DEFAULT_GEMINI_BASE_URL,
         "model": DEFAULT_GEMINI_MODEL,
-        "temperature": 0.4,
-        "max_tokens": 1024,
+        "temperature": 1.0,
+        "max_tokens": 2048,
         "timeout_seconds": 45,
         "thinking_mode": "disabled",
+        "reasoning_effort": "medium",
+        "structured_output": "json_schema",
         "secret_source": "render_environment",
         "test_status": "environment",
         "tested_at": None,
@@ -255,13 +288,18 @@ def _public_profile(profile: dict[str, Any] | None) -> dict[str, Any] | None:
         "max_tokens",
         "timeout_seconds",
         "thinking_mode",
+        "reasoning_effort",
+        "structured_output",
         "secret_source",
         "test_status",
+        "test_protocol_version",
         "tested_at",
         "latency_ms",
         "activated_at",
     )
     public = {key: profile.get(key) for key in public_fields}
+    public["reasoning_effort"] = profile.get("reasoning_effort", "medium")
+    public["structured_output"] = profile.get("structured_output", "json_object")
     public["has_api_key"] = bool(profile.get("api_key_ciphertext")) or (
         profile.get("provider") == "gemini" and bool(os.getenv("GOOGLE_API_KEY", "").strip())
     )
@@ -325,6 +363,8 @@ def save_ai_draft(db: Session, payload: dict[str, Any], updated_by: str) -> dict
         "max_tokens": int(payload["max_tokens"]),
         "timeout_seconds": int(payload["timeout_seconds"]),
         "thinking_mode": payload.get("thinking_mode", "disabled"),
+        "reasoning_effort": payload.get("reasoning_effort", "medium"),
+        "structured_output": payload.get("structured_output", "json_object"),
         "api_key_ciphertext": ciphertext,
         "secret_source": secret_source,
         "test_status": "untested",
@@ -352,7 +392,7 @@ def save_ai_draft(db: Session, payload: dict[str, Any], updated_by: str) -> dict
 
 
 # Provider Dispatch (validates the endpoint and selects the matching generation API adapter)
-def _provider_request(profile: dict[str, Any], prompt: str, test_mode: bool = False) -> str:
+def _provider_request(profile: dict[str, Any], prompt: str | GroundedPrompt, test_mode: bool = False) -> str:
     profile = dict(profile)
     provider = profile["provider"]
     profile["base_url"] = _validated_base_url(profile.get("base_url", ""), provider)
@@ -364,17 +404,35 @@ def _provider_request(profile: dict[str, Any], prompt: str, test_mode: bool = Fa
 
 
 # Gemini Generation (uses the configured token budget and returns text with safe provider errors)
-def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> str:
+def _gemini_request(profile: dict[str, Any], prompt: str | GroundedPrompt, test_mode: bool) -> str:
+    started = time.perf_counter()
     api_key = _resolve_api_key(profile)
     model = quote(profile["model"].removeprefix("models/"), safe="-._")
     endpoint = f"{profile['base_url']}/models/{model}:generateContent"
+    system, user_content, schema = _prompt_parts(prompt)
     body = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "contents": [{"role": "user", "parts": [{"text": user_content}]}],
         "generationConfig": {
-            "temperature": 0 if test_mode else profile["temperature"],
             "maxOutputTokens": profile["max_tokens"],
         },
     }
+    config = body["generationConfig"]
+    model_id = profile["model"].removeprefix("models/")
+    if model_id.startswith("gemini-3"):
+        # Gemini 3 uses provider sampling defaults; minimal is unsupported on Pro and 3.7/3.8 Flash.
+        minimum = "low" if "pro" in model_id or model_id.startswith(("gemini-3.7-flash", "gemini-3.8-flash")) else "minimal"
+        effort = profile.get("reasoning_effort", "medium")
+        config["thinkingConfig"] = {"thinkingLevel": ("high" if effort == "max" else effort) if profile.get("thinking_mode") == "enabled" else minimum}
+    else:
+        config["temperature"] = 0 if test_mode else profile["temperature"]
+        if model_id.startswith("gemini-2.5"):
+            # Pro cannot disable thinking; an unset budget retains its supported provider default.
+            if profile.get("thinking_mode") != "enabled" and "pro" not in model_id:
+                config["thinkingConfig"] = {"thinkingBudget": 0}
+    if system:
+        body["systemInstruction"] = {"parts": [{"text": system}]}
+    if schema:
+        config.update({"responseMimeType": "application/json", "responseJsonSchema": schema})
     try:
         response = _post_with_transient_retries(
             profile, endpoint,
@@ -383,10 +441,12 @@ def _gemini_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> st
         response.raise_for_status()
         data = response.json()
         parts = data["candidates"][0]["content"]["parts"]
-        text = "".join(part.get("text", "") for part in parts).strip()
+        text = "".join(part.get("text", "") for part in parts if not part.get("thought")).strip()
+        if data["candidates"][0].get("finishReason") == "MAX_TOKENS":
+            raise ProviderError("The Gemini provider reached its output token limit. Increase Maximum output tokens or reduce reasoning effort.")
         if not text:
             raise ProviderError("The Gemini provider returned an empty response.")
-        return text
+        return _provider_text(text, profile, data.get("usageMetadata", {}), started, gemini=True)
     except requests.ConnectTimeout:
         raise ProviderTimeoutError(
             "The Gemini provider connection timed out. Check the provider URL and the backend's network access."
@@ -475,12 +535,14 @@ def _check_openrouter_free_endpoints(profile: dict[str, Any]) -> None:
 
 
 # Compatible Generation (calls a chat-completions API and normalizes its text response).
-def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: bool) -> str:
-    api_key = _resolve_api_key(profile)
+def _openai_compatible_request(profile: dict[str, Any], prompt: str | GroundedPrompt, test_mode: bool, *, api_key: str | None = None) -> str:
+    started = time.perf_counter()
+    api_key = api_key or _resolve_api_key(profile)
     endpoint = f"{profile['base_url']}/chat/completions"
+    system, user_content, schema = _prompt_parts(prompt)
     body: dict[str, Any] = {
         "model": profile["model"],
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user_content}],
         "temperature": 0 if test_mode else profile["temperature"],
         "max_tokens": profile["max_tokens"],
         "stream": False,
@@ -489,10 +551,23 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
     hostname = (urlparse(profile["base_url"]).hostname or "").lower()
     if hostname == "api.deepseek.com" or hostname.endswith(".deepseek.com"):
         body["thinking"] = {"type": profile.get("thinking_mode", "disabled")}
+        if profile.get("thinking_mode") == "enabled":
+            body.pop("temperature", None)
+            effort = profile.get("reasoning_effort", "medium")
+            body["reasoning_effort"] = "high" if effort == "medium" else effort
     elif hostname == "openrouter.ai":
         body["reasoning"] = {"enabled": profile.get("thinking_mode", "disabled") == "enabled"}
+        if profile.get("thinking_mode") == "enabled":
+            body["reasoning"]["effort"] = "high" if profile.get("reasoning_effort") == "max" else profile.get("reasoning_effort", "medium")
         if test_mode and profile['model'].endswith(':free'):
             _check_openrouter_free_endpoints(profile)
+
+    if schema:
+        output_mode = profile.get("structured_output", "json_object")
+        if output_mode == "json_schema" and "deepseek.com" not in hostname:
+            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "grounded_answer", "strict": True, "schema": schema}}
+        elif output_mode != "prompt_only":
+            body["response_format"] = {"type": "json_object"}
 
     try:
         response = _post_with_transient_retries(
@@ -506,6 +581,8 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
             if error:
                 raise error
         choice = data["choices"][0]
+        if choice.get("finish_reason") == "length" and isinstance(prompt, GroundedPrompt):
+            raise ProviderError("The provider reached its output token limit before completing a structured answer.")
         content = choice["message"]["content"]
         # Text Normalization (accepts plain message text or a list of text content parts)
         if isinstance(content, list):
@@ -520,7 +597,7 @@ def _openai_compatible_request(profile: dict[str, Any], prompt: str, test_mode: 
                     "save the draft, and test again."
                 )
             raise ProviderError("The provider returned an empty response.")
-        return text
+        return _provider_text(text, profile, data.get("usage", {}), started)
     except requests.ConnectTimeout:
         raise ProviderTimeoutError(
             "The AI provider connection timed out. Check the provider URL and the backend's network access."
@@ -552,7 +629,19 @@ def test_ai_draft(db: Session) -> dict[str, Any]:
     draft = dict(draft)
     started = time.monotonic()
     try:
-        preview = _provider_request(draft, DEFAULT_TEST_PROMPT, test_mode=True)
+        probe = GroundedPrompt(
+            system_instruction='Return the requested JSON answer. The only evidence is S1: connection value CONNECTED. Cite it as [S1].',
+            user_content=json.dumps({"question": "What is the connection value?", "evidence": [{"source_id": "S1", "text": "Connection value: CONNECTED"}]}),
+            source_ids=("S1",),
+        )
+        raw_preview = _provider_request(draft, probe, test_mode=True)
+        try:
+            checked = parse_grounded_answer(raw_preview, probe.source_ids)
+            if checked.status != "answered" or "CONNECTED" not in checked.answer or checked.source_ids != ["S1"]:
+                raise GroundingError("The provider did not pass the structured evidence check.")
+        except GroundingError as exc:
+            raise ProviderError(str(exc)) from None
+        preview = checked.answer
     except (ProviderError, HTTPException) as exc:
         draft["test_status"] = "failed"
         draft["tested_at"] = _utc_now_iso()
@@ -565,6 +654,7 @@ def test_ai_draft(db: Session) -> dict[str, Any]:
         raise HTTPException(status_code=502, detail=str(exc))
 
     draft["test_status"] = "passed"
+    draft["test_protocol_version"] = CONNECTION_PROBE_VERSION
     draft["tested_at"] = _utc_now_iso()
     draft["latency_ms"] = round((time.monotonic() - started) * 1000)
     container["draft"] = draft
@@ -582,6 +672,8 @@ def activate_ai_draft(db: Session, updated_by: str) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail="There is no draft configuration to activate.")
     if draft.get("test_status") != "passed":
         raise HTTPException(status_code=409, detail="Test the draft successfully before activating it.")
+    if draft.get("test_protocol_version") != CONNECTION_PROBE_VERSION:
+        raise HTTPException(status_code=409, detail="Retest the draft with the current structured-answer check before activating it.")
 
     previous = container.get("active")
     if not previous:
@@ -616,12 +708,22 @@ def rollback_ai_provider(db: Session, updated_by: str) -> dict[str, Any]:
 
 
 # Live Response Generation (uses the active profile and attempts the configured Gemini fallback on failure)
-def generate_ai_response(db: Session, prompt: str) -> str:
+def _validated_response(profile: dict, prompt: str | GroundedPrompt) -> str:
+    response = _provider_request(profile, prompt)
+    if isinstance(prompt, GroundedPrompt):
+        try:
+            parse_grounded_answer(response, prompt.source_ids)
+        except GroundingError as exc:
+            raise ProviderError(str(exc)) from None
+    return response
+
+
+def generate_ai_response(db: Session, prompt: str | GroundedPrompt) -> str:
     setting = _get_setting(db)
     container = _setting_container(setting)
     active = container.get("active") or _default_profile()
     try:
-        return _provider_request(active, prompt)
+        return _validated_response(active, prompt)
     except (ProviderError, HTTPException) as exc:
         _log_provider_failure("active", exc)
         fallback = _default_profile()
@@ -630,7 +732,7 @@ def generate_ai_response(db: Session, prompt: str) -> str:
         if is_already_fallback or not os.getenv("GOOGLE_API_KEY", "").strip():
             raise
         try:
-            return _provider_request(fallback, prompt)
+            return _validated_response(fallback, prompt)
         except (ProviderError, HTTPException) as fallback_exc:
             _log_provider_failure("fallback", fallback_exc)
             raise

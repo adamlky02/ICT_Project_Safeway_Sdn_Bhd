@@ -382,3 +382,10 @@ button:disabled { cursor: not-allowed; }
 @media (min-width: 768px) {
     .provider-field > :is(input, select) { font-size: 0.875rem; }
 }
+
+/* Bold orange emphasis keeps figures intact in both color themes. */
+.keyword-emphasis {
+    font-weight: 700;
+    color: #c2410c;
+}
+.dark .keyword-emphasis { color: #fb923c; }

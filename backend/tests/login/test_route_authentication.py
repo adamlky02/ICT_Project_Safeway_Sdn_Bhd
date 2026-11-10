@@ -146,7 +146,7 @@ class ProtectedRouteTests(unittest.TestCase):
         fake_db.execute.side_effect = lambda query, *args, **kwargs: self.db.execute(query, *args, **kwargs) if any(name in str(query) for name in ('auth_sessions', 'authenticators')) else empty_result
         fake_db.get.side_effect = self.db.get
         self.app.dependency_overrides[database.get_db] = lambda: fake_db
-        with patch.object(chat, 'get_or_create_session', return_value=SimpleNamespace(id=uuid4())) as resolve, patch.object(chat, 'save_chat_turn'), patch.object(chat, 'get_embedding', return_value=[0.1]):
+        with patch.object(chat, 'get_or_create_session', return_value=SimpleNamespace(id=uuid4())) as resolve, patch.object(chat, 'save_chat_turn'), patch.object(chat, 'get_embedding', return_value=[0.1] * 3072):
             response = self.client.post('/api/chat', json={'message':'Hello', 'user_id':str(self.b.id)}, headers=self.headers())
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(resolve.call_args.args[1], str(self.a.id))

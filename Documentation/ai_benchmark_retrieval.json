@@ -1,0 +1,27 @@
+{
+  "prompt_version": "safeway-grounded-v2",
+  "dataset_version": "safeway-synthetic-v1",
+  "synthetic_only": true,
+  "fixture_count": 72,
+  "languages": {
+    "en": 24,
+    "ms": 24,
+    "zh": 24
+  },
+  "offline_lexical_retrieval": {
+    "labelled_queries": 45,
+    "recall_at_6": 0.8889,
+    "mrr_at_6": 0.8778
+  },
+  "live_generation_with_gold_evidence": null,
+  "limitations": [
+    "Synthetic fixtures do not measure production accuracy.",
+    "Generation uses gold evidence; this is not an end-to-end database benchmark.",
+    "Fact checks use explicit terms/status/schema, not a semantic judge. Language quality and faithfulness need human review."
+  ],
+  "live_in_memory_hybrid_retrieval": {
+    "labelled_queries": 45,
+    "recall_at_6": 1.0,
+    "mrr_at_6": 1.0
+  }
+}

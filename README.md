@@ -38,11 +38,15 @@ This public repository contains the application source code and a safe local-dev
 ### Grounded AI responses
 
 - Retrieval-Augmented Generation using approved documents
-- Semantic search over indexed document sections
+- Hybrid semantic and keyword retrieval with relevance filtering and rank fusion
 - Backend-controlled prompt construction
-- Source-aware responses and safe handling of missing information
+- Structured answers with validated source IDs and handling of missing or conflicting evidence
 - Server-side assistance for selected policy calculations
-- Configurable response-provider support
+- Configurable response providers with model-specific reasoning controls
+- Repeatable English, Malay, and Chinese synthetic AI benchmarks
+
+The retrieval-v2 upgrade requires a database migration and document reindexing before
+the updated backend receives traffic.
 
 ## High-level architecture
 

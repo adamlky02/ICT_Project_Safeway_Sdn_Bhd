@@ -35,12 +35,14 @@ const emptyForm: AIProviderForm = {
     display_name: 'Render Gemini fallback',
     provider: 'gemini',
     base_url: 'https://generativelanguage.googleapis.com/v1beta',
-    model: 'gemini-3.1-flash-lite',
+    model: 'gemini-3.5-flash-lite',
     api_key: '',
-    temperature: 0.4,
-    max_tokens: 1024,
+    temperature: 1.0,
+    max_tokens: 2048,
     timeout_seconds: 45,
     thinking_mode: 'disabled',
+    reasoning_effort: 'medium',
+    structured_output: 'json_schema',
 };
 
 // Editable Profile Conversion (copies public settings into the form and clears the API key input)
@@ -55,6 +57,8 @@ function profileToForm(profile: AIProviderProfile): AIProviderForm {
         max_tokens: profile.max_tokens,
         timeout_seconds: profile.timeout_seconds,
         thinking_mode: profile.thinking_mode,
+        reasoning_effort: profile.reasoning_effort || 'medium',
+        structured_output: profile.structured_output || 'json_object',
     };
 }
 
@@ -82,6 +86,8 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         if (form.provider === 'gemini') return 'gemini';
         return form.base_url.toLowerCase().includes('deepseek.com') ? 'deepseek' : 'custom';
     }, [form.base_url, form.provider]);
+    const temperatureIgnored = (form.provider === 'gemini' && form.model.replace(/^models\//, '').startsWith('gemini-3'))
+        || (preset === 'deepseek' && form.thinking_mode === 'enabled');
 
     // Settings Load (restores the saved draft or active profile using the current developer unlock token)
     const loadSettings = async () => {
@@ -120,8 +126,10 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                 display_name: 'Gemini',
                 provider: 'gemini',
                 base_url: 'https://generativelanguage.googleapis.com/v1beta',
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-3.5-flash-lite',
                 thinking_mode: 'disabled',
+                reasoning_effort: 'medium',
+                structured_output: 'json_schema',
                 api_key: '',
             }));
             return;
@@ -129,11 +137,13 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
         if (nextPreset === 'deepseek') {
             setForm((current) => ({
                 ...current,
-                display_name: 'DeepSeek V4 Flash',
+                display_name: 'DeepSeek V4.1 Flash',
                 provider: 'openai_compatible',
                 base_url: 'https://api.deepseek.com',
-                model: 'deepseek-v4-flash',
+                model: 'deepseek-flash',
                 thinking_mode: 'disabled',
+                reasoning_effort: 'medium',
+                structured_output: 'json_object',
                 api_key: '',
             }));
             return;
@@ -320,7 +330,8 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                     </label>
                     <label className="provider-field">
                         <span className="provider-field-label">{t.ai_temperature || 'Temperature'}</span>
-                        <input type="number" min="0" max="2" step="0.1" value={form.temperature} onChange={(event) => updateForm('temperature', Number(event.target.value))} className={inputStyle} />
+                        <input type="number" min="0" max="2" step="0.1" disabled={temperatureIgnored} value={form.temperature} onChange={(event) => updateForm('temperature', Number(event.target.value))} className={`${inputStyle} disabled:opacity-50`} />
+                        {temperatureIgnored && <span className="text-xs text-slate-500">{t.ai_temperature_managed}</span>}
                     </label>
                     <label className="provider-field">
                         <span className="provider-field-label">{t.ai_max_tokens || 'Maximum output tokens'}</span>
@@ -336,6 +347,25 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                             <option value="disabled">{t.ai_thinking_disabled || 'Disabled — faster and cheaper'}</option>
                             <option value="enabled">{t.ai_thinking_enabled || 'Enabled — deeper reasoning'}</option>
                         </select>
+                        <span className="text-xs text-slate-500">{t.ai_thinking_note}</span>
+                    </label>
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_reasoning_effort}</span>
+                        <select disabled={form.thinking_mode !== 'enabled'} value={form.reasoning_effort} onChange={(event) => updateForm('reasoning_effort', event.target.value as AIProviderForm['reasoning_effort'])} className={`${inputStyle} disabled:opacity-50`}>
+                            <option value="low">{t.ai_effort_low}</option>
+                            <option value="medium">{t.ai_effort_medium}</option>
+                            <option value="high">{t.ai_effort_high}</option>
+                            {preset === 'deepseek' && <option value="max">{t.ai_effort_max}</option>}
+                        </select>
+                    </label>
+                    <label className="provider-field">
+                        <span className="provider-field-label">{t.ai_output_format}</span>
+                        <select disabled={form.provider === 'gemini' || preset === 'deepseek'} value={form.provider === 'gemini' ? 'json_schema' : preset === 'deepseek' ? 'json_object' : form.structured_output} onChange={(event) => updateForm('structured_output', event.target.value as AIProviderForm['structured_output'])} className={`${inputStyle} disabled:opacity-50`}>
+                            <option value="json_object">JSON object</option>
+                            <option value="json_schema">JSON schema</option>
+                            <option value="prompt_only">{t.ai_output_prompt_only}</option>
+                        </select>
+                        <span className="text-xs text-slate-500">{t.ai_evaluation_note}</span>
                     </label>
                 </div>
 
@@ -349,7 +379,7 @@ export function AISettingsPanel({ t, developerToken, onProviderActivated, onDeve
                         {pendingAction === 'test' ? <Loader2 className="animate-spin" size={17} /> : <FlaskConical size={17} />}
                         {t.ai_test_connection || 'Test connection'}
                     </button>
-                    <button type="button" disabled={settings?.draft?.test_status !== 'passed' || pendingAction !== null} onClick={() => void runAction('activate')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
+                    <button type="button" disabled={settings?.draft?.test_status !== 'passed' || settings?.draft?.test_protocol_version !== 'grounded-v2' || pendingAction !== null} onClick={() => void runAction('activate')} className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
                         {pendingAction === 'activate' ? <Loader2 className="animate-spin" size={17} /> : <ShieldCheck size={17} />}
                         {t.ai_activate || 'Activate'}
                     </button>

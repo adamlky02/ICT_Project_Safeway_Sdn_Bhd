@@ -6,6 +6,7 @@ import { lazy, Suspense } from 'react';
 import { LoadingState } from '../feedback/LoadingState';
 import { AsyncBoundary } from '../feedback/AsyncBoundary';
 import type { Translation } from '../../translations';
+import { EmphasizedText } from '../EmphasizedText';
 const SmartPdfViewer = lazy(() => import('../SmartPdfViewer'));
 
 // Document Drawer Props (provides the selected source and close action)
@@ -13,10 +14,11 @@ interface DocumentDrawerProps {
     source: DocumentSource | null;
     t: Translation;
     onClose: () => void;
+    question?: string;
 }
 
 // Document Drawer (shows retrieved evidence beside an inline document preview)
-export function DocumentDrawer({ source, onClose, t }: DocumentDrawerProps) {
+export function DocumentDrawer({ source, onClose, t, question = '' }: DocumentDrawerProps) {
     return (
         <AnimatePresence>
             {source && (
@@ -61,10 +63,10 @@ export function DocumentDrawer({ source, onClose, t }: DocumentDrawerProps) {
                         <div className="shrink-0 border-b border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/30 dark:bg-amber-900/10 sm:p-5">
                             <div className="flex items-center gap-2 mb-3 text-amber-600 dark:text-amber-500">
                                 <Search size={14} />
-                                <span className="text-[10px] font-semibold tracking-wide">AI Extraction Highlight</span>
+                                <span className="text-[10px] font-semibold tracking-wide">{t.source_excerpt}</span>
                             </div>
                             <p className="max-h-24 overflow-y-auto border-l-[3px] border-amber-400 pl-3 text-xs font-medium italic leading-relaxed text-slate-700 custom-scrollbar dark:border-amber-500 dark:text-slate-300 sm:max-h-32 sm:pl-4">
-                                &quot;{source.content}&quot;
+                                &quot;<EmphasizedText text={source.content} query={question} />&quot;
                             </p>
                         </div>
 

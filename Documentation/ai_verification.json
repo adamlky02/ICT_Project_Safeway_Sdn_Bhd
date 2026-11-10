@@ -1,0 +1,25 @@
+{
+  "verification_date": "2026-11-09",
+  "backend_tests_passed": 120,
+  "backend_tests_skipped_in_combined_run": 0,
+  "postgres_scope": "Connection-local pg_temp tables only; all test table changes rolled back.",
+  "frontend_typecheck": "passed",
+  "frontend_production_build": "passed",
+  "python_versions_checked": [
+    "3.13.5",
+    "3.13.9"
+  ],
+  "node_version_used": "22.23.4",
+  "dependency_lock_check": "passed",
+  "application_python_files_parsed": 46,
+  "persistent_application_migration_applied": false,
+  "company_documents_reindexed": false,
+  "saved_provider_configuration_changed": false,
+  "cleanup": {
+    "removed_project_cache_and_build_directories": 1521,
+    "removed_temporary_items": 20,
+    "preserved": "Application source, tests, reusable evaluation/reindex tools, result reports, original documents and installed runtime dependencies.",
+    "remaining_project_cache_directories": 0,
+    "remaining_process_temporary_items": 0
+  }
+}

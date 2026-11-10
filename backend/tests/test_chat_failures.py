@@ -1,14 +1,16 @@
 """Chat failure diagnostics without cloud services, credentials or company data."""
 
 import asyncio
+import json
 import os
 import unittest
 from threading import Event
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import ProgrammingError
 
 with patch.dict(os.environ, {"DATABASE_URL": "sqlite://", "SECRET_KEY": "test-only-secret-not-for-deployment-12345"}), patch("dotenv.load_dotenv"), patch("boto3.client"):
     from backend.route import chat
@@ -18,14 +20,15 @@ class ChatFailureTests(unittest.TestCase):
     def setUp(self):
         self.db = MagicMock()
         self.db.execute.return_value.fetchall.return_value = [
-            ("Synthetic policy", "Test manual", "General", "test.txt"),
+            ("Synthetic policy", "Test manual", "General", "test.txt", "1", 0.1, 1, 1),
         ]
         self.user = SimpleNamespace(id="test-user")
         self.session_id = "test-session"
+        self.response = Response()
         for name, options in (
             ("get_or_create_session", {"return_value": SimpleNamespace(id=self.session_id)}),
-            ("get_embedding", {"return_value": [0.1]}),
-            ("generate_ai_response", {"return_value": "Synthetic answer"}),
+            ("get_embedding", {"return_value": [0.1] * 3072}),
+            ("generate_ai_response", {"return_value": json.dumps({"answer": "Synthetic answer [S1]", "status": "answered", "source_ids": ["S1"], "missing_information": []})}),
             ("save_chat_turn", {}),
         ):
             mocked = patch.object(chat, name, **options)
@@ -33,7 +36,57 @@ class ChatFailureTests(unittest.TestCase):
             self.addCleanup(mocked.stop)
 
     def request(self):
-        return chat.chat_with_ai(chat.ChatRequest(message="Synthetic question"), self.db, self.user)
+        return chat.chat_with_ai(chat.ChatRequest(message="Synthetic question"), self.db, self.user, self.response)
+
+    def test_missing_column_or_table_reports_schema_update_without_exposing_sql(self):
+        for sqlstate in ("42703", "42P01"):
+            with self.subTest(sqlstate=sqlstate):
+                original = RuntimeError("private-document-text-or-credential")
+                original.pgcode = sqlstate
+                self.db.execute.side_effect = ProgrammingError("private-sql", {"secret": "private-parameter"}, original)
+                with self.assertLogs(chat.logger, level="ERROR") as logs:
+                    result = self.request()
+                self.assertEqual(self.response.status_code, 503)
+                self.assertEqual(result["error_code"], "retrieval_schema_mismatch")
+                self.assertIn("database update", result["message"])
+                self.assertIn(f"sqlstate={sqlstate}", logs.output[0])
+                self.assertIn("20261109_ai_retrieval_v2.sql", logs.output[0])
+                for secret in ("private-document-text-or-credential", "private-sql", "private-parameter"):
+                    self.assertNotIn(secret, str(result) + str(logs.output))
+                self.generate_ai_response.assert_not_called()
+                self.save_chat_turn.assert_not_called()
+                self.db.rollback.assert_called()
+
+    def test_other_programming_error_does_not_claim_a_migration_will_fix_it(self):
+        original = RuntimeError("private-sql-details")
+        original.pgcode = "42601"
+        self.db.execute.side_effect = ProgrammingError("private-sql", {}, original)
+        with self.assertLogs(chat.logger, level="ERROR") as logs:
+            result = self.request()
+        self.assertEqual(result["error_code"], "chat_retrieval_failed")
+        self.assertEqual(self.response.status_code, 500)
+        self.assertIn("sqlstate=42601", logs.output[0])
+        self.assertNotIn("private-sql", str(logs.output))
+
+    def test_http_error_preserves_session_and_actionable_message(self):
+        original = RuntimeError("private-sql-details")
+        original.pgcode = "42703"
+        self.db.execute.side_effect = ProgrammingError("private-sql", {}, original)
+        app = FastAPI()
+        app.include_router(chat.router)
+        app.dependency_overrides[chat.database.get_db] = lambda: self.db
+        app.dependency_overrides[chat.get_current_user] = lambda: self.user
+
+        async def exercise():
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                with self.assertLogs(chat.logger, level="ERROR"):
+                    result = await client.post("/api/chat", json={"message": "Synthetic question"})
+                self.assertEqual(result.status_code, 503)
+                self.assertEqual(result.json()["error_code"], "retrieval_schema_mismatch")
+                self.assertEqual(result.json()["session_id"], self.session_id)
+                self.assertEqual(result.json()["sources"], [])
+
+        asyncio.run(exercise())
 
     def test_each_failure_identifies_its_stage_and_preserves_session_without_leaking_details(self):
         for stage, target in (
@@ -114,7 +167,7 @@ class ChatFailureTests(unittest.TestCase):
             entered.set()
             if not release.wait(timeout=3):
                 raise RuntimeError("Another request could not run while the provider was waiting")
-            return "Synthetic answer"
+            return json.dumps({"answer": "Synthetic answer [S1]", "status": "answered", "source_ids": ["S1"], "missing_information": []})
 
         self.generate_ai_response.side_effect = slow_provider
         app = FastAPI()
@@ -136,18 +189,18 @@ class ChatFailureTests(unittest.TestCase):
                 finally:
                     release.set()
                     response = await pending
-                self.assertEqual(response.json()["message"], "Synthetic answer")
+                self.assertEqual(response.json()["message"], "Synthetic answer [S1]")
 
         asyncio.run(exercise())
 
     def test_success_still_returns_sources_and_saves_the_answer(self):
         result = self.request()
-        self.assertEqual(result["message"], "Synthetic answer")
+        self.assertEqual(result["message"], "Synthetic answer [S1]")
         self.assertEqual(result["session_id"], self.session_id)
         self.assertEqual(result["sources"][0]["title"], "Test manual")
         self.assertNotIn("error_code", result)
         self.save_chat_turn.assert_called_once_with(
-            self.db, self.session_id, "Synthetic question", "Synthetic answer", result["sources"],
+            self.db, self.session_id, "Synthetic question", "Synthetic answer [S1]", result["sources"],
         )
 
 

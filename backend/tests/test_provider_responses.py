@@ -47,7 +47,7 @@ class ProviderResponseTests(unittest.TestCase):
                 self.assertEqual(result, "CONNECTED")
                 payload = self.post.call_args.kwargs["json"]
                 self.assertEqual(payload["max_tokens"], 1024)
-                self.assertEqual(payload["reasoning"], {"enabled": enabled})
+                self.assertEqual(payload["reasoning"], {"enabled": True, "effort": "medium"} if enabled else {"enabled": False})
                 self.assertEqual(self.post.call_args.args[0], "https://openrouter.ai/api/v1/chat/completions")
 
     def test_live_requests_honor_budget_and_other_provider_parameters(self):

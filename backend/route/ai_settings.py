@@ -22,10 +22,12 @@ class AIProviderDraftRequest(BaseModel):
     base_url: str = Field(min_length=8, max_length=500)
     model: str = Field(min_length=1, max_length=200)
     api_key: str | None = Field(default=None, max_length=1000)
-    temperature: float = Field(default=0.4, ge=0, le=2)
-    max_tokens: int = Field(default=1024, ge=32, le=32768)
+    temperature: float = Field(default=1.0, ge=0, le=2)
+    max_tokens: int = Field(default=2048, ge=32, le=32768)
     timeout_seconds: int = Field(default=45, ge=5, le=120)
     thinking_mode: Literal["enabled", "disabled"] = "disabled"
+    reasoning_effort: Literal["low", "medium", "high", "max"] = "medium"
+    structured_output: Literal["json_object", "json_schema", "prompt_only"] = "json_object"
 
 
 # Settings Read (returns public provider metadata after developer role and unlock-token verification)

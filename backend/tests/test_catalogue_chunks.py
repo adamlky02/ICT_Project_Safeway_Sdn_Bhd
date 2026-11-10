@@ -21,8 +21,8 @@ class CatalogueChunkTests(unittest.TestCase):
         self.assertIn("Product: Quartz B 10W-40", chunks[-1])
         self.assertIn("Viscosity grade | SAE J300 | 10W-40", chunks[-1])
 
-    def test_regular_documents_keep_existing_chunking(self):
-        self.assertEqual(build_index_chunks("a" * 1001), ["a" * 1000, "a"])
+    def test_regular_documents_keep_short_text_and_malformed_catalogues(self):
+        self.assertEqual(build_index_chunks("a" * 1001), ["a" * 1001])
         malformed = "=== PRODUCT: Sample ===\nNo page marker"
         self.assertEqual(build_index_chunks(malformed), [malformed])
 

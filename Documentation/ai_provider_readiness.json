@@ -1,0 +1,8 @@
+{
+  "synthetic_only": true,
+  "saved_configuration_changed": false,
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "profile_source": "saved",
+  "structured_probe_passed": true
+}
